@@ -1,0 +1,4 @@
+import { CARD_REGISTRY, CARD_TYPES, RENDER_OPTIONS_SCHEMA } from '../generated/registry';
+
+export { CARD_REGISTRY, CARD_TYPES, RENDER_OPTIONS_SCHEMA };
+export const CARD_SCHEMAS = CARD_REGISTRY;

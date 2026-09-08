@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "公共渲染设置",
+  "description": "适用于所有 Card 的主题和水印设置。",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "theme": {
+      "type": "string",
+      "enum": ["light", "dark"],
+      "default": "light",
+      "title": "主题",
+      "description": "省略时使用浅色主题。"
+    },
+    "watermark": {
+      "type": "string",
+      "title": "底部水印",
+      "description": "未传、为空或仅包含空白时不显示。"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1",
+  "type": "social_post",
+  "author": {
+    "name": "Daily Phrase",
+    "handle": "@dailyphrase"
+  },
+  "source": "Telegram",
+  "content": "Small steps still move you forward.",
+  "translation": {
+    "sourceLanguage": "English",
+    "model": "AI",
+    "text": "慢慢来，每一步都算数。"
+  },
+  "publishedAt": "2026-09-02 21:08"
+}

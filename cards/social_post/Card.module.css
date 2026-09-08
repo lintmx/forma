@@ -1,0 +1,469 @@
+/* Shared renderer classes are kept global; this root scopes their Social Post overrides. */
+.root {
+  width: 100%;
+  min-width: 0;
+  max-width: 900px;
+  padding: 20px 20px 10px;
+}
+
+.root :global(.card-surface) {
+  padding: 16px;
+}
+
+.reshare {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 20px 24px 0;
+  color: var(--card-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.reshare > span:first-child {
+  font-size: 18px;
+}
+
+.replyChain {
+  margin: 20px 24px 0;
+}
+
+.replyChainToggle {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: var(--card-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.replyItem {
+  position: relative;
+  padding: 0 0 16px 48px;
+}
+
+.replyItem:not(:last-child)::before {
+  position: absolute;
+  top: 34px;
+  bottom: 0;
+  left: 15px;
+  width: 2px;
+  content: '';
+  background: var(--card-border);
+}
+
+.root :global(.social-post-body--compact .card-content) {
+  padding: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.root :global(.social-post-body--compact .card-translation) {
+  margin: 12px 0 0;
+}
+
+.root :global(.social-post-body--compact .media-grid) {
+  margin: 12px 0 0;
+}
+
+.root :global(.social-post__quoted) {
+  margin: 18px 24px 0;
+  padding: 14px 16px;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--card-media-background);
+}
+
+@media (max-width: 520px) {
+  .reshare,
+  .replyChain {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+  .root :global(.social-post__quoted) {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+  .root :global(.social-post-body--compact .social-post__quoted) {
+    margin-right: 0;
+    margin-left: 0;
+  }
+}
+
+.root :global(.social-post-body) {
+  line-height: 1.2;
+}
+
+.root :global(.social-post-body .card-header) {
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.root :global(.social-post-body .card-author) {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.root :global(.social-post-body .card-avatar) {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+}
+
+.root :global(.social-post-body .card-author__details) {
+  gap: 3px;
+  padding-top: 1px;
+}
+
+.root :global(.social-post-body .card-author__details--centered) {
+  align-self: center;
+}
+
+.root :global(.social-post-body .card-author__name) {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.root :global(.social-post-body .card-author__handle) {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.root :global(.social-post-body .card-author__verified) {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+  font-size: 12px;
+}
+
+.root :global(.social-post-body .card-content) {
+  margin: 0;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.375;
+  letter-spacing: 0.01em;
+}
+
+.root :global(.social-post-body .card-content__hashtag),
+.root :global(.social-post-body .card-content__mention),
+.root :global(.social-post-body .card-content__link) {
+  color: var(--card-link);
+  font-weight: 500;
+}
+
+.root :global(.social-post-body .card-content__link) {
+  text-decoration: none;
+}
+
+.root :global(.social-post-body .card-translation) {
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.root :global(.social-post-body .card-translation__label) {
+  margin-bottom: 8px;
+  padding: 2px 8px;
+  color: var(--card-text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.root :global(.social-post-body .translation-model),
+.root :global(.social-post-body .translation-language) {
+  color: var(--card-link);
+}
+
+.root :global(.social-post-body .card-translation__text) {
+  padding: 8px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--card-media-background);
+  color: var(--card-text-muted);
+  font-size: 15px;
+  line-height: 1.375;
+}
+
+.root :global(.social-post-body .media-grid) {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 16px 0 0;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: var(--card-border);
+}
+
+.root :global(.social-post-body .media-grid__item) {
+  aspect-ratio: auto;
+  width: 100%;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.root :global(.social-post-body .media-grid__item img) {
+  height: auto;
+  object-fit: contain;
+}
+
+.reshare {
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  font-size: 13px;
+}
+
+.reshareIcon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  fill: var(--card-text-secondary);
+}
+
+.replyChain {
+  margin: 0 0 16px;
+}
+
+.replyItem {
+  padding: 12px 0 12px 48px;
+}
+
+.root :global(.social-post__quoted) {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--card-surface-background);
+}
+
+.root :global(.card-footer) {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0;
+  margin: 4px 0 0;
+  padding: 8px 0 0;
+  border-top-color: var(--card-border);
+}
+
+.root :global(.card-footer__remark) {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  color: var(--card-text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.root :global(.card-footer__source) {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.root :global(.card-footer__dot) {
+  flex-shrink: 0;
+  margin: 0 5px;
+}
+
+.root :global(.card-footer__url) {
+  flex: 1;
+  color: inherit;
+  text-align: left;
+}
+
+.root :global(.social-post-body--compact .card-header) {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.root :global(.social-post-body--compact .card-avatar) {
+  width: 32px;
+  height: 32px;
+  flex-basis: 32px;
+}
+
+.root :global(.social-post-body--compact .card-author__name) {
+  font-size: 14px;
+}
+
+.root :global(.social-post-body--compact .card-author__handle) {
+  font-size: 12px;
+}
+
+.root :global(.social-post-body--compact .card-content) {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.root :global(.social-post-body--compact .card-translation) {
+  margin-top: 10px;
+}
+
+.root :global(.social-post-body--compact .media-grid) {
+  margin-top: 10px;
+}
+
+.root :global(.social-post-body--compact .social-post__quoted) {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+@media (max-width: 520px) {
+  .root {
+    min-width: 0;
+    padding: 12px 8px 6px;
+  }
+
+  .root :global(.card-surface) {
+    padding: 16px;
+  }
+}
+
+/* Template layout is scoped to Social Post; other card types retain their styles. */
+:global(.renderer-frame[data-theme='light']) .root {
+  --card-border: #e7ecf0;
+  --card-text-secondary: #657786;
+  --card-text-muted: #5b7083;
+  --card-media-background: #f6f7f8;
+}
+
+.root :global(.social-post-body .card-header) {
+  margin-bottom: 12px;
+}
+
+.root :global(.social-post-body .card-content) {
+  margin-bottom: 12px;
+  color: var(--card-text-primary);
+}
+
+.root :global(.social-post-body .card-translation) {
+  margin: 0 0 12px;
+}
+
+.root :global(.social-post-body .media-grid) {
+  margin: 0 0 12px;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
+}
+
+.root :global(.social-post-body .card-author) {
+  width: 100%;
+}
+
+.root :global(.social-post-body .card-author__details) {
+  flex: 1;
+}
+
+.root :global(.social-post-body .card-avatar) {
+  box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
+}
+
+.root :global(.social-post-body .media-grid__overlay) {
+  width: 52px;
+  height: 52px;
+  border: 0;
+  background: rgb(0 0 0 / 75%);
+  font-size: 26px;
+}
+
+.reshare {
+  margin: 0;
+  padding: 8px 12px;
+  font-weight: 500;
+}
+
+.reshareIcon {
+  width: 16px;
+  height: 16px;
+  flex-basis: 16px;
+}
+
+.replyChain {
+  margin-bottom: 12px;
+}
+
+.replyChainToggle {
+  color: var(--card-link);
+  font-weight: 500;
+}
+
+.replyItem {
+  padding: 12px 0;
+}
+
+.replyItem::before,
+.replyItem:not(:last-child)::before {
+  position: absolute;
+  top: 68px;
+  bottom: -8px;
+  left: 23px;
+  width: 2px;
+  content: '';
+  background: var(--card-border);
+}
+
+.root :global(.social-post-body--reply) {
+  padding-left: 60px;
+}
+
+.root :global(.social-post-body--reply .card-header) {
+  margin-bottom: 16px;
+}
+
+.root :global(.social-post-body--reply .card-avatar) {
+  position: absolute;
+  top: 12px;
+  left: 0;
+}
+
+.root :global(.social-post-body--reply .card-author__name) {
+  font-size: 16px;
+}
+
+.root :global(.social-post-body--reply .card-content) {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.root :global(.social-post-body--reply .card-translation),
+.root :global(.social-post-body--reply .media-grid) {
+  margin-bottom: 10px;
+}
+
+.root :global(.social-post-body--reply .card-translation__text),
+.root :global(.social-post-body--compact .card-translation__text) {
+  font-size: 13px;
+}
+
+.root :global(.social-post__quoted) {
+  margin: 0 0 16px;
+}
+
+:global(.renderer-frame[data-theme='light']) .root :global(.social-post__quoted) {
+  background: #fafbfc;
+}
+
+.root :global(.social-post-body--compact .card-header) {
+  margin-bottom: 10px;
+}
+
+.root :global(.social-post-body--compact .card-author__handle) {
+  font-size: 13px;
+}
+
+.root :global(.social-post-body--compact .card-translation__text) {
+  padding: 10px 12px;
+}
+
+.root :global(.card-footer) {
+  margin: 4px 0 0;
+  padding: 8px 0 0;
+  align-items: stretch;
+}

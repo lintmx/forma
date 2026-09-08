@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1",
+  "type": "social_post",
+  "author": {
+    "name": "Original Publisher",
+    "handle": "@publisher@social.example"
+  },
+  "postKind": "reshare",
+  "reshare": {
+    "by": {
+      "name": "Community Account"
+    },
+    "publishedAt": "2026-08-30 10:15"
+  },
+  "content": "把一条值得保存的内容分享给更多人。",
+  "postUrl": "https://example.com/reshared-post"
+}

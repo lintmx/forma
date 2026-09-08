@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1",
+  "type": "social_post",
+  "author": {
+    "name": "Open Ideas",
+    "handle": "@open-ideas"
+  },
+  "postKind": "quote",
+  "content": "引用一段很喜欢的观察，再补充一点自己的想法。",
+  "quotedPost": {
+    "author": {
+      "name": "The Original Note",
+      "handle": "@original-note",
+      "verified": true
+    },
+    "content": "真正重要的内容，往往经得起不同平台和不同语境的重新表达。",
+    "media": [
+      {
+        "type": "video",
+        "url": "https://example.com/video.mp4",
+        "previewUrl": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&h=800&q=82",
+        "alt": "引用内容的视频预览"
+      }
+    ],
+    "publishedAt": "2026-08-31 17:45"
+  },
+  "postUrl": "https://example.com/open-ideas/1"
+}

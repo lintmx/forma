@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1",
+  "type": "social_post",
+  "author": {
+    "name": "Visual Diary",
+    "handle": "@visual-diary"
+  },
+  "media": [
+    {
+      "type": "image",
+      "url": "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&h=800&q=82",
+      "alt": "山谷中的道路"
+    }
+  ],
+  "publishedAt": "2026-08-29 16:40"
+}

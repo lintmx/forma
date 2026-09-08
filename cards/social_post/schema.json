@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forma:card:social_post",
+  "title": "Social Post",
+  "description": "跨平台社交内容的统一表现形式。",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema 版本",
+      "description": "Forma Card 协议版本。"
+    },
+    "type": {
+      "const": "social_post",
+      "default": "social_post",
+      "title": "Card 类型",
+      "description": "Card 的唯一类型标识。"
+    },
+    "author": {
+      "type": "object",
+      "title": "作者",
+      "description": "当前社交内容的作者。",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "名称",
+          "description": "作者显示名称。",
+          "default": "未命名作者"
+        },
+        "handle": {
+          "type": "string",
+          "title": "账号",
+          "description": "可选的公开账号标识。"
+        },
+        "avatarUrl": {
+          "type": "string",
+          "title": "头像图片地址",
+          "description": "用于渲染作者头像的图片地址。"
+        },
+        "verified": {
+          "type": "boolean",
+          "title": "已认证",
+          "description": "是否显示认证标记。",
+          "default": false
+        }
+      }
+    },
+    "source": {
+      "type": "string",
+      "title": "来源",
+      "description": "Footer 中展示的来源名称。"
+    },
+    "postUrl": {
+      "type": "string",
+      "title": "内容链接",
+      "description": "显示在卡片底部的当前内容链接。"
+    },
+    "postKind": {
+      "type": "string",
+      "enum": ["post", "reply", "quote", "reshare"],
+      "default": "post",
+      "title": "内容关系",
+      "description": "描述普通内容、回复、引用或转发关系。"
+    },
+    "content": {
+      "type": "string",
+      "title": "正文",
+      "description": "社交内容正文，可为空以支持纯媒体内容。",
+      "x-forma-widget": "textarea"
+    },
+    "translation": {
+      "type": "object",
+      "title": "翻译",
+      "description": "当前内容的翻译结果。",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "译文",
+          "description": "翻译后的文本。",
+          "x-forma-widget": "textarea"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "title": "原文语言",
+          "description": "原文语言名称。"
+        },
+        "model": {
+          "type": "string",
+          "title": "翻译模型",
+          "description": "翻译所使用的模型名称。"
+        }
+      },
+      "required": ["text"]
+    },
+    "media": {
+      "type": "array",
+      "title": "媒体列表",
+      "description": "按顺序展示的图片、视频、GIF 或音频预览。",
+      "items": {
+        "type": "object",
+        "title": "媒体",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["image", "video", "gif", "audio"],
+            "default": "image",
+            "title": "媒体类型",
+            "description": "决定媒体预览上的标记。"
+          },
+          "url": {
+            "type": "string",
+            "title": "媒体链接",
+            "description": "媒体原始地址。"
+          },
+          "previewUrl": {
+            "type": "string",
+            "title": "预览图链接",
+            "description": "视频、GIF 或音频可选的预览图地址。"
+          },
+          "alt": {
+            "type": "string",
+            "title": "图片描述",
+            "description": "图片的无障碍描述。"
+          }
+        },
+        "required": ["url"]
+      }
+    },
+    "replyChain": {
+      "type": "array",
+      "title": "回复链",
+      "description": "回复内容上下文，渲染时最多显示最近九条。",
+      "items": {
+        "type": "object",
+        "title": "回复内容",
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "type": "object",
+            "title": "作者",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "title": "名称", "default": "未命名作者" },
+              "handle": { "type": "string", "title": "账号" },
+              "avatarUrl": { "type": "string", "title": "头像图片地址" },
+              "verified": { "type": "boolean", "title": "已认证", "default": false }
+            }
+          },
+          "content": {
+            "type": "string",
+            "title": "正文",
+            "x-forma-widget": "textarea"
+          },
+          "translation": {
+            "type": "object",
+            "title": "翻译",
+            "additionalProperties": false,
+            "properties": {
+              "text": { "type": "string", "title": "译文", "x-forma-widget": "textarea" },
+              "sourceLanguage": { "type": "string", "title": "原文语言" },
+              "model": { "type": "string", "title": "翻译模型" }
+            },
+            "required": ["text"]
+          },
+          "media": {
+            "type": "array",
+            "title": "媒体列表",
+            "items": {
+              "type": "object",
+              "title": "媒体",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["image", "video", "gif", "audio"],
+                  "default": "image",
+                  "title": "媒体类型"
+                },
+                "url": { "type": "string", "title": "媒体链接" },
+                "previewUrl": { "type": "string", "title": "预览图链接" },
+                "alt": { "type": "string", "title": "图片描述" }
+              },
+              "required": ["url"]
+            }
+          },
+          "publishedAt": {
+            "type": "string",
+            "title": "发布时间"
+          }
+        }
+      }
+    },
+    "quotedPost": {
+      "type": "object",
+      "title": "引用内容",
+      "description": "被当前内容引用的社交内容。",
+      "additionalProperties": false,
+      "properties": {
+        "author": {
+          "type": "object",
+          "title": "作者",
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "title": "名称", "default": "未命名作者" },
+            "handle": { "type": "string", "title": "账号" },
+            "avatarUrl": { "type": "string", "title": "头像图片地址" },
+            "verified": { "type": "boolean", "title": "已认证", "default": false }
+          }
+        },
+        "content": {
+          "type": "string",
+          "title": "正文",
+          "x-forma-widget": "textarea"
+        },
+        "translation": {
+          "type": "object",
+          "title": "翻译",
+          "additionalProperties": false,
+          "properties": {
+            "text": { "type": "string", "title": "译文", "x-forma-widget": "textarea" },
+            "sourceLanguage": { "type": "string", "title": "原文语言" },
+            "model": { "type": "string", "title": "翻译模型" }
+          },
+          "required": ["text"]
+        },
+        "media": {
+          "type": "array",
+          "title": "媒体列表",
+          "items": {
+            "type": "object",
+            "title": "媒体",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["image", "video", "gif", "audio"],
+                "default": "image",
+                "title": "媒体类型"
+              },
+              "url": { "type": "string", "title": "媒体链接" },
+              "previewUrl": { "type": "string", "title": "预览图链接" },
+              "alt": { "type": "string", "title": "图片描述" }
+            },
+            "required": ["url"]
+          }
+        },
+        "publishedAt": { "type": "string", "title": "发布时间" }
+      }
+    },
+    "reshare": {
+      "type": "object",
+      "title": "转发上下文",
+      "description": "描述转发当前内容的账号。",
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "type": "object",
+          "title": "转发人",
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "title": "名称", "default": "未命名作者" }
+          },
+          "required": ["name"]
+        },
+        "publishedAt": { "type": "string", "title": "转发时间" }
+      },
+      "required": ["by"]
+    },
+    "publishedAt": {
+      "type": "string",
+      "title": "发布时间",
+      "description": "当前内容的显示时间。"
+    }
+  },
+  "required": ["schemaVersion", "type"]
+}
