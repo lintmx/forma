@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1",
+  "type": "comparison",
+  "title": "核心节点监控状态变更报告",
+  "subtitle": "指标、文本、配置与图片的统一变更视图",
+  "time": "2026-09-08 13:42:10",
+  "modules": [
+    {
+      "type": "metric",
+      "name": "性能核心指标",
+      "items": [
+        {
+          "label": "平均响应延迟",
+          "before": "142ms",
+          "after": "48ms"
+        },
+        {
+          "label": "实时 QPS 吞吐",
+          "before": "1,200",
+          "after": "1,850"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "系统公告正文",
+      "before": "当前集群维护中，预计于今晚 24:00 完成全部迁移并恢复只读访问。",
+      "after": "集群升级完毕，全量存储引擎已平滑切换至 v3.0，所有接口已恢复正常读写与调度。"
+    },
+    {
+      "type": "diff",
+      "name": "环境配置变更",
+      "before": "SERVER_NAME=prod-cluster-01\nDEPLOY_MODE=canary-testing",
+      "after": "SERVER_NAME=prod-cluster-01\nDEPLOY_MODE=full-production\nENABLE_TLS_V3=true"
+    },
+    {
+      "type": "image",
+      "name": "网络架构拓扑图",
+      "before": {
+        "label": "变更前版本 (v1.2)",
+        "url": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&h=360&q=82"
+      },
+      "after": {
+        "label": "变更后版本 (v2.0)",
+        "url": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&h=360&q=82"
+      }
+    },
+    {
+      "type": "entity",
+      "name": "关注列表增减 (Following)",
+      "items": [
+        {
+          "name": "Andrej Karpathy",
+          "handle": "@karpathy",
+          "action": "+ 新增关注",
+          "color": "green",
+          "bio": "Building Eureka Labs (AI + Education).\n• Formerly Director of AI at Tesla\n• OpenAI founding team member\n• Stanford PhD (CS231n)\nBuilding next-gen learning."
+        },
+        {
+          "name": "Ilya Sutskever",
+          "handle": "@ilyasut",
+          "action": "+ 新增关注",
+          "color": "green",
+          "bio": "Safe Superintelligence Inc. (SSI)\nCo-founder & Chief Scientist.\nFocusing exclusively on safe AGI development."
+        },
+        {
+          "name": "Legacy Aggregator Bot",
+          "handle": "@rss_feed_v1",
+          "action": "− 取消关注",
+          "color": "gray",
+          "bio": "Deprecated news aggregator service.\nNo longer maintaining active webhooks or push events."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1",
+  "type": "comparison",
+  "title": "用户信息字段定义修订",
+  "modules": [
+    {
+      "type": "diff",
+      "name": "个人签名定义",
+      "before": "Software Engineer @ Internal Lab.\nFocusing on gpt-4 optimizations.",
+      "after": "Software Engineer @ Frontier Lab.\nFocusing on gpt-5 architecture."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1",
+  "type": "comparison",
+  "title": "最小对比示例",
+  "modules": [
+    {
+      "type": "text",
+      "before": "旧数据",
+      "after": "新数据"
+    }
+  ]
+}

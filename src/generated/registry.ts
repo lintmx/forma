@@ -8,6 +8,15 @@ import type {
 } from '../schema/types';
 import type { CardType, CardTypeMap } from './types';
 import renderOptionsSchema from '../../src/schema/render-options.json';
+import ComparisonCard from '../../cards/comparison/Card';
+import comparisonSchema from '../../cards/comparison/schema.json';
+import comparisonDefaultFixture from '../../cards/comparison/fixtures/default.json';
+import comparisonMinimalFixture from '../../cards/comparison/fixtures/minimal.json';
+import comparisonDiffFixture from '../../cards/comparison/fixtures/diff.json';
+import comparisonEntityFixture from '../../cards/comparison/fixtures/entity.json';
+import comparisonImageFixture from '../../cards/comparison/fixtures/image.json';
+import comparisonMetricFixture from '../../cards/comparison/fixtures/metric.json';
+import comparisonTextFixture from '../../cards/comparison/fixtures/text.json';
 import SocialPostCard from '../../cards/social_post/Card';
 import social_postSchema from '../../cards/social_post/schema.json';
 import social_postDefaultFixture from '../../cards/social_post/fixtures/default.json';
@@ -22,6 +31,14 @@ import social_postTranslatedFixture from '../../cards/social_post/fixtures/trans
 
 export const RENDER_OPTIONS_SCHEMA = renderOptionsSchema as CardJsonSchema;
 
+const comparisonComposedSchema = {
+  ...comparisonSchema,
+  properties: {
+    ...comparisonSchema.properties,
+    options: renderOptionsSchema,
+  },
+};
+
 const social_postComposedSchema = {
   ...social_postSchema,
   properties: {
@@ -29,6 +46,51 @@ const social_postComposedSchema = {
     options: renderOptionsSchema,
   },
 };
+
+const comparisonFixtures: FixtureDefinition<CardTypeMap['comparison']>[] = [
+  {
+    id: 'default',
+    label: 'Default',
+    description: 'Default fixture scenario.',
+    data: comparisonDefaultFixture as unknown as CardTypeMap['comparison'],
+  },
+  {
+    id: 'minimal',
+    label: 'Minimal',
+    description: 'Minimal fixture scenario.',
+    data: comparisonMinimalFixture as unknown as CardTypeMap['comparison'],
+  },
+  {
+    id: 'diff',
+    label: 'Diff',
+    description: 'Diff fixture scenario.',
+    data: comparisonDiffFixture as unknown as CardTypeMap['comparison'],
+  },
+  {
+    id: 'entity',
+    label: 'Entity',
+    description: 'Entity fixture scenario.',
+    data: comparisonEntityFixture as unknown as CardTypeMap['comparison'],
+  },
+  {
+    id: 'image',
+    label: 'Image',
+    description: 'Image fixture scenario.',
+    data: comparisonImageFixture as unknown as CardTypeMap['comparison'],
+  },
+  {
+    id: 'metric',
+    label: 'Metric',
+    description: 'Metric fixture scenario.',
+    data: comparisonMetricFixture as unknown as CardTypeMap['comparison'],
+  },
+  {
+    id: 'text',
+    label: 'Text',
+    description: 'Text fixture scenario.',
+    data: comparisonTextFixture as unknown as CardTypeMap['comparison'],
+  },
+];
 
 const social_postFixtures: FixtureDefinition<CardTypeMap['social_post']>[] = [
   {
@@ -88,6 +150,17 @@ const social_postFixtures: FixtureDefinition<CardTypeMap['social_post']>[] = [
 ];
 
 export const CARD_REGISTRY = {
+  comparison: {
+    id: 'comparison',
+    title: 'Data Comparison',
+    description:
+      '对比前后数据并由系统生成指标、文本、逐行差异、实体列表和图片对照；entity 模块直接展示调用方传入的实体列表。',
+    jsonSchema: comparisonComposedSchema as CardJsonSchema,
+    contentSchema: comparisonSchema as CardJsonSchema,
+    defaultData: comparisonDefaultFixture as unknown as CardTypeMap['comparison'],
+    fixtures: comparisonFixtures,
+    component: ComparisonCard as unknown as CardComponent,
+  },
   social_post: {
     id: 'social_post',
     title: 'Social Post',

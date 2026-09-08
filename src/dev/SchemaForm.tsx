@@ -10,10 +10,11 @@ import {
   TextInput,
   Textarea,
 } from '@mantine/core';
-import type { CardJsonSchema, JsonValue } from '../schema/types';
+import type { CardJsonSchema, JsonSchemaType, JsonValue } from '../schema/types';
 
 type PathPart = string | number;
 type Path = PathPart[];
+type ComparisonModuleType = 'metric' | 'text' | 'diff' | 'image' | 'entity';
 
 interface SchemaFormProps {
   schema: CardJsonSchema;
@@ -39,6 +40,111 @@ function cloneJson<T extends JsonValue>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function hasSchemaType(schema: CardJsonSchema, type: JsonSchemaType) {
+  return Array.isArray(schema.type) ? schema.type.includes(type) : schema.type === type;
+}
+
+function valueAtPath(rootValue: JsonValue, path: Path): JsonValue | undefined {
+  let current: JsonValue | undefined = rootValue;
+  for (const part of path) {
+    if (typeof part === 'number') {
+      if (!Array.isArray(current)) {
+        return undefined;
+      }
+      current = current[part];
+    } else {
+      if (!isRecord(current)) {
+        return undefined;
+      }
+      current = current[part];
+    }
+  }
+  return current;
+}
+
+function isComparisonModuleType(value: unknown): value is ComparisonModuleType {
+  return (
+    value === 'metric' ||
+    value === 'text' ||
+    value === 'diff' ||
+    value === 'image' ||
+    value === 'entity'
+  );
+}
+
+function comparisonModuleTypeAtPath(
+  rootValue: JsonValue,
+  path: Path,
+): ComparisonModuleType | undefined {
+  for (let index = path.length; index >= 0; index -= 1) {
+    const candidate = valueAtPath(rootValue, path.slice(0, index));
+    if (isRecord(candidate) && isComparisonModuleType(candidate.type)) {
+      return candidate.type;
+    }
+  }
+  return undefined;
+}
+
+function visibleObjectProperties(
+  schema: CardJsonSchema,
+  value: unknown,
+  path: Path,
+  rootValue: JsonValue,
+) {
+  const properties = Object.entries(schema.properties ?? {});
+  const objectType = isRecord(value) && isComparisonModuleType(value.type) ? value.type : undefined;
+  if (objectType) {
+    const moduleFields: Record<ComparisonModuleType, string[]> = {
+      metric: ['type', 'name', 'items'],
+      text: ['type', 'name', 'before', 'after'],
+      diff: ['type', 'name', 'before', 'after'],
+      image: ['type', 'name', 'before', 'after'],
+      entity: ['type', 'name', 'items'],
+    };
+    const fields = new Set(moduleFields[objectType]);
+    return properties.filter(([name]) => fields.has(name));
+  }
+
+  const moduleType = comparisonModuleTypeAtPath(rootValue, path);
+  const isModuleItem = path[path.length - 2] === 'items';
+  if (isModuleItem && moduleType === 'metric') {
+    return properties.filter(([name]) => ['label', 'before', 'after'].includes(name));
+  }
+  if (isModuleItem && moduleType === 'entity') {
+    return properties.filter(([name]) =>
+      ['name', 'handle', 'bio', 'action', 'color'].includes(name),
+    );
+  }
+  return properties;
+}
+
+function resolveSchemaForValue(
+  schema: CardJsonSchema,
+  value: unknown,
+  rootValue: JsonValue,
+  path: Path,
+): CardJsonSchema {
+  if (
+    !Array.isArray(schema.type) ||
+    !schema.type.includes('object') ||
+    !schema.type.includes('string')
+  ) {
+    return schema;
+  }
+
+  const parent = valueAtPath(rootValue, path.slice(0, -1));
+  const parentType = isRecord(parent) && typeof parent.type === 'string' ? parent.type : undefined;
+  const useArrayEditor = Array.isArray(value);
+  const useObjectEditor =
+    !useArrayEditor &&
+    (parentType === 'image' ||
+      (typeof value === 'object' && value !== null && !Array.isArray(value)));
+  return {
+    ...schema,
+    type: useArrayEditor ? 'array' : useObjectEditor ? 'object' : 'string',
+  };
+}
+
 function createDefaultValue(schema: CardJsonSchema): JsonValue {
   if (schema.const !== undefined) {
     return cloneJson(schema.const);
@@ -48,28 +154,28 @@ function createDefaultValue(schema: CardJsonSchema): JsonValue {
     return cloneJson(schema.default);
   }
 
-  switch (schema.type) {
-    case 'object': {
-      const object: Record<string, JsonValue> = {};
-      for (const [key, propertySchema] of Object.entries(schema.properties ?? {})) {
-        if (schema.required?.includes(key)) {
-          object[key] = createDefaultValue(propertySchema);
-        }
+  if (hasSchemaType(schema, 'object')) {
+    const object: Record<string, JsonValue> = {};
+    for (const [key, propertySchema] of Object.entries(schema.properties ?? {})) {
+      if (schema.required?.includes(key)) {
+        object[key] = createDefaultValue(propertySchema);
       }
-      return object;
     }
-    case 'array':
-      return [];
-    case 'boolean':
-      return false;
-    case 'number':
-    case 'integer':
-      return 0;
-    case 'string':
-      return schema.enum?.[0] ?? '';
-    default:
-      return '';
+    return object;
   }
+  if (hasSchemaType(schema, 'array')) {
+    return [];
+  }
+  if (hasSchemaType(schema, 'boolean')) {
+    return false;
+  }
+  if (hasSchemaType(schema, 'number') || hasSchemaType(schema, 'integer')) {
+    return 0;
+  }
+  if (hasSchemaType(schema, 'string')) {
+    return schema.enum?.[0] ?? '';
+  }
+  return '';
 }
 
 function setValueAtPath(root: JsonValue, path: Path, value: JsonValue): JsonValue {
@@ -246,7 +352,7 @@ function PrimitiveField({
     );
   }
 
-  if (schema.type === 'boolean') {
+  if (hasSchemaType(schema, 'boolean')) {
     return (
       <Group justify="space-between" align="center">
         <FieldHeading label={label} required={required} onRemove={remove} />
@@ -258,7 +364,10 @@ function PrimitiveField({
     );
   }
 
-  if (schema.type === 'number' || schema.type === 'integer') {
+  if (
+    (hasSchemaType(schema, 'number') || hasSchemaType(schema, 'integer')) &&
+    !hasSchemaType(schema, 'string')
+  ) {
     return (
       <Stack gap={4}>
         <FieldHeading label={label} required={required} onRemove={remove} />
@@ -279,7 +388,7 @@ function PrimitiveField({
     );
   }
 
-  const stringValue = typeof value === 'string' ? value : '';
+  const stringValue = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
   return (
     <Stack gap={4}>
       <FieldHeading label={label} required={required} onRemove={remove} />
@@ -444,22 +553,25 @@ function ArrayField({
 }
 
 function SchemaField(props: SchemaFieldProps) {
-  if (props.schema.type === 'object') {
-    return <ObjectField {...props} />;
+  const schema = resolveSchemaForValue(props.schema, props.value, props.rootValue, props.path);
+  const resolvedProps = { ...props, schema };
+
+  if (hasSchemaType(schema, 'object')) {
+    return <ObjectField {...resolvedProps} />;
   }
-  if (props.schema.type === 'array') {
-    return <ArrayField {...props} />;
+  if (hasSchemaType(schema, 'array')) {
+    return <ArrayField {...resolvedProps} />;
   }
 
   if (!props.required && (props.value === undefined || props.value === null)) {
-    const label = props.schema.title ?? props.name;
+    const label = schema.title ?? props.name;
     return (
       <Button
         type="button"
         variant="light"
         size="compact-sm"
         onClick={() =>
-          updateField(props.rootValue, props.path, createDefaultValue(props.schema), props.onChange)
+          updateField(props.rootValue, props.path, createDefaultValue(schema), props.onChange)
         }
       >
         添加 {label}
@@ -467,7 +579,7 @@ function SchemaField(props: SchemaFieldProps) {
     );
   }
 
-  return <PrimitiveField {...props} />;
+  return <PrimitiveField {...resolvedProps} />;
 }
 
 function ObjectFields({
@@ -484,9 +596,10 @@ function ObjectFields({
   onChange: (value: unknown) => void;
 }) {
   const objectValue = isRecord(value) ? value : {};
+  const properties = visibleObjectProperties(schema, value, path, rootValue);
   return (
     <Stack gap="sm">
-      {Object.entries(schema.properties ?? {}).map(([name, childSchema]) => (
+      {properties.map(([name, childSchema]) => (
         <SchemaField
           key={[...path, name].join('.')}
           name={name}

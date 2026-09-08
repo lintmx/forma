@@ -78,7 +78,7 @@ function schemaType(schema) {
   }
 
   if (Array.isArray(schema.type)) {
-    return schema.type.map((type) => schemaType({ type })).join(' | ');
+    return schema.type.map((type) => schemaType({ ...schema, type })).join(' | ');
   }
 
   switch (schema.type) {
@@ -164,17 +164,27 @@ function collectFields(schema, prefix = '', fields = []) {
   const properties = (schema.properties ?? {}) as Record<
     string,
     {
-      type?: string;
-      items?: { type?: string };
+      type?: string | string[];
+      items?: { type?: string | string[] };
     }
   >;
   for (const [name, childSchema] of Object.entries(properties)) {
     const fieldPath = prefix ? `${prefix}.${name}` : name;
     const required = (schema.required ?? []).includes(name);
     fields.push({ path: fieldPath, schema: childSchema, required });
-    if (childSchema.type === 'object') {
+    const isObject =
+      childSchema.type === 'object' ||
+      (Array.isArray(childSchema.type) && childSchema.type.includes('object'));
+    const isArray =
+      childSchema.type === 'array' ||
+      (Array.isArray(childSchema.type) && childSchema.type.includes('array'));
+    const itemIsObject =
+      childSchema.items?.type === 'object' ||
+      (Array.isArray(childSchema.items?.type) && childSchema.items.type.includes('object'));
+    if (isObject) {
       collectFields(childSchema, fieldPath, fields);
-    } else if (childSchema.type === 'array' && childSchema.items?.type === 'object') {
+    }
+    if (isArray && itemIsObject) {
       collectFields(childSchema.items, `${fieldPath}[]`, fields);
     }
   }

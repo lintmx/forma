@@ -7,6 +7,55 @@ export type RenderOptions = {
   watermark?: string;
 };
 
+export interface ComparisonCardData {
+  schemaVersion: '1';
+  type: 'comparison';
+  title: string;
+  subtitle?: string;
+  time?: string;
+  modules: Array<{
+    type: 'metric' | 'text' | 'diff' | 'image' | 'entity';
+    name?: string;
+    items?: Array<{
+      label?: string;
+      before?: string | number;
+      after?: string | number;
+      name?: string;
+      handle?: string;
+      bio?: string;
+      action?: string;
+      color?: 'green' | 'red' | 'gray';
+    }>;
+    before?: string | { url: string; label?: string };
+    after?: string | { url: string; label?: string };
+  }>;
+  options?: RenderOptions;
+}
+
+export interface ComparisonCardContent {
+  schemaVersion: '1';
+  type: 'comparison';
+  title: string;
+  subtitle?: string;
+  time?: string;
+  modules: Array<{
+    type: 'metric' | 'text' | 'diff' | 'image' | 'entity';
+    name?: string;
+    items?: Array<{
+      label?: string;
+      before?: string | number;
+      after?: string | number;
+      name?: string;
+      handle?: string;
+      bio?: string;
+      action?: string;
+      color?: 'green' | 'red' | 'gray';
+    }>;
+    before?: string | { url: string; label?: string };
+    after?: string | { url: string; label?: string };
+  }>;
+}
+
 export interface SocialPostCardData {
   schemaVersion: '1';
   type: 'social_post';
@@ -95,10 +144,12 @@ export interface SocialPostCardContent {
 }
 
 export interface CardTypeMap {
+  comparison: ComparisonCardData;
   social_post: SocialPostCardData;
 }
 
 export interface CardContentTypeMap {
+  comparison: ComparisonCardContent;
   social_post: SocialPostCardContent;
 }
 

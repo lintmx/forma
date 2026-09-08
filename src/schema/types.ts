@@ -4,12 +4,15 @@ import type { CardContentData, CardData, CardType } from '../generated/types';
 export type JsonValue =
   string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
+export type JsonSchemaType =
+  'object' | 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'null';
+
 export interface CardJsonSchema {
   $schema?: string;
   $id?: string;
   title?: string;
   description?: string;
-  type?: 'object' | 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'null';
+  type?: JsonSchemaType | JsonSchemaType[];
   const?: JsonValue;
   properties?: Record<string, CardJsonSchema>;
   required?: string[];

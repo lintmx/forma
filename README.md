@@ -16,6 +16,11 @@ pnpm dev
 - `/`：正式 Renderer，根节点为 `[data-forma-card]`。
 - `/dev`：Schema、Fixture、Form/JSON 编辑和实时 Preview。
 
+当前内置 Card：
+
+- `social_post`：跨平台社交内容。
+- `comparison`：指标、文本、逐行差异、实体列表和图片对比。除 `entity` 外，调用方按模块提供 `before`/`after`，指标增量和 Diff 行由 Renderer 计算；`entity` 直接传入列表、动作文案和颜色。
+
 ## 新增 Card
 
 Card 的唯一 Source of Truth 是 `cards/<type>/`：
@@ -62,6 +67,42 @@ Schema 定义数据结构和字段说明，`Card.tsx` 只负责视觉布局，Ca
   },
   "author": { "name": "示例用户" },
   "content": "卡片正文"
+}
+```
+
+对比卡片的调用方只需传入前后数据；不需要预先生成 `delta`、`trend` 或 Diff 行。实体模块直接传入 `items`，每项的 `action` 和 `color` 由调用方控制：
+
+```json
+{
+  "schemaVersion": "1",
+  "type": "comparison",
+  "title": "配置变更",
+  "subtitle": "生产环境发布前后对照",
+  "modules": [
+    {
+      "type": "metric",
+      "name": "性能",
+      "items": [{ "label": "延迟", "before": "142ms", "after": "48ms" }]
+    },
+    {
+      "type": "diff",
+      "name": "环境变量",
+      "before": "MODE=canary",
+      "after": "MODE=production"
+    },
+    {
+      "type": "entity",
+      "name": "关注列表增减",
+      "items": [
+        {
+          "name": "Andrej Karpathy",
+          "handle": "@karpathy",
+          "action": "+ 新增关注",
+          "color": "green"
+        }
+      ]
+    }
+  ]
 }
 ```
 

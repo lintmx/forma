@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1",
+  "type": "comparison",
+  "title": "用户关注关系实时更新",
+  "time": "2026-09-08 14:12:05",
+  "modules": [
+    {
+      "type": "entity",
+      "name": "关注列表增减 (Following)",
+      "items": [
+        {
+          "name": "Andrej Karpathy",
+          "handle": "@karpathy",
+          "action": "+ 新增关注",
+          "color": "green",
+          "bio": "Building Eureka Labs (AI + Education).\n• Formerly Director of AI at Tesla\n• OpenAI founding team member\n• Stanford PhD (CS231n)\nBuilding next-gen learning."
+        },
+        {
+          "name": "Ilya Sutskever",
+          "handle": "@ilyasut",
+          "action": "+ 新增关注",
+          "color": "green",
+          "bio": "Safe Superintelligence Inc. (SSI)\nCo-founder & Chief Scientist.\nFocusing exclusively on safe AGI development."
+        },
+        {
+          "name": "Legacy Aggregator Bot",
+          "handle": "@rss_feed_v1",
+          "action": "− 取消关注",
+          "color": "gray",
+          "bio": "Deprecated news aggregator service.\nNo longer maintaining active webhooks or push events."
+        }
+      ]
+    }
+  ]
+}
