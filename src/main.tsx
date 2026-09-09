@@ -1,8 +1,6 @@
 import { createRoot } from 'react-dom/client';
-import '@mantine/core/styles.css';
 import './styles/global.css';
 import './styles/renderer.css';
-import './styles/dev.css';
 import { App } from './App';
 import { installForma } from './renderer/api';
 

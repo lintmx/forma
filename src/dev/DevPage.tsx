@@ -1,3 +1,5 @@
+import '@mantine/core/styles.css';
+import '../styles/dev.css';
 import { useMemo, useState } from 'react';
 import {
   Badge,

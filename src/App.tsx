@@ -1,5 +1,9 @@
-import { DevPage } from './dev/DevPage';
+import { lazy, Suspense } from 'react';
 import { RendererPage } from './renderer/RendererPage';
+
+const DevPage = lazy(() =>
+  import('./dev/DevPage').then(({ DevPage: page }) => ({ default: page })),
+);
 
 function normalizePathname(pathname: string): string {
   const normalized = pathname.replace(/\/+$/, '');
@@ -7,5 +11,13 @@ function normalizePathname(pathname: string): string {
 }
 
 export function App() {
-  return normalizePathname(window.location.pathname) === '/dev' ? <DevPage /> : <RendererPage />;
+  if (normalizePathname(window.location.pathname) === '/dev') {
+    return (
+      <Suspense fallback={null}>
+        <DevPage />
+      </Suspense>
+    );
+  }
+
+  return <RendererPage />;
 }
