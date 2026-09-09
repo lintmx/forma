@@ -59,6 +59,10 @@
   max-width: 720px;
 }
 
+.dev-preview .card-container[data-card-type='social_post'] {
+  max-width: 900px;
+}
+
 @media (max-width: 1050px) {
   .dev-layout {
     grid-template-columns: minmax(320px, 0.95fr) minmax(380px, 1.05fr);

@@ -19,7 +19,7 @@
 }
 
 .forma-card {
-  width: min(720px, calc(100vw - 40px));
+  width: min(900px, calc(100vw - 40px));
 }
 
 .renderer-frame {

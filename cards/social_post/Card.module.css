@@ -1,7 +1,7 @@
 /* Shared renderer classes are kept global; this root scopes their Social Post overrides. */
 .root {
   width: 100%;
-  min-width: 0;
+  min-width: 400px;
   max-width: 900px;
   padding: 20px 20px 10px;
 }
@@ -318,7 +318,6 @@
 
 @media (max-width: 520px) {
   .root {
-    min-width: 0;
     padding: 12px 8px 6px;
   }
 
