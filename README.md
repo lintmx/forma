@@ -2,6 +2,8 @@
 
 Forma 是一个纯前端、Schema 驱动的卡片渲染器。它只负责定义 Card Contract、根据 `CardData` 渲染卡片、提供 `/dev` Playground 和 Fixtures；不包含后端 API、数据抓取、截图服务、Playwright 或 browserless。
 
+第三方接入请参阅：[第三方接入规范](./docs/third-party-integration.md)。
+
 ## 开发
 
 环境要求：Node.js 20.19+、pnpm 11+。
