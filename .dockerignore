@@ -1,0 +1,10 @@
+.git
+.github
+.playwright-cli
+.DS_Store
+node_modules
+dist
+*.local
+.env
+.env.*
+!.env.example
