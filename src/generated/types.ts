@@ -71,6 +71,7 @@ export interface SocialPostCardData {
     previewUrl?: string;
     alt?: string;
   }>;
+  mediaLayout?: 'vertical' | 'grid' | 'collage';
   replyChain?: Array<{
     author?: { name?: string; handle?: string; avatarUrl?: string; verified?: boolean };
     content?: string;
@@ -115,6 +116,7 @@ export interface SocialPostCardContent {
     previewUrl?: string;
     alt?: string;
   }>;
+  mediaLayout?: 'vertical' | 'grid' | 'collage';
   replyChain?: Array<{
     author?: { name?: string; handle?: string; avatarUrl?: string; verified?: boolean };
     content?: string;

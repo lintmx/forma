@@ -131,6 +131,13 @@
         "required": ["url"]
       }
     },
+    "mediaLayout": {
+      "type": "string",
+      "enum": ["vertical", "grid", "collage"],
+      "default": "vertical",
+      "title": "媒体展示方式",
+      "description": "vertical 为按原比例完整竖排；grid 按媒体数量自动采用单图、左右、一大两小、2×2 或三列宫格，缩略图统一裁切；collage 为横向完整排列且中间不留缝隙。"
+    },
     "replyChain": {
       "type": "array",
       "title": "回复链",

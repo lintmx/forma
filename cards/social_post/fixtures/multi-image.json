@@ -7,6 +7,7 @@
     "avatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=96&h=96&q=82"
   },
   "content": "周末散步时拍下的四个瞬间。",
+  "mediaLayout": "grid",
   "media": [
     {
       "type": "image",
@@ -14,14 +15,15 @@
       "alt": "山间道路"
     },
     {
-      "type": "image",
-      "url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&h=800&q=82",
-      "alt": "海边"
+      "type": "video",
+      "url": "https://example.com/weekend-walk.mp4",
+      "previewUrl": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&h=800&q=82",
+      "alt": "海边视频预览"
     },
     {
-      "type": "image",
+      "type": "gif",
       "url": "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&h=800&q=82",
-      "alt": "湖边小屋"
+      "alt": "湖边 GIF 预览"
     },
     {
       "type": "image",

@@ -30,6 +30,7 @@ export type {
 
 export type CardAuthor = NonNullable<SocialPostCardData['author']>;
 export type CardMedia = NonNullable<NonNullable<SocialPostCardData['media']>[number]>;
+export type SocialPostMediaLayout = NonNullable<SocialPostCardData['mediaLayout']>;
 export type CardTranslation = NonNullable<SocialPostCardData['translation']>;
 export type SocialPostSnapshot = NonNullable<NonNullable<SocialPostCardData['replyChain']>[number]>;
 

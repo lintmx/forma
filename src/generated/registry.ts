@@ -22,6 +22,7 @@ import social_postSchema from '../../cards/social_post/schema.json';
 import social_postDefaultFixture from '../../cards/social_post/fixtures/default.json';
 import social_postMinimalFixture from '../../cards/social_post/fixtures/minimal.json';
 import social_postLongTextFixture from '../../cards/social_post/fixtures/long-text.json';
+import social_postMediaCollageFixture from '../../cards/social_post/fixtures/media-collage.json';
 import social_postMediaOnlyFixture from '../../cards/social_post/fixtures/media-only.json';
 import social_postMultiImageFixture from '../../cards/social_post/fixtures/multi-image.json';
 import social_postRelationsFixture from '../../cards/social_post/fixtures/relations.json';
@@ -110,6 +111,12 @@ const social_postFixtures: FixtureDefinition<CardTypeMap['social_post']>[] = [
     label: 'Long Text',
     description: 'Long Text fixture scenario.',
     data: social_postLongTextFixture as unknown as CardTypeMap['social_post'],
+  },
+  {
+    id: 'media-collage',
+    label: 'Media Collage',
+    description: 'Media Collage fixture scenario.',
+    data: social_postMediaCollageFixture as unknown as CardTypeMap['social_post'],
   },
   {
     id: 'media-only',

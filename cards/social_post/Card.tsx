@@ -32,7 +32,7 @@ export default function SocialPostCard({ data }: CardProps<'social_post'>) {
               className={styles.replyItem}
               key={`${reply.author?.name ?? reply.author?.handle ?? 'reply'}-${index}`}
             >
-              <SocialPostBody post={reply} reply />
+              <SocialPostBody post={reply} reply mediaLayout={data.mediaLayout} />
             </div>
           ))}
         </section>
@@ -40,6 +40,7 @@ export default function SocialPostCard({ data }: CardProps<'social_post'>) {
 
       <SocialPostBody
         post={data}
+        mediaLayout={data.mediaLayout}
         quotedPost={data.postKind === 'quote' ? data.quotedPost : undefined}
       />
       <Footer source={data.source} postUrl={data.postUrl} />
