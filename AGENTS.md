@@ -5,6 +5,7 @@
 - 本项目是基于 React、TypeScript、Vite、Mantine 和 Ajv 的纯前端 Forma 卡片渲染器，使用 pnpm 管理依赖。
 - 只负责把统一的 `CardData` 渲染成卡片，构建产物为 `dist/`。除非任务明确改变范围，不引入后端 API、数据库、队列或截图服务，也不把 Playwright/browserless 加入应用运行时；开发验证可以使用浏览器工具。
 - `/` 是正式 Renderer，`/dev` 是 Playground。保持静态 SPA 部署方式，直接访问 `/dev` 需要服务器 fallback 到 `index.html`。
+- 本项目 Renderer 渲染出的页面最终应该是完全静态的，不存在任何交互或动态内容
 
 ## 代码定位
 
