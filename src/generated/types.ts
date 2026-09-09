@@ -5,6 +5,7 @@ export type CardTheme = 'light' | 'dark';
 export type RenderOptions = {
   theme?: CardTheme;
   watermark?: string;
+  assetBaseUrl?: string;
 };
 
 export interface ComparisonCardData {

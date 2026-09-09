@@ -1,5 +1,6 @@
 import Ajv2020, { type AnySchema, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020';
 import { CARD_REGISTRY, CARD_TYPES } from '../generated/registry';
+import { validateCardAssetUrls } from '../renderer/assetUrls';
 import type { CardData, CardType } from '../types/card';
 import type { CardJsonSchema } from './types';
 
@@ -39,6 +40,10 @@ export function validateCardDataForSchema(
 ): ValidationResult<CardData> {
   const validate = validators[cardType];
   if (validate(data)) {
+    const assetErrors = validateCardAssetUrls(data as CardData);
+    if (assetErrors.length > 0) {
+      return { valid: false, errors: assetErrors };
+    }
     return { valid: true, data: data as CardData, errors: [] };
   }
   return { valid: false, errors: validate.errors ?? ['CardData validation failed.'] };

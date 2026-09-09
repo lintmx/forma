@@ -122,10 +122,11 @@ function validateRenderOptionsSchema(schema) {
     schema.type !== 'object' ||
     schema.additionalProperties !== false ||
     !schema.properties?.theme ||
-    !schema.properties?.watermark
+    !schema.properties?.watermark ||
+    !schema.properties?.assetBaseUrl
   ) {
     throw new Error(
-      'src/schema/render-options.json must define an object with theme and watermark properties.',
+      'src/schema/render-options.json must define an object with theme, watermark, and assetBaseUrl properties.',
     );
   }
   if (
@@ -417,7 +418,7 @@ Schema Version: \`${version}\`
 
 ## Shared Render Options
 
-All Cards accept the optional \`options\` object. The omitted theme defaults to \`light\`; a missing, empty, or whitespace-only watermark is not rendered.
+All Cards accept the optional \`options\` object. The omitted theme defaults to \`light\`; a missing, empty, or whitespace-only watermark is not rendered; \`assetBaseUrl\` resolves relative image and media URLs.
 
 | Path | Type | Required | Enum | Default | Description |
 | --- | --- | --- | --- | --- | --- |

@@ -180,7 +180,7 @@ export function DevPage() {
                         <div>
                           <Title order={4}>公共渲染设置</Title>
                           <Text size="xs" c="dimmed" mt={4}>
-                            主题和水印适用于所有 Card，仅影响右侧 Preview。
+                            主题、水印和资源基础地址适用于所有 Card，仅影响右侧 Preview。
                           </Text>
                         </div>
                         <SchemaForm

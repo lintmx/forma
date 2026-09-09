@@ -33,9 +33,10 @@
 | `modules[].after`          | string,object | Optional | —                                           | —              | text/diff 为文本；image 为图片对象。                                                                          |
 | `modules[].after.url`      | string        | Required | —                                           | —              | —                                                                                                             |
 | `modules[].after.label`    | string        | Optional | —                                           | —              | —                                                                                                             |
-| `options`                  | object        | Optional | —                                           | —              | 适用于所有 Card 的主题和水印设置。                                                                            |
+| `options`                  | object        | Optional | —                                           | —              | 适用于所有 Card 的主题、水印和资源地址设置。                                                                  |
 | `options.theme`            | string        | Optional | `light`, `dark`                             | `"light"`      | 省略时使用浅色主题。                                                                                          |
 | `options.watermark`        | string        | Optional | —                                           | —              | 未传、为空或仅包含空白时不显示。                                                                              |
+| `options.assetBaseUrl`     | string        | Optional | —                                           | —              | 用于补全图片和其他媒体相对地址的绝对 http(s) 地址；使用相对资源地址时必须传入。                               |
 
 ## Minimal valid example
 

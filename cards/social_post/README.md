@@ -70,9 +70,10 @@
 | `reshare.by.name`                         | string  | Required | —                                   | `"未命名作者"`  | —                                                                                                                                                |
 | `reshare.publishedAt`                     | string  | Optional | —                                   | —               | —                                                                                                                                                |
 | `publishedAt`                             | string  | Optional | —                                   | —               | 当前内容的显示时间。                                                                                                                             |
-| `options`                                 | object  | Optional | —                                   | —               | 适用于所有 Card 的主题和水印设置。                                                                                                               |
+| `options`                                 | object  | Optional | —                                   | —               | 适用于所有 Card 的主题、水印和资源地址设置。                                                                                                     |
 | `options.theme`                           | string  | Optional | `light`, `dark`                     | `"light"`       | 省略时使用浅色主题。                                                                                                                             |
 | `options.watermark`                       | string  | Optional | —                                   | —               | 未传、为空或仅包含空白时不显示。                                                                                                                 |
+| `options.assetBaseUrl`                    | string  | Optional | —                                   | —               | 用于补全图片和其他媒体相对地址的绝对 http(s) 地址；使用相对资源地址时必须传入。                                                                  |
 
 ## Minimal valid example
 
