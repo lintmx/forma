@@ -1,6 +1,6 @@
 import '@mantine/core/styles.css';
 import '../styles/dev.css';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Badge,
   Button,
@@ -38,12 +38,28 @@ export function DevPage() {
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [mode, setMode] = useState<EditorMode>('form');
   const [copied, setCopied] = useState(false);
+  const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
 
   const schema = CARD_SCHEMAS[schemaId];
   const fixtureOptions = useMemo(
     () => schema.fixtures.map((fixture) => ({ value: fixture.id, label: fixture.label })),
     [schema],
   );
+
+  useEffect(() => {
+    if (!isPreviewFullscreen) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsPreviewFullscreen(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPreviewFullscreen]);
 
   function updateData(nextData: unknown) {
     const nextCardData = cloneCardData(nextData as Parameters<typeof cloneCardData>[0]);
@@ -123,7 +139,10 @@ export function DevPage() {
 
   return (
     <MantineProvider defaultColorScheme="light">
-      <div className="dev-page">
+      <div
+        className={`dev-page${isPreviewFullscreen ? ' dev-page--preview-fullscreen' : ''}`}
+        data-preview-theme={data.options?.theme ?? 'light'}
+      >
         <header className="dev-header">
           <div>
             <Group gap="sm" align="center">
@@ -228,20 +247,42 @@ export function DevPage() {
           </Paper>
 
           <section className="dev-preview-panel">
-            <Group justify="space-between" mb="sm">
+            <Group className="dev-preview-toolbar" justify="space-between" mb="sm">
               <div>
                 <Title order={3}>Preview</Title>
                 <Text size="sm" c="dimmed">
                   {schema.title} · {fixtureId}
                 </Text>
               </div>
-              <Badge color={jsonError ? 'red' : 'green'} variant="light">
-                {jsonError ? '上次有效数据' : 'CardData valid'}
-              </Badge>
+              <Group gap="xs">
+                <Badge color={jsonError ? 'red' : 'green'} variant="light">
+                  {jsonError ? '上次有效数据' : 'CardData valid'}
+                </Badge>
+                {!isPreviewFullscreen && (
+                  <Button
+                    variant="default"
+                    onClick={() => setIsPreviewFullscreen(true)}
+                    aria-label="进入全屏预览"
+                  >
+                    全屏预览
+                  </Button>
+                )}
+              </Group>
             </Group>
             <div className="dev-preview">
               <FormaRenderer data={data} />
             </div>
+            {isPreviewFullscreen && (
+              <Button
+                className="dev-preview-exit"
+                variant="default"
+                onClick={() => setIsPreviewFullscreen(false)}
+                aria-label="退出全屏预览"
+                title="退出全屏预览"
+              >
+                退出
+              </Button>
+            )}
           </section>
         </main>
       </div>

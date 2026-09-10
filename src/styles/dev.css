@@ -3,6 +3,18 @@
   background: #f3f5f8;
 }
 
+.dev-page--preview-fullscreen {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  overflow: auto;
+  background: #f5f5f5;
+}
+
+.dev-page--preview-fullscreen[data-preview-theme='dark'] {
+  background: #16181d;
+}
+
 .dev-header {
   display: flex;
   align-items: flex-start;
@@ -33,6 +45,23 @@
   top: 20px;
 }
 
+.dev-page--preview-fullscreen .dev-header,
+.dev-page--preview-fullscreen .dev-editor {
+  display: none;
+}
+
+.dev-page--preview-fullscreen .dev-layout {
+  display: block;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dev-page--preview-fullscreen .dev-preview-panel {
+  position: relative;
+  min-height: 100vh;
+}
+
 .dev-preview {
   display: flex;
   min-height: 520px;
@@ -53,6 +82,57 @@
     -8px 0;
   background-size: 16px 16px;
   background-color: #f7f8fa;
+}
+
+.dev-page--preview-fullscreen .dev-preview-toolbar {
+  display: none;
+}
+
+.dev-page--preview-fullscreen .dev-preview-exit {
+  position: fixed;
+  z-index: 1001;
+  right: 20px;
+  bottom: 20px;
+  min-height: 30px;
+  padding-inline: 10px;
+  border: 1px solid rgb(209 213 219 / 90%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 88%);
+  color: #1f2937;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 16%);
+  backdrop-filter: blur(8px);
+}
+
+.dev-page--preview-fullscreen .dev-preview-exit:hover {
+  background: #ffffff;
+}
+
+.dev-page--preview-fullscreen .dev-preview-exit:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.dev-page--preview-fullscreen[data-preview-theme='dark'] .dev-preview-exit {
+  border-color: rgb(75 85 99 / 95%);
+  background: rgb(31 36 45 / 92%);
+  color: #f3f4f6;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 32%);
+}
+
+.dev-page--preview-fullscreen[data-preview-theme='dark'] .dev-preview-exit:hover {
+  background: #343a46;
+}
+
+.dev-page--preview-fullscreen .dev-preview {
+  min-height: 100vh;
+  padding: 20px;
+  border: 0;
+  border-radius: 0;
+  background: #f5f5f5;
+}
+
+.dev-page--preview-fullscreen[data-preview-theme='dark'] .dev-preview {
+  background: #16181d;
 }
 
 .dev-preview .card-container {
@@ -100,5 +180,15 @@
   .dev-preview {
     min-height: 0;
     padding: 16px 8px;
+  }
+
+  .dev-page--preview-fullscreen .dev-preview-exit {
+    right: 8px;
+    bottom: 12px;
+  }
+
+  .dev-page--preview-fullscreen .dev-preview {
+    min-height: 100vh;
+    padding: 12px 8px;
   }
 }
