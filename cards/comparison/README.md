@@ -17,7 +17,7 @@
 | `time`                     | string        | Optional | —                                           | —              | 可选的对比时间或更新时间。                                                                                    |
 | `modules`                  | array         | Required | —                                           | —              | 按顺序展示的指标、文本、差异、实体或图片模块。除 entity 列表外，调用方提供 before/after，派生差异由系统计算。 |
 | `modules[].type`           | string        | Required | `metric`, `text`, `diff`, `image`, `entity` | `"metric"`     | metric 指标、text 文本、diff 逐行差异、image 图片对照、entity 实体列表变更。                                  |
-| `modules[].name`           | string        | Optional | —                                           | —              | 可选的模块标题。                                                                                              |
+| `modules[].name`           | string        | Optional | —                                           | —              | 可选的模块标题；省略或为空时不显示模块标题。                                                                  |
 | `modules[].items`          | array         | Optional | —                                           | —              | metric 模块传入前后数值；entity 模块传入实体、动作文案和颜色。                                                |
 | `modules[].items[].label`  | string        | Optional | —                                           | —              | —                                                                                                             |
 | `modules[].items[].before` | string,number | Optional | —                                           | `""`           | —                                                                                                             |

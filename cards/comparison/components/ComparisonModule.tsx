@@ -9,14 +9,6 @@ import type {
   ComparisonModule as ComparisonModuleData,
 } from './types';
 
-const defaultModuleNames = {
-  metric: '指标对比',
-  text: '文本对比',
-  diff: '内容差异',
-  image: '图片对比',
-  entity: '实体变更',
-} as const;
-
 function ModuleShell({
   type,
   name,
@@ -26,13 +18,17 @@ function ModuleShell({
   name?: string;
   children: React.ReactNode;
 }) {
+  const moduleName = name?.trim();
+
   return (
     <section className={styles.module} data-module-type={type}>
-      <header className={styles.moduleHeader}>
-        <div className={styles.moduleTitle}>
-          <span>{name?.trim() || defaultModuleNames[type]}</span>
-        </div>
-      </header>
+      {moduleName && (
+        <header className={styles.moduleHeader}>
+          <div className={styles.moduleTitle}>
+            <span>{moduleName}</span>
+          </div>
+        </header>
+      )}
       {children}
     </section>
   );

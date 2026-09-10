@@ -52,7 +52,7 @@
           "name": {
             "type": "string",
             "title": "模块名称",
-            "description": "可选的模块标题。"
+            "description": "可选的模块标题；省略或为空时不显示模块标题。"
           },
           "items": {
             "type": "array",

@@ -112,8 +112,9 @@
 .metricBody {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-  padding: 12px;
+  gap: 1px;
+  padding: 0;
+  background: var(--card-border);
 }
 
 .metricItem {
@@ -123,9 +124,13 @@
   gap: 12px;
   min-width: 0;
   padding: 10px 12px;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  background: var(--comparison-item-background);
+  border: 0;
+  border-radius: 0;
+  background: var(--card-surface-background);
+}
+
+.metricItem:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .metricName {
@@ -200,7 +205,6 @@
   padding: 10px 12px;
   border: 1px solid var(--card-border);
   border-radius: 8px;
-  background: var(--comparison-item-background);
 }
 
 .textPaneLabel {
@@ -452,6 +456,10 @@
   color: var(--card-text-tertiary);
   font-size: 12px;
   text-align: center;
+}
+
+.metricBody > .empty {
+  background: var(--card-surface-background);
 }
 
 @media (min-width: 560px) {
