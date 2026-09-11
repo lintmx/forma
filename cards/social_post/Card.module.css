@@ -1,6 +1,7 @@
 /* Shared renderer classes are kept global; this root scopes their Social Post overrides. */
 .root {
-  width: 100%;
+  display: table;
+  width: auto;
   min-width: 400px;
   max-width: 900px;
   padding: 20px 20px 10px;
@@ -274,7 +275,8 @@
 }
 
 .root :global(.card-footer__url) {
-  flex: 1;
+  width: 0;
+  flex: 1 1 0;
   color: inherit;
   text-align: left;
 }
