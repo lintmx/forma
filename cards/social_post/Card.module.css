@@ -1,9 +1,9 @@
 /* Shared renderer classes are kept global; this root scopes their Social Post overrides. */
 .root {
-  display: table;
-  width: auto;
+  display: block;
+  width: fit-content;
   min-width: 400px;
-  max-width: 900px;
+  max-width: min(700px, calc(100vw - 40px));
   padding: 20px 20px 10px;
 }
 
@@ -256,8 +256,9 @@
 
 .root :global(.card-footer__remark) {
   display: flex;
-  width: 100%;
-  min-width: 0;
+  width: max-content;
+  min-width: 100%;
+  max-width: 100%;
   align-items: center;
   color: var(--card-text-tertiary);
   font-size: 12px;
@@ -275,8 +276,8 @@
 }
 
 .root :global(.card-footer__url) {
-  width: 0;
-  flex: 1 1 0;
+  width: auto;
+  flex: 1 1 auto;
   color: inherit;
   text-align: left;
 }
@@ -320,6 +321,7 @@
 
 @media (max-width: 520px) {
   .root {
+    max-width: calc(100vw - 16px);
     padding: 12px 8px 6px;
   }
 
