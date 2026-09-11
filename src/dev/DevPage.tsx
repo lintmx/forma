@@ -16,7 +16,7 @@ import {
   Title,
 } from '@mantine/core';
 import { CARD_SCHEMAS, CARD_TYPES, RENDER_OPTIONS_SCHEMA } from '../schema/definitions';
-import { formatValidationErrors, validateCardDataForSchema } from '../schema/validation';
+import { formatValidationErrors, validateCardData } from '../schema/validation';
 import type { CardData, CardType } from '../types/card';
 import { cloneCardData } from '../fixtures';
 import { FormaRenderer } from '../renderer/FormaRenderer';
@@ -110,10 +110,17 @@ export function DevPage() {
     setJsonText(nextText);
     try {
       const parsed: unknown = JSON.parse(nextText);
-      const validation = validateCardDataForSchema(parsed, schemaId);
+      const validation = validateCardData(parsed);
       if (!validation.valid) {
         setJsonError(formatValidationErrors(validation.errors));
         return;
+      }
+
+      const nextSchemaId = validation.data.type;
+      if (nextSchemaId !== schemaId) {
+        const nextSchema = CARD_SCHEMAS[nextSchemaId];
+        setSchemaId(nextSchemaId);
+        setFixtureId(nextSchema.fixtures[0]?.id ?? 'default');
       }
       setData(cloneCardData(validation.data));
       setJsonError(null);
