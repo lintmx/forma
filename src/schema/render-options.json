@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "公共渲染设置",
-  "description": "适用于所有 Card 的主题、水印和资源地址设置。",
+  "description": "适用于所有 Card 的主题、背景、水印和资源地址设置。",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -11,6 +11,12 @@
       "default": "light",
       "title": "主题",
       "description": "省略时使用浅色主题。"
+    },
+    "transparentBackground": {
+      "type": "boolean",
+      "default": false,
+      "title": "透明背景",
+      "description": "设置为 true 时使用透明背景；省略或设置为 false 时使用主题背景。"
     },
     "watermark": {
       "type": "string",

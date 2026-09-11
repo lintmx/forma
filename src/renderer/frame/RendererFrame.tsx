@@ -8,11 +8,16 @@ interface RendererFrameProps {
 
 export function RendererFrame({ options, children }: RendererFrameProps) {
   const theme = options?.theme ?? 'light';
+  const transparentBackground = options?.transparentBackground ?? false;
   const hasWatermark =
     typeof options?.watermark === 'string' && options.watermark.trim().length > 0;
 
   return (
-    <div className="renderer-frame" data-theme={theme}>
+    <div
+      className="renderer-frame"
+      data-theme={theme}
+      data-transparent-background={transparentBackground ? 'true' : 'false'}
+    >
       {children}
       {hasWatermark && <div className="card-watermark">{options.watermark}</div>}
     </div>

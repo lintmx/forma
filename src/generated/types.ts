@@ -4,6 +4,7 @@ export type CardTheme = 'light' | 'dark';
 
 export type RenderOptions = {
   theme?: CardTheme;
+  transparentBackground?: boolean;
   watermark?: string;
   assetBaseUrl?: string;
 };

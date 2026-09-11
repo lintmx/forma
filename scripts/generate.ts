@@ -122,11 +122,12 @@ function validateRenderOptionsSchema(schema) {
     schema.type !== 'object' ||
     schema.additionalProperties !== false ||
     !schema.properties?.theme ||
+    !schema.properties?.transparentBackground ||
     !schema.properties?.watermark ||
     !schema.properties?.assetBaseUrl
   ) {
     throw new Error(
-      'src/schema/render-options.json must define an object with theme, watermark, and assetBaseUrl properties.',
+      'src/schema/render-options.json must define an object with theme, transparentBackground, watermark, and assetBaseUrl properties.',
     );
   }
   if (
@@ -135,6 +136,12 @@ function validateRenderOptionsSchema(schema) {
     !schema.properties.theme.enum.length
   ) {
     throw new Error('Render options theme must define a non-empty string enum.');
+  }
+  if (
+    schema.properties.transparentBackground.type !== 'boolean' ||
+    schema.properties.transparentBackground.default !== false
+  ) {
+    throw new Error('Render options transparentBackground must be a boolean that defaults to false.');
   }
 }
 
@@ -418,7 +425,7 @@ Schema Version: \`${version}\`
 
 ## Shared Render Options
 
-All Cards accept the optional \`options\` object. The omitted theme defaults to \`light\`; a missing, empty, or whitespace-only watermark is not rendered; \`assetBaseUrl\` resolves relative image and media URLs.
+All Cards accept the optional \`options\` object. The omitted theme defaults to \`light\`; \`transparentBackground\` defaults to \`false\`; a missing, empty, or whitespace-only watermark is not rendered; \`assetBaseUrl\` resolves relative image and media URLs.
 
 | Path | Type | Required | Enum | Default | Description |
 | --- | --- | --- | --- | --- | --- |
