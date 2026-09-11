@@ -19,7 +19,9 @@
 }
 
 .forma-card {
-  width: min(900px, calc(100vw - 40px));
+  display: table;
+  width: auto;
+  max-width: min(900px, calc(100vw - 40px));
 }
 
 .renderer-frame {
@@ -348,7 +350,7 @@
   }
 
   .forma-card {
-    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
   }
 
   .renderer-frame .card-watermark {
