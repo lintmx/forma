@@ -8,11 +8,11 @@
   z-index: 1000;
   inset: 0;
   overflow: auto;
-  background: #f5f5f5;
+  background: transparent;
 }
 
 .dev-page--preview-fullscreen[data-preview-theme='dark'] {
-  background: #16181d;
+  background: transparent;
 }
 
 .dev-header {
@@ -70,18 +70,7 @@
   padding: 32px 20px;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  background:
-    linear-gradient(45deg, #edf0f5 25%, transparent 25%),
-    linear-gradient(-45deg, #edf0f5 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #edf0f5 75%),
-    linear-gradient(-45deg, transparent 75%, #edf0f5 75%);
-  background-position:
-    0 0,
-    0 8px,
-    8px -8px,
-    -8px 0;
-  background-size: 16px 16px;
-  background-color: #f7f8fa;
+  background: transparent;
 }
 
 .dev-page--preview-fullscreen .dev-preview-toolbar {
@@ -128,11 +117,11 @@
   padding: 20px;
   border: 0;
   border-radius: 0;
-  background: #f5f5f5;
+  background: transparent;
 }
 
 .dev-page--preview-fullscreen[data-preview-theme='dark'] .dev-preview {
-  background: #16181d;
+  background: transparent;
 }
 
 .dev-preview .card-container {
