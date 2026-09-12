@@ -1,4 +1,5 @@
 import type { CardTranslation } from '../../../src/types/card';
+import { InlineText } from './InlineText';
 
 interface TranslationProps {
   translation: CardTranslation;
@@ -25,7 +26,9 @@ export function Translation({ translation }: TranslationProps) {
           </>
         )}
       </div>
-      <div className="card-translation__text">{translation.text}</div>
+      <div className="card-translation__text">
+        <InlineText text={translation.text} />
+      </div>
     </aside>
   );
 }
