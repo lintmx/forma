@@ -1,6 +1,6 @@
 import { flushSync } from 'react-dom';
 import { cloneCardData } from '../fixtures';
-import { validateCardData, formatValidationErrors } from '../schema/validation';
+import { formatValidationErrors, validateCardDataForRuntime } from '../schema/validation';
 import type { FormaApi } from '../types/card';
 import { DEFAULT_CARD_DATA, rendererStore } from './store';
 
@@ -124,7 +124,7 @@ async function waitForStableLayout(target: HTMLElement) {
 }
 
 async function render(data: unknown): Promise<void> {
-  const validation = validateCardData(data);
+  const validation = validateCardDataForRuntime(data);
   if (!validation.valid) {
     throw new Error(`Card type ${cardTypeOf(data)}: ${formatValidationErrors(validation.errors)}`);
   }

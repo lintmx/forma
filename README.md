@@ -150,7 +150,7 @@ await window.forma.render(cardData);
 await window.forma.reset();
 ```
 
-`render()` 会先运行对应 Schema 的 Ajv 校验；非法输入会以包含 Card type 或字段路径的错误 reject，并保留上一次有效 Preview。Promise resolve 前会等待 React 更新、Web Font、图片成功或失败以及布局稳定。
+`render()` 会运行对应 Schema 的 Ajv 校验，并在不修改调用方数据的前提下忽略 Schema 未声明的字段；缺少必填字段、已知字段类型或枚举值错误、资源地址非法等输入仍会以包含 Card type 或字段路径的错误 reject，并保留上一次有效 Preview。`/dev` 的 JSON Editor 保持严格校验，包含多余字段时会提示错误。Promise resolve 前会等待 React 更新、Web Font、图片成功或失败以及布局稳定。
 
 正式截图节点可使用：
 
