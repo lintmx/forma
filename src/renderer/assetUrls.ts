@@ -1,4 +1,5 @@
 import type {
+  ArticleCardData,
   CardAuthor,
   CardData,
   CardMedia,
@@ -10,6 +11,10 @@ const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/iu;
 const DATA_IMAGE_URL_PATTERN = /^data:image\//iu;
 const BLOB_URL_PATTERN = /^blob:/iu;
 const HTTP_URL_PATTERN = /^https?:\/\//iu;
+/** 只匹配行内图片语法的地址部分，alt、标题等其余内容原样保留。 */
+const MARKDOWN_IMAGE_PATTERN = /(?<=^|[ \t\n])!\[([^\]\n]*)\]\((<[^<>\n]*>|[^\s()\n]+)+/gu;
+/** 图片语法中位于圆括号内的地址。 */
+const MARKDOWN_DESTINATION_PATTERN = /\]\(\s*(<[^<>\n]*>|[^\s()\n]+)/u;
 
 type ComparisonModuleData = ComparisonCardData['modules'][number];
 type ComparisonImageValue = Extract<NonNullable<ComparisonModuleData['before']>, { url: string }>;
@@ -183,11 +188,81 @@ function resolveComparison(data: ComparisonCardData, baseUrl: URL | undefined): 
   };
 }
 
+/** 被奇数个反斜杠转义的 `![` 是普通文本，不参与地址解析。 */
+function isEscaped(text: string, index: number): boolean {
+  let backslashes = 0;
+  for (let cursor = index - 1; cursor >= 0 && text[cursor] === '\\'; cursor -= 1) {
+    backslashes += 1;
+  }
+  return backslashes % 2 === 1;
+}
+
+/**
+ * 正文和译文里的 Markdown 图片地址走与其他媒体一致的校验和补全；
+ * 普通链接是外部地址，不参与资源解析，匹配不到地址时按原文保留。
+ */
+function resolveMarkdownImageUrls(
+  text: string,
+  baseUrl: URL | undefined,
+  fieldPath: string,
+): string {
+  let imageIndex = 0;
+
+  return text.replace(MARKDOWN_IMAGE_PATTERN, (match: string, offset: number) => {
+    imageIndex += 1;
+    if (isEscaped(text, offset)) {
+      return match;
+    }
+
+    const rawDestination = MARKDOWN_DESTINATION_PATTERN.exec(match)?.[1];
+    if (!rawDestination) {
+      return match;
+    }
+
+    const isAngleBracketed = rawDestination.startsWith('<');
+    const destination = isAngleBracketed ? rawDestination.slice(1, -1) : rawDestination;
+    const resolvedDestination = resolveAssetUrl(
+      destination,
+      baseUrl,
+      `${fieldPath} 第 ${imageIndex} 张图片`,
+    );
+
+    return match.replace(rawDestination, () =>
+      isAngleBracketed ? `<${resolvedDestination}>` : resolvedDestination,
+    );
+  });
+}
+
+function resolveArticle(data: ArticleCardData, baseUrl: URL | undefined): ArticleCardData {
+  const translation = data.translation
+    ? {
+        ...data.translation,
+        content:
+          data.translation.contentType === 'text' || !data.translation.content
+            ? data.translation.content
+            : resolveMarkdownImageUrls(data.translation.content, baseUrl, 'translation.content'),
+      }
+    : undefined;
+
+  return {
+    ...data,
+    content:
+      data.contentType === 'text'
+        ? data.content
+        : resolveMarkdownImageUrls(data.content, baseUrl, 'content'),
+    translation,
+  };
+}
+
 export function resolveCardAssetUrls(data: CardData): CardData {
   const baseUrl = parseAssetBaseUrl(data.options?.assetBaseUrl);
 
   if (data.type === 'social_post') {
     return resolveSocialPost(data, baseUrl);
+  }
+
+  if (data.type === 'article') {
+    return resolveArticle(data, baseUrl);
   }
 
   return resolveComparison(data, baseUrl);

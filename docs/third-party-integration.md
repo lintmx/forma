@@ -50,22 +50,24 @@ try {
 | 字段            | 说明                                                                                                                                      |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `schemaVersion` | 当前必须为字符串 `"1"`。                                                                                                                  |
-| `type`          | 当前支持 `social_post`、`comparison`。                                                                                                    |
+| `type`          | 当前支持 `article`、`social_post`、`comparison`。                                                                                         |
 | `options`       | 可选公共展示设置。`theme` 为 `light` 或 `dark`；省略时为 `light`；`watermark` 为空或仅空白时不显示；`assetBaseUrl` 用于补全相对媒体地址。 |
 
 Card 专属字段以仓库中的 Schema 和生成文档为准：
 
 - [总契约](../CONTRACT.md)
+- [Article](../cards/article/README.md)
 - [Social Post](../cards/social_post/README.md)
 - [Data Comparison](../cards/comparison/README.md)
 
 数据转换时应遵守以下规则：
 
 - 不发送 Schema 未定义的额外字段；当前 Card Schema 默认拒绝额外属性。
+- `article` 只有 `content` 必填；正文和 `translation.content` 的 `contentType` 省略时按 Markdown（CommonMark + GFM）渲染，也可以设置为 `text` 以纯文本保留换行。Markdown 原始 HTML 被忽略，链接只保留 `http(s)`、`mailto` 和相对地址。
 - `social_post` 的正文、作者、媒体、回复链等按其 Schema 传入；媒体项必须提供 `url`。
 - `comparison` 的 `metric`、`text`、`diff`、`image` 模块提供 `before`/`after`，差值和 Diff 行由 Forma 计算；`entity` 模块直接传入实体、动作文案和颜色。
-- 图片、头像、媒体和媒体预览地址可以使用相对路径，但此时必须设置 `options.assetBaseUrl`；Forma 会在渲染前统一补全已知资源字段。绝对 `http(s)`、`data:image` 和 `blob` 地址会保持不变。
-- 文本按纯文本渲染，不应传入 HTML 片段或把 CardData 当作 HTML 注入。
+- 图片、头像、媒体和媒体预览地址可以使用相对路径，但此时必须设置 `options.assetBaseUrl`；Forma 会在渲染前统一补全已知资源字段，包括 `article` 中 `contentType` 为 Markdown 的正文与译文图片地址。绝对 `http(s)`、`data:image` 和 `blob` 地址会保持不变。
+- `article` 的 `text` 类型按纯文本渲染并保留换行，不解析 Markdown；其他文本字段同样按纯文本渲染，不应传入 HTML 片段或把 CardData 当作 HTML 注入。
 
 最小可用数据示例：
 

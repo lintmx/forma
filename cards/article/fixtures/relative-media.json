@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1",
+  "type": "article",
+  "title": "相对图片地址与资源基础地址",
+  "author": {
+    "name": "Forma"
+  },
+  "time": "2026-09-04",
+  "contentType": "markdown",
+  "content": "正文里的相对图片地址会通过 `options.assetBaseUrl` 补全，规则与其他卡片的媒体地址一致。\n\n![架构示意图](diagrams/renderer-flow.png)\n\n图片加载失败时保留占位说明，卡片高度保持稳定。\n\n![缺失的图片](diagrams/missing.png)",
+  "source": "内部文档",
+  "url": "https://example.com/docs/relative-assets",
+  "options": {
+    "assetBaseUrl": "https://images.unsplash.com/",
+    "theme": "light"
+  }
+}

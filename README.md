@@ -20,6 +20,7 @@ pnpm dev
 
 当前内置 Card：
 
+- `article`：跨平台长文内容。必填字段只有 `content`；`title`、`time`、`author`、`translation`、`source` 和 `url` 均为可选。正文和正文译文的 `contentType` 默认为 `markdown`（CommonMark + GFM），也可以设为 `text` 按纯文本保留换行。
 - `social_post`：跨平台社交内容。
 - `comparison`：指标、文本、逐行差异、实体列表和图片对比。除 `entity` 外，调用方按模块提供 `before`/`after`，指标增量和 Diff 行由 Renderer 计算；`entity` 直接传入列表、动作文案和颜色。
 
@@ -73,6 +74,31 @@ Schema 定义数据结构和字段说明，`Card.tsx` 只负责视觉布局，Ca
   "content": "卡片正文"
 }
 ```
+
+文章卡片只有 `content` 必填，其余字段都可省略；正文和正文译文默认使用 Markdown，也可以通过各自的 `contentType` 切换为纯文本：
+
+```json
+{
+  "schemaVersion": "1",
+  "type": "article",
+  "title": "把复杂系统讲清楚的三个习惯",
+  "time": "2026-09-04 09:20",
+  "author": { "name": "林墨" },
+  "contentType": "markdown",
+  "content": "正文支持 **加粗**、`行内代码`、列表、引用、表格和代码块。",
+  "translation": {
+    "contentType": "markdown",
+    "title": "Three habits for explaining complex systems",
+    "content": "The body is rendered as Markdown as well.",
+    "sourceLanguage": "中文",
+    "model": "forma-translate"
+  },
+  "source": "微信公众号",
+  "url": "https://mp.weixin.qq.com/s/example-article"
+}
+```
+
+Markdown 类型中的链接只保留 `http(s)`、`mailto` 和相对地址，其他协议降级为普通文本；原始 HTML 会被忽略；Markdown 图片地址与其他媒体共用一套规则，相对地址需要 `options.assetBaseUrl`，加载失败时显示占位说明。`text` 类型不会解析这些 Markdown 语法，并保留文本换行。卡片 Footer 的 `url` 仅作为普通文本展示，不生成可点击链接。
 
 对比卡片的调用方只需传入前后数据；不需要预先生成 `delta`、`trend` 或 Diff 行。实体模块直接传入 `items`，每项的 `action` 和 `color` 由调用方控制：
 

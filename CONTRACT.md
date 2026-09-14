@@ -17,5 +17,6 @@ All Cards accept the optional `options` object. The omitted theme defaults to `l
 
 ## Cards
 
+- [Article](./cards/article/README.md)
 - [Data Comparison](./cards/comparison/README.md)
 - [Social Post](./cards/social_post/README.md)

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1",
+  "type": "article",
+  "title": "纯文本 Article",
+  "author": {
+    "name": "Forma"
+  },
+  "contentType": "text",
+  "content": "这是纯文本正文。\n\n**星号和 Markdown 链接不会被解析**：\n[链接](https://example.com)\n![图片](relative-image.png)",
+  "translation": {
+    "contentType": "text",
+    "title": "Plain text Article",
+    "content": "This is a plain-text translation.\n\n**Markdown markers stay visible**, and line breaks are preserved.",
+    "sourceLanguage": "中文",
+    "model": "forma-translate"
+  },
+  "source": "内部文档"
+}

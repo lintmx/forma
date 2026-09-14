@@ -1,0 +1,355 @@
+/* 公共卡片类保持全局：本根类只限定 Article 自己的排版覆盖。 */
+.root {
+  width: 100%;
+  max-width: min(760px, calc(100vw - 40px));
+  min-width: 0;
+  padding: 20px 20px 10px;
+}
+
+.root :global(.card-surface) {
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.title {
+  min-width: 0;
+  margin: 0;
+  color: var(--card-text-primary);
+  font-family: var(--article-prose-font);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--card-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.author {
+  color: var(--card-text-primary);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.metaDot {
+  color: var(--card-text-tertiary);
+}
+
+.time {
+  color: var(--card-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Markdown 正文排版：标题、列表、引用、代码与表格共用同一套间距。 */
+.markdown {
+  --article-prose-font:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans',
+    'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', Arial, sans-serif;
+  --article-code-font: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  color: var(--card-text-body);
+  font-family: var(--article-prose-font);
+  font-size: 15px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.plainText {
+  color: var(--card-text-body);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans',
+    'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.plainTextCompact {
+  color: inherit;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.markdownCompact {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown p {
+  margin: 0 0 12px;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 20px 0 10px;
+  color: var(--card-text-primary);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.markdown h1 {
+  font-size: 19px;
+}
+
+.markdown h2 {
+  font-size: 17px;
+}
+
+.markdown h3 {
+  font-size: 16px;
+}
+
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 15px;
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.markdown li {
+  margin: 4px 0;
+}
+
+.markdown li > ul,
+.markdown li > ol {
+  margin: 4px 0;
+}
+
+.markdown li::marker {
+  color: var(--card-text-secondary);
+}
+
+.markdown blockquote {
+  margin: 0 0 12px;
+  padding: 2px 0 2px 12px;
+  border-left: 3px solid var(--card-accent);
+  color: var(--card-text-secondary);
+}
+
+.markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown hr {
+  height: 1px;
+  margin: 20px 0;
+  border: 0;
+  background: var(--card-border);
+}
+
+.markdown strong {
+  color: var(--card-text-primary);
+  font-weight: 700;
+}
+
+.markdown del {
+  color: var(--card-text-secondary);
+}
+
+.markdown pre {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: var(--card-media-background);
+  font-family: var(--article-code-font);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: clip;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.markdown pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+}
+
+.markdown code {
+  padding: 2px 5px;
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  background: var(--card-media-background);
+  color: var(--card-text-primary);
+  font-family: var(--article-code-font);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.markdown table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 12px;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.markdown th,
+.markdown td {
+  padding: 7px 10px;
+  border: 1px solid var(--card-border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.markdown th {
+  background: var(--card-media-background);
+  color: var(--card-text-primary);
+  font-weight: 600;
+}
+
+.link {
+  color: var(--card-link);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.author:hover,
+.link:hover {
+  text-decoration: underline;
+}
+
+.image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 520px;
+  margin: 0 0 12px;
+  border-radius: 12px;
+  background: var(--card-media-background);
+  object-fit: contain;
+}
+
+.imageFallback {
+  display: block;
+  margin: 0 0 12px;
+  padding: 18px 12px;
+  border-radius: 12px;
+  background: var(--card-media-background);
+  color: var(--card-media-error);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* 译文沿用公共 card-translation 形态，这里只调整与本卡片内容的间距。 */
+.root :global(.card-translation) {
+  margin: 16px 0 0;
+}
+
+.root :global(.card-translation__label) {
+  margin-bottom: 8px;
+}
+
+.root :global(.translation-model),
+.root :global(.translation-language) {
+  color: var(--card-link);
+}
+
+.translationTitle {
+  margin-bottom: 6px;
+  color: var(--card-text-primary);
+  font-family: var(--article-prose-font);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.translationText {
+  white-space: normal;
+}
+
+/*
+ * 公共 .card-translation__text 为纯文本保留换行；Markdown 的区块之间本来就带换行，
+ * 沿用 pre-wrap 会把它们渲染成空行，这里改回 normal，间距完全交给块级边距控制。
+ */
+.root .translationText .markdown {
+  color: inherit;
+  white-space: normal;
+}
+
+.root .translationText .markdown h1,
+.root .translationText .markdown h2,
+.root .translationText .markdown h3,
+.root .translationText .markdown h4,
+.root .translationText .markdown h5,
+.root .translationText .markdown h6,
+.root .translationText .markdown strong {
+  color: var(--card-text-primary);
+}
+
+.root .translationText .markdown blockquote {
+  border-left-color: var(--card-accent);
+  color: var(--card-text-secondary);
+}
+
+.root .translationText .markdown pre,
+.root .translationText .markdown code,
+.root .translationText .markdown th,
+.root .translationText .markdown img,
+.root .translationText .markdown .imageFallback {
+  background: var(--card-surface-background);
+}
+
+@media (max-width: 520px) {
+  .root {
+    max-width: calc(100vw - 16px);
+    padding: 12px 8px 6px;
+  }
+
+  .root :global(.card-surface) {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .markdown {
+    font-size: 15px;
+  }
+
+  .markdownCompact,
+  .markdown code {
+    font-size: 13px;
+  }
+}

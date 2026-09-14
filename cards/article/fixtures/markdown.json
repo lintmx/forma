@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1",
+  "type": "article",
+  "title": "Markdown 支持范围",
+  "author": {
+    "name": "Forma"
+  },
+  "time": "2026-09-04",
+  "contentType": "markdown",
+  "content": "正文支持 **加粗**、*斜体*、~~删除线~~、`行内代码`，以及 [外部链接](https://example.com/docs) 和 [不安全链接](javascript:alert(1))。\n\n### 三级标题\n\n1. 有序列表第一项\n2. 有序列表第二项，包含嵌套：\n   - 嵌套无序项\n   - 另一个嵌套项\n\n> 引用块会保留左侧强调线，用于突出原文或结论。\n\n```ts\nconst items = [1, 2, 3];\nconsole.log(items.map((item) => item * 2));\n```\n\n| 语法 | 支持 | 说明 |\n| --- | --- | --- |\n| 标题 | 是 | 一至六级 |\n| 表格 | 是 | GFM 表格 |\n\n---\n\n<https://example.com> 与原始 HTML <span>不会渲染</span>。",
+  "source": "知乎",
+  "url": "https://zhuanlan.zhihu.com/p/example",
+  "options": {
+    "theme": "dark"
+  }
+}

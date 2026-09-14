@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forma:card:article",
+  "title": "Article",
+  "description": "跨平台长文内容的统一表现形式。",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema 版本",
+      "description": "Forma Card 协议版本。"
+    },
+    "type": {
+      "const": "article",
+      "default": "article",
+      "title": "Card 类型",
+      "description": "Card 的唯一类型标识。"
+    },
+    "title": {
+      "type": "string",
+      "title": "标题",
+      "description": "文章标题，省略时不渲染标题区域。"
+    },
+    "time": {
+      "type": "string",
+      "title": "时间",
+      "description": "文章的显示时间，原样展示。"
+    },
+    "author": {
+      "type": "object",
+      "title": "作者",
+      "description": "文章作者信息。",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "名称",
+          "description": "作者显示名称。",
+          "default": "未命名作者"
+        }
+      }
+    },
+    "contentType": {
+      "type": "string",
+      "enum": ["markdown", "text"],
+      "default": "markdown",
+      "title": "正文类型",
+      "description": "正文的渲染类型；省略时按 Markdown 渲染。"
+    },
+    "content": {
+      "type": "string",
+      "title": "正文",
+      "description": "文章正文；Markdown 类型支持语法渲染，文本类型按纯文本保留换行。",
+      "minLength": 1,
+      "x-forma-widget": "textarea"
+    },
+    "translation": {
+      "type": "object",
+      "title": "翻译",
+      "description": "文章标题和正文的翻译结果；正文类型省略时按 Markdown 语法渲染。",
+      "additionalProperties": false,
+      "properties": {
+        "contentType": {
+          "type": "string",
+          "enum": ["markdown", "text"],
+          "default": "markdown",
+          "title": "译文类型",
+          "description": "正文译文的渲染类型；省略时按 Markdown 渲染。"
+        },
+        "title": {
+          "type": "string",
+          "title": "标题译文",
+          "description": "翻译后的标题。"
+        },
+        "content": {
+          "type": "string",
+          "title": "正文译文",
+          "description": "翻译后的正文；Markdown 类型支持语法渲染，文本类型按纯文本保留换行。",
+          "x-forma-widget": "textarea"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "title": "原文语言",
+          "description": "原文语言名称。"
+        },
+        "model": {
+          "type": "string",
+          "title": "翻译模型",
+          "description": "翻译所使用的模型名称。"
+        }
+      }
+    },
+    "source": {
+      "type": "string",
+      "title": "来源",
+      "description": "Footer 中展示的来源名称。"
+    },
+    "url": {
+      "type": "string",
+      "title": "链接",
+      "description": "显示在卡片底部的原文链接，作为普通文本展示。"
+    }
+  },
+  "required": ["schemaVersion", "type", "content"]
+}

@@ -160,37 +160,14 @@
   text-decoration: none;
 }
 
+/* 公共译文区块已是非面板形态，这里只需补上与本卡片内容的间距。 */
 .root :global(.social-post-body .card-translation) {
   margin: 16px 0 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.root :global(.social-post-body .card-translation__label) {
-  margin-bottom: 8px;
-  padding: 2px 8px;
-  color: var(--card-text-secondary);
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 .root :global(.social-post-body .translation-model),
 .root :global(.social-post-body .translation-language) {
   color: var(--card-link);
-}
-
-.root :global(.social-post-body .card-translation__text) {
-  padding: 8px 12px;
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  background: var(--card-media-background);
-  color: var(--card-text-muted);
-  font-size: 15px;
-  line-height: 1.375;
 }
 
 .root :global(.social-post-body .media-grid) {
@@ -245,43 +222,6 @@
   background: var(--card-surface-background);
 }
 
-.root :global(.card-footer) {
-  align-items: stretch;
-  flex-direction: column;
-  gap: 0;
-  margin: 4px 0 0;
-  padding: 8px 0 0;
-  border-top-color: var(--card-border);
-}
-
-.root :global(.card-footer__remark) {
-  display: flex;
-  width: max-content;
-  min-width: 100%;
-  max-width: 100%;
-  align-items: center;
-  color: var(--card-text-tertiary);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.root :global(.card-footer__source) {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.root :global(.card-footer__dot) {
-  flex-shrink: 0;
-  margin: 0 5px;
-}
-
-.root :global(.card-footer__url) {
-  width: auto;
-  flex: 1 1 auto;
-  color: inherit;
-  text-align: left;
-}
-
 .root :global(.social-post-body--compact .card-header) {
   gap: 8px;
   margin-bottom: 10px;
@@ -328,14 +268,6 @@
   .root :global(.card-surface) {
     padding: 16px;
   }
-}
-
-/* Template layout is scoped to Social Post; other card types retain their styles. */
-:global(.renderer-frame[data-theme='light']) .root {
-  --card-border: #e7ecf0;
-  --card-text-secondary: #657786;
-  --card-text-muted: #5b7083;
-  --card-media-background: #f6f7f8;
 }
 
 .root :global(.social-post-body .card-header) {
@@ -465,12 +397,6 @@
 
 .root :global(.social-post-body--compact .card-translation__text) {
   padding: 10px 12px;
-}
-
-.root :global(.card-footer) {
-  margin: 4px 0 0;
-  padding: 8px 0 0;
-  align-items: stretch;
 }
 
 .root :global(.social-post-body .media-grid[data-layout='grid']) {

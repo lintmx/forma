@@ -22,8 +22,11 @@
 | 辅助说明       | `--card-text-secondary`     | `#6b7280` | `#a8b0bd` |
 | 来源、弱信息   | `--card-text-tertiary`      | `#9ca3af` | `#8d96a5` |
 | 链接、提及     | `--card-link`               | `#1d9bf0` | `#60a5fa` |
-| 局部强调       | `--card-accent`             | `#8b5cf6` | `#a78bfa` |
-| 媒体、模块底色 | `--card-media-background`   | `#eef2f7` | `#2b303a` |
+| 全局主色调     | `--card-accent`             | `#1d9bf0` | `#38bdf8` |
+| 主色调上的文字 | `--card-accent-ink`         | `#0c4a6e` | `#082f49` |
+| 媒体、模块底色 | `--card-media-background`   | `#f6f7f8` | `#2b303a` |
+
+`--card-accent` 是唯一的全局主色调，取蓝色，用于强调文字、编号、引用线等少量元素，不用于大面积填充；每个主题只有一个值，新增用途直接复用它，主色上的文字使用 `--card-accent-ink`。不要按卡片或按组件另立主色变体。
 
 表面继承公共样式：`1px` 边框、`12px` 圆角（≤520px 时为 `16px`）、`var(--card-shadow)` 轻阴影。子模块用细边框或浅底色分组，不叠加主卡阴影。
 
@@ -73,6 +76,8 @@
 ## 6. 样式实现与验收
 
 专属样式放在 `cards/<type>/Card.module.css`，使用 camelCase 类名；覆盖公共类时以 `.root :global(...)` 限定作用域。公共主题与水印由 `RendererFrame` 统一处理。正式页面与 Playground 必须共用展示组件。
+
+译文统一使用公共 `.card-translation` 结构：外层 `<aside class="card-translation">`、标签 `.card-translation__label`、正文 `.card-translation__text`。默认形态是一行弱化标签加一个细边框、浅底色的文本块，不使用强调色描边或彩色底；卡片只按自己的内容间距覆盖边距，不重建视觉。
 
 交付前检查：
 

@@ -8,6 +8,15 @@ import type {
 } from '../schema/types';
 import type { CardType, CardTypeMap } from './types';
 import renderOptionsSchema from '../../src/schema/render-options.json';
+import ArticleCard from '../../cards/article/Card';
+import articleSchema from '../../cards/article/schema.json';
+import articleDefaultFixture from '../../cards/article/fixtures/default.json';
+import articleMinimalFixture from '../../cards/article/fixtures/minimal.json';
+import articleLongTextFixture from '../../cards/article/fixtures/long-text.json';
+import articleMarkdownFixture from '../../cards/article/fixtures/markdown.json';
+import articlePlainTextFixture from '../../cards/article/fixtures/plain-text.json';
+import articleRelativeMediaFixture from '../../cards/article/fixtures/relative-media.json';
+import articleTranslatedFixture from '../../cards/article/fixtures/translated.json';
 import ComparisonCard from '../../cards/comparison/Card';
 import comparisonSchema from '../../cards/comparison/schema.json';
 import comparisonDefaultFixture from '../../cards/comparison/fixtures/default.json';
@@ -32,6 +41,14 @@ import social_postTranslatedFixture from '../../cards/social_post/fixtures/trans
 
 export const RENDER_OPTIONS_SCHEMA = renderOptionsSchema as CardJsonSchema;
 
+const articleComposedSchema = {
+  ...articleSchema,
+  properties: {
+    ...articleSchema.properties,
+    options: renderOptionsSchema,
+  },
+};
+
 const comparisonComposedSchema = {
   ...comparisonSchema,
   properties: {
@@ -47,6 +64,51 @@ const social_postComposedSchema = {
     options: renderOptionsSchema,
   },
 };
+
+const articleFixtures: FixtureDefinition<CardTypeMap['article']>[] = [
+  {
+    id: 'default',
+    label: 'Default',
+    description: 'Default fixture scenario.',
+    data: articleDefaultFixture as unknown as CardTypeMap['article'],
+  },
+  {
+    id: 'minimal',
+    label: 'Minimal',
+    description: 'Minimal fixture scenario.',
+    data: articleMinimalFixture as unknown as CardTypeMap['article'],
+  },
+  {
+    id: 'long-text',
+    label: 'Long Text',
+    description: 'Long Text fixture scenario.',
+    data: articleLongTextFixture as unknown as CardTypeMap['article'],
+  },
+  {
+    id: 'markdown',
+    label: 'Markdown',
+    description: 'Markdown fixture scenario.',
+    data: articleMarkdownFixture as unknown as CardTypeMap['article'],
+  },
+  {
+    id: 'plain-text',
+    label: 'Plain Text',
+    description: 'Plain Text fixture scenario.',
+    data: articlePlainTextFixture as unknown as CardTypeMap['article'],
+  },
+  {
+    id: 'relative-media',
+    label: 'Relative Media',
+    description: 'Relative Media fixture scenario.',
+    data: articleRelativeMediaFixture as unknown as CardTypeMap['article'],
+  },
+  {
+    id: 'translated',
+    label: 'Translated',
+    description: 'Translated fixture scenario.',
+    data: articleTranslatedFixture as unknown as CardTypeMap['article'],
+  },
+];
 
 const comparisonFixtures: FixtureDefinition<CardTypeMap['comparison']>[] = [
   {
@@ -157,6 +219,16 @@ const social_postFixtures: FixtureDefinition<CardTypeMap['social_post']>[] = [
 ];
 
 export const CARD_REGISTRY = {
+  article: {
+    id: 'article',
+    title: 'Article',
+    description: '跨平台长文内容的统一表现形式。',
+    jsonSchema: articleComposedSchema as CardJsonSchema,
+    contentSchema: articleSchema as CardJsonSchema,
+    defaultData: articleDefaultFixture as unknown as CardTypeMap['article'],
+    fixtures: articleFixtures,
+    component: ArticleCard as unknown as CardComponent,
+  },
   comparison: {
     id: 'comparison',
     title: 'Data Comparison',

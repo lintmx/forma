@@ -1,6 +1,6 @@
 import type { CardProps } from '../../src/generated/types';
+import { CardFooter } from '../../src/renderer/frame/CardFooter';
 import { CardContainer } from './components/CardContainer';
-import { Footer } from './components/Footer';
 import { SocialPostBody } from './components/SocialPostBody';
 import styles from './Card.module.css';
 
@@ -43,7 +43,7 @@ export default function SocialPostCard({ data }: CardProps<'social_post'>) {
         mediaLayout={data.mediaLayout}
         quotedPost={data.postKind === 'quote' ? data.quotedPost : undefined}
       />
-      <Footer source={data.source} postUrl={data.postUrl} />
+      <CardFooter source={data.source} url={data.url} />
     </CardContainer>
   );
 }

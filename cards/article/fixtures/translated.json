@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1",
+  "type": "article",
+  "title": "三行摘要，两页正文",
+  "time": "2026-08-21",
+  "author": {
+    "name": "Field Notes"
+  },
+  "content": "这是一篇只提供译文的文章：原文较长，卡片上只保留译文与来源信息。\n\n译文的标题和正文都由同一个 `translation` 对象提供，两者都按 Markdown 渲染，因此列表、引用和代码在译文里同样可用。",
+  "translation": {
+    "contentType": "markdown",
+    "title": "Three-line summary, two pages of body",
+    "content": "This article provides only a translation: the original is long, so the card keeps just the translation and the source.\n\nThe translated title and body both come from the same `translation` object, and both render as Markdown, so lists, quotes, and code work in the translation too.",
+    "sourceLanguage": "English",
+    "model": "forma-translate"
+  },
+  "source": "Medium",
+  "url": "https://medium.com/@example/three-line-summary"
+}

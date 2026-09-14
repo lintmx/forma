@@ -20,6 +20,6 @@
       "alt": "明亮的工作空间"
     }
   ],
-  "postUrl": "https://example.com/post/1",
+  "url": "https://example.com/post/1",
   "publishedAt": "2026-09-04 12:30"
 }

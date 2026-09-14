@@ -9,6 +9,45 @@ export type RenderOptions = {
   assetBaseUrl?: string;
 };
 
+export interface ArticleCardData {
+  schemaVersion: '1';
+  type: 'article';
+  title?: string;
+  time?: string;
+  author?: { name?: string };
+  contentType?: 'markdown' | 'text';
+  content: string;
+  translation?: {
+    contentType?: 'markdown' | 'text';
+    title?: string;
+    content?: string;
+    sourceLanguage?: string;
+    model?: string;
+  };
+  source?: string;
+  url?: string;
+  options?: RenderOptions;
+}
+
+export interface ArticleCardContent {
+  schemaVersion: '1';
+  type: 'article';
+  title?: string;
+  time?: string;
+  author?: { name?: string };
+  contentType?: 'markdown' | 'text';
+  content: string;
+  translation?: {
+    contentType?: 'markdown' | 'text';
+    title?: string;
+    content?: string;
+    sourceLanguage?: string;
+    model?: string;
+  };
+  source?: string;
+  url?: string;
+}
+
 export interface ComparisonCardData {
   schemaVersion: '1';
   type: 'comparison';
@@ -63,7 +102,7 @@ export interface SocialPostCardData {
   type: 'social_post';
   author?: { name?: string; handle?: string; avatarUrl?: string; verified?: boolean };
   source?: string;
-  postUrl?: string;
+  url?: string;
   postKind?: 'post' | 'reply' | 'quote' | 'reshare';
   content?: string;
   translation?: { text: string; sourceLanguage?: string; model?: string };
@@ -108,7 +147,7 @@ export interface SocialPostCardContent {
   type: 'social_post';
   author?: { name?: string; handle?: string; avatarUrl?: string; verified?: boolean };
   source?: string;
-  postUrl?: string;
+  url?: string;
   postKind?: 'post' | 'reply' | 'quote' | 'reshare';
   content?: string;
   translation?: { text: string; sourceLanguage?: string; model?: string };
@@ -148,11 +187,13 @@ export interface SocialPostCardContent {
 }
 
 export interface CardTypeMap {
+  article: ArticleCardData;
   comparison: ComparisonCardData;
   social_post: SocialPostCardData;
 }
 
 export interface CardContentTypeMap {
+  article: ArticleCardContent;
   comparison: ComparisonCardContent;
   social_post: SocialPostCardContent;
 }

@@ -53,10 +53,10 @@
       "title": "来源",
       "description": "Footer 中展示的来源名称。"
     },
-    "postUrl": {
+    "url": {
       "type": "string",
-      "title": "内容链接",
-      "description": "显示在卡片底部的当前内容链接。"
+      "title": "链接",
+      "description": "显示在卡片底部的原文链接，作为普通文本展示。"
     },
     "postKind": {
       "type": "string",
