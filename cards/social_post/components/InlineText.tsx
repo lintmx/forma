@@ -1,35 +1,50 @@
+import type { ReactNode } from 'react';
+
 interface InlineTextProps {
   text: string;
 }
 
-const inlineTokenPattern = /(https?:\/\/[^\s]+|#[\p{L}\p{N}_-]+|@[\p{L}\p{N}_.-]+)/gu;
+const inlineTokenPattern =
+  /(https?:\/\/[^\s]+|(?<![\p{L}\p{N}])#(?=[\p{L}\p{N}]*\p{L})[\p{L}\p{N}]+|@[\p{L}\p{N}_.-]+)/gu;
 
 export function InlineText({ text }: InlineTextProps) {
-  return text.split(inlineTokenPattern).map((part, index) => {
-    if (part.startsWith('#')) {
-      return (
-        <span className="card-content__hashtag" key={`${part}-${index}`}>
-          {part}
-        </span>
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(inlineTokenPattern)) {
+    const token = match[0];
+    const start = match.index;
+
+    if (start > lastIndex) {
+      parts.push(text.slice(lastIndex, start));
+    }
+
+    if (token.startsWith('#')) {
+      parts.push(
+        <span className="card-content__hashtag" key={`${token}-${start}`}>
+          {token}
+        </span>,
+      );
+    } else if (token.startsWith('@')) {
+      parts.push(
+        <span className="card-content__mention" key={`${token}-${start}`}>
+          {token}
+        </span>,
+      );
+    } else {
+      parts.push(
+        <span className="card-content__link" key={`${token}-${start}`}>
+          {token}
+        </span>,
       );
     }
 
-    if (part.startsWith('@')) {
-      return (
-        <span className="card-content__mention" key={`${part}-${index}`}>
-          {part}
-        </span>
-      );
-    }
+    lastIndex = start + token.length;
+  }
 
-    if (part.startsWith('http://') || part.startsWith('https://')) {
-      return (
-        <span className="card-content__link" key={`${part}-${index}`}>
-          {part}
-        </span>
-      );
-    }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
 
-    return part;
-  });
+  return parts;
 }
