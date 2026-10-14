@@ -14,9 +14,10 @@ export type CardOptions = z.infer<typeof cardOptionsSchema>;
 export function CardFrame({
   children,
   fontFamily,
+  monospaceFontFamily,
   watermark,
   autoWidth = false,
-}: CardOptions & { children: ReactNode; fontFamily: string; autoWidth?: boolean }) {
+}: CardOptions & { children: ReactNode; fontFamily: string; monospaceFontFamily: string; autoWidth?: boolean }) {
   const width = autoWidth ? undefined : '100%';
   return (
     <div
@@ -37,7 +38,7 @@ export function CardFrame({
           boxSizing: 'border-box',
           flexDirection: 'column',
           width,
-          padding: 24,
+          padding: 16,
           backgroundColor: '#fff',
           border: '1px solid ' + colors.border,
           borderRadius: 12,
@@ -52,13 +53,14 @@ export function CardFrame({
             justifyContent: 'center',
             width,
             marginTop: 8,
-            color: '#9ca3af',
-            fontSize: 13,
+            color: '#b7bac0',
+            fontFamily: monospaceFontFamily,
+            fontSize: 12,
             fontWeight: 400,
             letterSpacing: 1,
             textAlign: 'center',
             ...textStyle,
-            lineHeight: 1.5,
+            lineHeight: 1,
           }}
         >
           {watermark}

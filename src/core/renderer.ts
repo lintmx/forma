@@ -59,12 +59,14 @@ export class Renderer {
       ? CardFrame({
           children: template.measure(data, context),
           fontFamily: context.fontFamily,
+          monospaceFontFamily: context.monospaceFontFamily,
         })
       : undefined;
     const dimensions = await layoutOptions(template.sizing, measure, base, this.config);
     const card = CardFrame({
       children: template.render(data, context),
       fontFamily: context.fontFamily,
+      monospaceFontFamily: context.monospaceFontFamily,
       watermark,
       autoWidth: template.sizing.mode === 'auto-width',
     });
