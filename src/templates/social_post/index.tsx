@@ -112,7 +112,6 @@ function Header({
             color: '#0e7490',
             fontSize: 14,
             fontWeight: 700,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.10)',
             ...(reply ? { position: 'absolute', left: 0, top: 12 } : {}),
           }}
         >

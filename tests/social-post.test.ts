@@ -179,8 +179,8 @@ describe('social_post real Satori and resvg output', () => {
       if (nearColor(png.data, index, [220, 30, 40])) xs.push((index / 4) % png.width);
     }
     expect(xs.length).toBeGreaterThan(100);
-    expect(Math.min(...xs)).toBeGreaterThanOrEqual(61);
-    expect(Math.max(...xs)).toBeLessThan(result.width - 61);
+    expect(xs.reduce((min, x) => Math.min(min, x), Infinity)).toBeGreaterThanOrEqual(37);
+    expect(xs.reduce((max, x) => Math.max(max, x), -Infinity)).toBeLessThan(result.width - 37);
   });
   it('renders all relation kinds and ignores inactive relation fields', async () => {
     mockImages();

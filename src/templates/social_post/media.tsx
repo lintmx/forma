@@ -203,7 +203,6 @@ export function MediaList({
         border: '1px solid #e5e7eb',
         borderRadius: 16,
         backgroundColor: '#e5e7eb',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
       }}
     >
       {content}

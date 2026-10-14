@@ -25,7 +25,7 @@ export function CardFrame({
         flexDirection: 'column',
         boxSizing: 'border-box',
         width,
-        padding: watermark ? '28px 28px 8px' : 28,
+        padding: watermark ? '12px 12px 8px' : 12,
         backgroundColor: 'rgb(245, 245, 245)',
         fontFamily,
         color: colors.ink,
@@ -37,11 +37,10 @@ export function CardFrame({
           boxSizing: 'border-box',
           flexDirection: 'column',
           width,
-          padding: 32,
+          padding: 24,
           backgroundColor: '#fff',
           border: '1px solid ' + colors.border,
-          borderRadius: 24,
-          boxShadow: '0 6px 18px rgba(24,35,51,0.10)',
+          borderRadius: 12,
         }}
       >
         {children}
@@ -52,7 +51,7 @@ export function CardFrame({
             display: 'flex',
             justifyContent: 'center',
             width,
-            marginTop: 16,
+            marginTop: 8,
             color: '#9ca3af',
             fontSize: 13,
             fontWeight: 400,

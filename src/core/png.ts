@@ -12,11 +12,11 @@ export async function encodePng(raster: RenderedImage): Promise<Buffer> {
     },
   })
     .png({
-      compressionLevel: 7,
+      compressionLevel: 5,
       palette: true,
       quality: 85,
       effort: 3,
-      dither: 0.5,
+      dither: 0.25,
       adaptiveFiltering: false,
     })
     .toBuffer();

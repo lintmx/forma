@@ -105,8 +105,8 @@ describe('real Satori + resvg rendering', () => {
       ...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 4),
     ];
     expect(pixel(0, 0)).toEqual([245, 245, 245, 255]);
-    expect(pixel(70, 40)).toEqual([255, 255, 255, 255]);
-    expectPngQuality(pixel(70, 28), [227, 232, 238, 255]);
+    expect(pixel(70, 30)).toEqual([255, 255, 255, 255]);
+    expectPngQuality(pixel(70, 12), [227, 232, 238, 255]);
   });
   it.each(['fixed', 'auto-width'] as const)('includes the common frame with %s sizing', async mode => {
     const id = 'frame-' + mode;
@@ -168,15 +168,16 @@ describe('real Satori + resvg rendering', () => {
   it.each([400, 700])('keeps Maple CN ASCII, Chinese and kana on monospace cells at weight %s', async weight => {
     const probe = (text: string, monospace = true) =>
       renderer.render({ template: 'test-typography', data: { text, monospace, weight }, format: 'svg' });
-    const sizes = await Promise.all(['iiii', 'WWWW', '中文', 'かな'].map(text => probe(text)));
+    const sizes = await Promise.all(['iiiiiiii', 'WWWWWWWW', '中文中文', 'かなかな'].map(text => probe(text)));
     expect(sizes.map(result => result.width)).toEqual(Array(4).fill(170));
-    const singleAscii = await probe('A');
-    const singleCjk = await probe('中');
-    const doubleAscii = await probe('AA');
+    // Keep probes above the template's minimum width after shrinking the frame.
+    const singleAscii = await probe('AAAAA');
+    const singleCjk = await probe('AAAA中');
+    const doubleAscii = await probe('AAAAAA');
     expect(singleCjk.width).toBe(doubleAscii.width);
     expect(singleCjk.width - singleAscii.width).toBe(12);
-    const narrowBody = await probe('iiii', false);
-    const wideBody = await probe('WWWW', false);
+    const narrowBody = await probe('iiiiiiii', false);
+    const wideBody = await probe('WWWWWWWW', false);
     expect(narrowBody.width).toBeLessThan(wideBody.width);
     expect(narrowBody.width).not.toBe(sizes[0]!.width);
   });
@@ -233,8 +234,8 @@ describe('real Satori + resvg rendering', () => {
       code: 'MISSING_GLYPH',
     });
   });
-  it('keeps the rounded card and its shadow inside the PNG canvas', async () => {
-    const result = await render({ title: '卡片圆角与阴影', body: '阴影应保留在画布内部。' }, 'png');
+  it('keeps the flat rounded card inside the PNG canvas', async () => {
+    const result = await render({ title: '扁平卡片', body: '卡片外围保留紧凑留白。' }, 'png');
     const png = PNG.sync.read(Buffer.from(result.body));
     const pixel = (x: number, y: number) => [
       ...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 4),
@@ -242,14 +243,12 @@ describe('real Satori + resvg rendering', () => {
     expect([png.width, png.height]).toEqual([result.width, result.height]);
     expect(pixel(0, 0)).toEqual([245, 245, 245, 255]);
     expect(pixel(png.width - 1, 0)).toEqual(pixel(0, 0));
-    expect(pixel(70, 40)).toEqual([255, 255, 255, 255]);
+    expect(pixel(70, 30)).toEqual([255, 255, 255, 255]);
     // Both sides of the card end before the canvas edge (regression: content-box clipping).
     expect(pixel(2, Math.floor(png.height / 2))).toEqual(pixel(png.width - 3, Math.floor(png.height / 2)));
     expect(pixel(png.width - 3, Math.floor(png.height / 2))![0]).toBeLessThan(255);
-    // Soft shadow darkens pixels just below the card but outside its border.
-    const shadow = pixel(Math.floor(png.width / 2), png.height - 23);
-    expect(shadow[0]).toBeLessThan(245);
-    expect(shadow[0]).toBeGreaterThan(210);
+    // The outer margin stays flat immediately below the card.
+    expect(pixel(Math.floor(png.width / 2), png.height - 12)).toEqual([245, 245, 245, 255]);
   });
   it.each(['test-content', 'test-auto-height'])(
     'renders an optional, centered watermark below %s while preserving the card layout',
@@ -280,9 +279,9 @@ describe('real Satori + resvg rendering', () => {
       expect(marked.height).toBeGreaterThan(plain.height);
       const before = PNG.sync.read(Buffer.from(plain.body));
       const after = PNG.sync.read(Buffer.from(marked.body));
-      const cardEnd = (plain.height - 28) * plain.width * 4;
+      const cardEnd = (plain.height - 12) * plain.width * 4;
       expectPngQuality(after.data.subarray(0, cardEnd), before.data.subarray(0, cardEnd));
-      // Find actual watermark glyphs below the card, excluding its soft shadow.
+      // Find actual watermark glyphs below the card.
       const ink: number[] = [];
       for (let y = plain.height - 12; y < after.height; y++) {
         for (let x = 0; x < after.width; x++) {
