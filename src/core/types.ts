@@ -22,7 +22,6 @@ export interface Template<T extends Record<string, unknown> = Record<string, unk
   schema: z.ZodType<T>;
   sizing: SizeStrategy;
   mock: T;
-  documentation: string;
   // Content-only intrinsic-width probe. The renderer supplies the frame and font.
   measure?: (data: T, context: TemplateContext) => ReactNode;
   assets?: (data: T, images: ImageStore) => Promise<Record<string, string | undefined>>;

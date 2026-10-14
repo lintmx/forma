@@ -19,7 +19,6 @@ export const contentFixture: Template<Content> = {
   schema,
   sizing: { mode: 'content', minWidth: 420, maxWidth: 760 },
   mock: { title: '你好、世界 Hello ✨', body: '中文 日本語 English', rows: ['First row', 'Second row'] },
-  documentation: 'title: required text. body, rows and image: optional content.\n',
   measure: data => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
     {[{ text: data.title, size: 30, weight: 700 }, { text: data.body ?? '', size: 18, weight: 400 },
       ...data.rows.map(text => ({ text, size: 17, weight: 400 }))]

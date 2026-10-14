@@ -59,7 +59,6 @@ export function createApp(config: Config, pool: RenderPool, playgroundDirectory 
   app.get('/v1/templates', () => ({ templates: registry.list() }));
   app.get('/v1/templates/:template', handle(event => {
     const id = getRouterParam(event, 'template')!;
-    if (id.endsWith('.txt')) return new Response(registry.get(id.slice(0, -4)).documentation, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     return registry.metadata(id);
   }));
   app.post('/v1/render', handle(async event => {

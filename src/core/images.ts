@@ -4,6 +4,7 @@ import { request as httpsRequest } from 'node:https';
 import { isIP } from 'node:net';
 import ipaddr from 'ipaddr.js';
 import { imageSize } from 'image-size';
+import sharp from 'sharp';
 import type { Config } from '../config.js';
 import { FormaError } from './errors.js';
 
@@ -105,8 +106,13 @@ export class ImageStore {
     if (entry) this.remove(url);
     const pending = this.inflight.get(url);
     if (pending) return pending;
-    const promise = this.download(url, this.config).then(buffer => {
-      const data = imageDataUri(buffer, this.config);
+    const promise = this.download(url, this.config).then(async buffer => {
+      let data = imageDataUri(buffer, this.config);
+      // resvg 2.6.2 cannot decode WebP; normalize only after validating input limits.
+      if (data.startsWith('data:image/webp;')) {
+        const png = await sharp(buffer, { limitInputPixels: this.config.imageMaxPixels, pages: 1 }).png().toBuffer();
+        data = imageDataUri(png, this.config);
+      }
       const bytes = Buffer.byteLength(data);
       if (bytes <= this.config.imageCacheBytes) {
         while (this.bytes + bytes > this.config.imageCacheBytes || this.cache.size >= 128) this.remove(this.cache.keys().next().value!);

@@ -72,11 +72,12 @@ describe("HTTP end-to-end", () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
-  it("serves health, metadata, JSON Schema, mock data and plain text documentation", async () => {
+  it("serves health, metadata, JSON Schema and mock data", async () => {
     expect((await fetch(origin + "/healthz")).status).toBe(200);
     const list = await (await fetch(origin + "/v1/templates")).json();
     expect(list.templates.map((t: { id: string }) => t.id)).toEqual([
       "example",
+      "social_post",
       "test-content",
       "test-auto-height",
     ]);
@@ -86,11 +87,18 @@ describe("HTTP end-to-end", () => {
     expect(metadata.schema.required).toContain("title");
     expect(metadata.schema.properties).not.toHaveProperty("watermark");
     expect(metadata.mock).not.toHaveProperty("watermark");
-    const docs = await fetch(origin + "/v1/templates/test-content.txt");
-    expect(docs.headers.get("Content-Type")).toContain("text/plain");
-    expect(await docs.text()).toContain("title: required text");
+    expect(metadata).not.toHaveProperty("documentation");
     expect((await fetch(origin + "/dev/")).status).toBe(404);
   });
+  it.each(["example", "social_post", "test-content"])(
+    "returns JSON 404 for the removed plain text route for %s",
+    async (template) => {
+      const response = await fetch(origin + "/v1/templates/" + template + ".txt");
+      expect(response.status).toBe(404);
+      expect(response.headers.get("Content-Type")).toContain("application/json");
+      expect((await response.json()).error.code).toBe("TEMPLATE_NOT_FOUND");
+    },
+  );
   it("saves and decodes actual PNG output from registered templates and renders SVG", async () => {
     await mkdir("artifacts", { recursive: true });
     for (const template of registry.list()) {
@@ -183,10 +191,6 @@ describe("HTTP end-to-end", () => {
         await fetch(origin + "/v1/templates/" + template)
       ).json();
       expect(metadata.schema.properties).not.toHaveProperty("watermark");
-      const docs = await (
-        await fetch(origin + "/v1/templates/" + template + ".txt")
-      ).text();
-      expect(docs).toContain("请求顶层 watermark");
       for (const watermark of [123, null, "x".repeat(161)]) {
         const response = await post({
           template,

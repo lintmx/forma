@@ -9,7 +9,6 @@ interface TemplateMetadata {
   mock: unknown;
   sizing: { mode: string };
   schema: unknown;
-  documentation: string;
 }
 interface Preview {
   url: string;
@@ -281,15 +280,6 @@ function App() {
               >
                 {showSchema ? "收起 Schema" : "查看 Schema"}
               </button>
-              {template && (
-                <a
-                  href={template.documentation}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  模板说明 ↗
-                </a>
-              )}
             </div>
             {showSchema && template && (
               <pre className="schema">
@@ -360,7 +350,9 @@ function App() {
               <span>{template?.sizing.mode}</span>
             </div>
             {preview?.warnings && (
-              <div className="warning">图片资源加载失败，已使用模板的降级内容。</div>
+              <div className="warning">
+                图片资源加载失败，已使用模板的降级内容。
+              </div>
             )}
             <div className="downloads">
               <button

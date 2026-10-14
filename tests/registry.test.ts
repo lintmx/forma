@@ -11,23 +11,27 @@ const template: Template<{ title: string }> = {
   schema: z.object({ title: z.string().min(1) }).strict(),
   sizing: { mode: "auto-height", width: 420 },
   mock: { title: "示例" },
-  documentation: "title：必填标题。\n",
   render: (data) =>
     createElement("div", { style: { display: "flex" } }, data.title),
 };
 
 describe("content-only template registry", () => {
-  it("keeps schema and examples content-only and documents top-level render options", () => {
+  it("allows underscore template IDs and still rejects invalid or duplicate IDs", () => {
+    const registry = new TemplateRegistry().register({ ...template, id: "social_post" });
+    expect(registry.get("social_post").id).toBe("social_post");
+    expect(() => registry.register({ ...template, id: "social_post" })).toThrow("Invalid or duplicate template");
+    for (const id of ["Social_post", "_social_post", "social/post", "social post"]) {
+      expect(() => new TemplateRegistry().register({ ...template, id })).toThrow("Invalid or duplicate template");
+    }
+  });
+  it("keeps schema and examples content-only", () => {
     const registry = new TemplateRegistry().register(template);
     const metadata = registry.metadata(template.id);
     expect(metadata.schema.properties).not.toHaveProperty("watermark");
     expect(metadata.schema.additionalProperties).toBe(false);
     expect(metadata.mock).toEqual({ title: "示例" });
-    expect(registry.get(template.id).documentation).toContain(
-      "请求顶层 watermark",
-    );
+    expect(metadata).not.toHaveProperty("documentation");
     expect(template.mock).toEqual({ title: "示例" });
-    expect(template.documentation).not.toContain("watermark");
     expect(registry.validate(template.id, { title: "示例" })).toEqual({
       title: "示例",
     });

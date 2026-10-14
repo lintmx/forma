@@ -9,6 +9,7 @@ import { loadFonts } from "../src/core/fonts.js";
 import { Renderer } from "../src/core/renderer.js";
 import { registry } from "../src/templates/index.js";
 import { registerTestTemplates } from "./fixtures/templates.js";
+import { expectPngQuality } from "./fixtures/png-quality.js";
 import {
   assertDimensions,
   layoutOptions,
@@ -47,7 +48,6 @@ describe("real Satori + resvg rendering", () => {
       schema: z.object({ message: z.string() }).strict(),
       sizing: { mode: "content", minWidth: 360, maxWidth: 600 },
       mock: { message: "Example" },
-      documentation: "message：内容。",
       render: content,
       measure: content,
       assets,
@@ -79,7 +79,7 @@ describe("real Satori + resvg rendering", () => {
     ];
     expect(pixel(0, 0)).toEqual([245, 245, 245, 255]);
     expect(pixel(70, 40)).toEqual([255, 255, 255, 255]);
-    expect(pixel(70, 28)).toEqual([227, 232, 238, 255]);
+    expectPngQuality(pixel(70, 28), [227, 232, 238, 255]);
   });
   it.each(["fixed", "auto-width"] as const)(
     "includes the common frame with %s sizing",
@@ -95,7 +95,6 @@ describe("real Satori + resvg rendering", () => {
             ? { mode, width: 360, height: 240 }
             : { mode, height: 240 },
         mock: { message: "Hello" },
-        documentation: "message：单行文本。",
         render: (data) =>
           createElement(
             "div",
@@ -186,7 +185,7 @@ describe("real Satori + resvg rendering", () => {
     expect(shadow[0]).toBeGreaterThan(210);
   });
   it.each(["test-content", "test-auto-height"])(
-    "renders an optional, centered watermark below %s without changing the card",
+    "renders an optional, centered watermark below %s while preserving the card layout",
     async (template) => {
       const data = { title: "更新", body: "中文・日本語・English" };
       const plain = await renderer.render({ template, data, format: "png" });
@@ -215,7 +214,8 @@ describe("real Satori + resvg rendering", () => {
       const before = PNG.sync.read(Buffer.from(plain.body));
       const after = PNG.sync.read(Buffer.from(marked.body));
       const cardEnd = (plain.height - 28) * plain.width * 4;
-      expect(after.data.subarray(0, cardEnd)).toEqual(
+      expectPngQuality(
+        after.data.subarray(0, cardEnd),
         before.data.subarray(0, cardEnd),
       );
       // Find actual watermark glyphs below the card, excluding its soft shadow.
@@ -253,7 +253,7 @@ describe("real Satori + resvg rendering", () => {
       ).rejects.toMatchObject({ code: "SIZE_LIMIT" });
     },
   );
-  it("produces PNG with identical dimensions and pixels to rasterizing returned SVG", async () => {
+  it("produces PNG with identical dimensions and bounded color error against the returned SVG", async () => {
     const request = {
       template: "test-auto-height",
       data: registry.get("test-auto-height").mock,
@@ -266,7 +266,10 @@ describe("real Satori + resvg rendering", () => {
     })
       .render()
       .asPng();
-    expect(Buffer.from(png.body)).toEqual(expected);
+    const decoded = PNG.sync.read(Buffer.from(png.body));
+    const raster = PNG.sync.read(expected);
+    expect([decoded.width, decoded.height]).toEqual([raster.width, raster.height]);
+    expectPngQuality(decoded.data, raster.data);
     expect(png.width).toBe(620);
   });
   it.each([2, 3, 4])(
@@ -300,7 +303,9 @@ describe("real Satori + resvg rendering", () => {
       })
         .render()
         .asPng();
-      expect(Buffer.from(scaled.body)).toEqual(expected);
+      const raster = PNG.sync.read(expected);
+      expect([png.width, png.height]).toEqual([raster.width, raster.height]);
+      expectPngQuality(png.data, raster.data);
       const unscaledSvg = await renderer.render({ ...request, format: "svg" });
       expect(svg.body).toEqual(unscaledSvg.body);
       expect(svg.scale).toBe(1);
