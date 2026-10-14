@@ -14,7 +14,7 @@ export const cardDocumentation = '公共外观：统一背景、圆角、边框�
 // never need to duplicate the frame's padding, border or typography defaults.
 export function CardFrame({ children, fontFamily, watermark, autoWidth = false }: CardOptions & { children: ReactNode; fontFamily: string; autoWidth?: boolean }) {
   const width = autoWidth ? undefined : '100%';
-  return <div style={{ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', width, padding: watermark ? '28px 28px 8px' : 28, backgroundColor: '#f1f4f7', fontFamily, color: colors.ink }}>
+  return <div style={{ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', width, padding: watermark ? '28px 28px 8px' : 28, backgroundColor: 'rgb(245, 245, 245)', fontFamily, color: colors.ink }}>
     <div style={{
       display: 'flex', boxSizing: 'border-box', flexDirection: 'column', width, padding: 32,
       backgroundColor: '#fff', border: '1px solid ' + colors.border, borderRadius: 24,
