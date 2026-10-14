@@ -127,7 +127,7 @@ export function createApp(config: Config, pool: RenderPool, playgroundDirectory 
   if (config.playground) {
     const servePlayground = handle(async (event: H3Event) => {
       const path = event.url.pathname.slice(4).replace(/^\//, '') || 'index.html';
-      if (!/^(index\.html|assets\/[a-zA-Z0-9_.-]+\.(js|css))$/.test(path))
+      if (!/^(index\.html|favicon\.svg|assets\/[a-zA-Z0-9_.-]+\.(js|css))$/.test(path))
         throw new FormaError('NOT_FOUND', 'Not found', 404);
       const content = await readFile(resolve(playgroundDirectory, path)).catch(() => {
         throw new FormaError('NOT_FOUND', 'Build the Playground first', 404);
@@ -136,6 +136,7 @@ export function createApp(config: Config, pool: RenderPool, playgroundDirectory 
         '.html': 'text/html; charset=utf-8',
         '.js': 'text/javascript; charset=utf-8',
         '.css': 'text/css; charset=utf-8',
+        '.svg': 'image/svg+xml',
       }[extname(path)]!;
       return new Response(content, { headers: { 'Content-Type': mime } });
     });
