@@ -234,19 +234,21 @@ resvg 实际栅格化得到柔和阴影；像素测试验证阴影和画布边�
 
 ## 字体、Emoji 与图片
 
-默认使用七份上游原始静态 TTF/OTF（下载后合计约 69 MiB）。Git 仅保存字体配置、
+默认使用八份上游原始静态 TTF/OTF（下载后合计约 70 MiB）。Git 仅保存字体配置、
 下载清单和许可证，字体二进制不入库；正文和等宽分别选择字体：
 
 | 用途 | 字体顺序 | 字重 |
 | --- | --- | --- |
-| 正文 | Inter → Noto Sans CJK SC → Noto Sans Symbols 2 | 前两套 400/700，符号 400 |
-| 等宽 | Maple Mono CN → Noto Sans Symbols 2 | Maple 400/700，符号 400 |
+| 正文 | Inter → Noto Sans CJK SC → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs | 前两套 400/700，符号 400 |
+| 等宽 | Maple Mono CN → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs | Maple 400/700，符号 400 |
 
 Maple Mono CN 包含中日英文字，其 ASCII 和所覆盖的全宽 CJK 字符采用 0.6em / 1.2em 字宽；
 不含现代韩文音节和汉字扩展 A。这些字符可能由 Satori 回退到已加载的正文字体，
 不保证等宽对齐。补充符号和 Emoji 也不承诺等宽单元格。
 字体覆盖以各上游字体原有字表为准，接受缺字；所有已加载字体均不覆盖时返回 `MISSING_GLYPH`。
 汉字沿用 SC 或 Maple CN 的字形，未自动切换地区字形。
+Noto Sans Egyptian Hieroglyphs v2.002 作为最后一级 fallback 补充埃及象形文字，只有 400 字重，
+不保证等宽对齐；单字与混排有渲染测试，复杂组合和格式控制符的排版不在验证范围内。
 
 `fonts/sources.json` 固定上游 commit / release 下载地址，以及下载资源和最终字体文件的
 SHA-256。`pnpm fonts:fetch` 复用校验通过的本地字体，缺失或损坏时重新下载；ZIP 只提取
@@ -254,7 +256,7 @@ SHA-256。`pnpm fonts:fetch` 复用校验通过的本地字体，缺失或损坏
 更新字体时同步更新清单中的版本、SHA-256 和相关许可说明。
 
 `pnpm dev` 和 `pnpm build` 自动执行下载准备；单独运行测试前先执行 `pnpm fonts:fetch`。
-`pnpm fonts:verify` 仅校验七份本地字体，不联网。Docker 在复制业务源码前独立下载字体，
+`pnpm fonts:verify` 仅校验八份本地字体，不联网。Docker 在复制业务源码前独立下载字体，
 复用构建层缓存；本机字体不进入 Docker 构建上下文，最终镜像仍内置完整字体和许可证。
 `pnpm start` 和渲染 worker 只读取本地字体，不下载资源；离线部署使用预先构建好的镜像，
 直接运行 Node 时需先准备好 `fonts/`。这些准备命令只管理默认字体，自定义 `FONT_CONFIG`

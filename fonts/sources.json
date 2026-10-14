@@ -61,5 +61,16 @@
         "sha256": "3ce38effdb615dd929c8b0f52768dfa2cd21f206e3824bc7df61e4074b41ae52"
       }
     ]
+  },
+  {
+    "url": "https://github.com/notofonts/egyptian-hieroglyphs/releases/download/NotoSansEgyptianHieroglyphs-v2.002/NotoSansEgyptianHieroglyphs-v2.002.zip",
+    "sha256": "e64154d7d6a358788a6852441a8ac74f6cc5389d428aa8786d2e722bc2da267d",
+    "files": [
+      {
+        "path": "NotoSansEgyptianHieroglyphs-Regular.ttf",
+        "archivePath": "NotoSansEgyptianHieroglyphs/full/ttf/NotoSansEgyptianHieroglyphs-Regular.ttf",
+        "sha256": "2c01dc92d80636c078abcbfbf47a19f3a5c995e40d908a334ff6f2b3f3bf404a"
+      }
+    ]
   }
 ]

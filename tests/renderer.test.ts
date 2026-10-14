@@ -195,6 +195,36 @@ describe('real Satori + resvg rendering', () => {
       expect(image.data.some(byte => byte < 100)).toBe(true);
     },
   );
+  it.each([false, true])('renders Egyptian hieroglyphs as the final fallback in monospace=%s', async monospace => {
+    const family = 'Noto Sans Egyptian Hieroglyphs';
+    expect(fonts.fontFamily.endsWith('Noto Sans Symbols 2, ' + family)).toBe(true);
+    expect(fonts.monospaceFontFamily.endsWith('Noto Sans Symbols 2, ' + family)).toBe(true);
+    const previous = new Renderer(config, {
+      fonts: fonts.fonts.filter(font => font.name !== family),
+      fontFamily: fonts.fontFamily.replace(', ' + family, ''),
+      monospaceFontFamily: fonts.monospaceFontFamily.replace(', ' + family, ''),
+    });
+    const request = {
+      template: 'example',
+      data: { text: '中文 日本語 한국어 Hello ⏻ 🎉', monospace },
+      format: 'svg' as const,
+    };
+    const before = await previous.render(request);
+    const after = await renderer.render(request);
+    expect(after.body).toEqual(before.body);
+    const egyptian = { ...request, data: { text: '中文 Hello 𓀀 𓂀 𓆣 𓋹', monospace } };
+    await expect(previous.render(egyptian)).rejects.toMatchObject({ code: 'MISSING_GLYPH' });
+    const svg = await renderer.render(egyptian);
+    const source = Buffer.from(svg.body).toString();
+    expect(source).toContain('<path');
+    expect(source).not.toContain('<text');
+    expect(source).not.toMatch(/(?:href|src)="https?:/);
+    const png = await renderer.render({ ...egyptian, format: 'png' });
+    const image = PNG.sync.read(Buffer.from(png.body));
+    expect([image.width, image.height]).toEqual([svg.width, svg.height]);
+    expect(image.data.some(byte => byte < 100)).toBe(true);
+  });
+
   it('reports missing glyphs rather than silently returning tofu', async () => {
     await expect(render({ title: '\u{10ffff}' })).rejects.toMatchObject({
       code: 'MISSING_GLYPH',

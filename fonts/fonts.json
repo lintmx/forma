@@ -5,5 +5,11 @@
   { "name": "Noto Sans CJK SC", "path": "NotoSansCJKsc-Bold.otf", "weight": 700, "usage": "body" },
   { "name": "Maple Mono CN", "path": "MapleMono-CN-Regular.ttf", "weight": 400, "usage": "monospace" },
   { "name": "Maple Mono CN", "path": "MapleMono-CN-Bold.ttf", "weight": 700, "usage": "monospace" },
-  { "name": "Noto Sans Symbols 2", "path": "NotoSansSymbols2-Regular.ttf", "weight": 400, "usage": "fallback" }
+  { "name": "Noto Sans Symbols 2", "path": "NotoSansSymbols2-Regular.ttf", "weight": 400, "usage": "fallback" },
+  {
+    "name": "Noto Sans Egyptian Hieroglyphs",
+    "path": "NotoSansEgyptianHieroglyphs-Regular.ttf",
+    "weight": 400,
+    "usage": "fallback"
+  }
 ]

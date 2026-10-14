@@ -45,6 +45,19 @@ in the official [Noto Sans Symbols 2 v2.008 release](https://github.com/notofont
 It is shared as a supplementary symbol fallback and does not guarantee a
 monospace grid for those symbols.
 
+## Noto Sans Egyptian Hieroglyphs
+
+Distributed under the SIL Open Font License 1.1; see
+[fonts/NotoSansEgyptianHieroglyphs-OFL.txt](fonts/NotoSansEgyptianHieroglyphs-OFL.txt)
+for the upstream copyright and license.
+
+The unmodified `NotoSansEgyptianHieroglyphs-Regular.ttf` comes from
+`NotoSansEgyptianHieroglyphs/full/ttf` in the official
+[Noto Sans Egyptian Hieroglyphs v2.002 release](https://github.com/notofonts/egyptian-hieroglyphs/releases/tag/NotoSansEgyptianHieroglyphs-v2.002),
+archive `NotoSansEgyptianHieroglyphs-v2.002.zip`. It is the last fallback for both
+body and monospace text, after Noto Sans Symbols 2. It supplies Egyptian
+hieroglyphs at weight 400 and does not guarantee a monospace grid.
+
 ## Twemoji
 
 Emoji graphics are by Twitter, Inc. and other contributors to
