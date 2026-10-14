@@ -1,0 +1,43 @@
+{
+  "name": "forma",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "tsx scripts/dev.ts",
+    "build": "pnpm check && tsx scripts/build.ts && vite build",
+    "start": "node --env-file-if-exists=.env dist/server.js",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "vitest run tests/api.test.ts",
+    "fonts:verify": "tsx scripts/verify-fonts.ts"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "@twemoji/svg": "15.0.0",
+    "h3": "2.0.2",
+    "image-size": "2.0.4",
+    "ipaddr.js": "2.5.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "satori": "0.55.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pngjs": "6.0.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "esbuild": "^0.27.0",
+    "pngjs": "7.0.0",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.4"
+  }
+}

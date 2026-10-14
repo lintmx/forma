@@ -1,0 +1,19 @@
+services:
+  forma:
+    build: .
+    ports:
+      - "${FORMA_BIND:-127.0.0.1}:${FORMA_PORT:-3000}:3000"
+    environment:
+      PORT: "3000"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+      PLAYGROUND_ENABLED: "${PLAYGROUND_ENABLED:-false}"
+      RENDER_CONCURRENCY: "${RENDER_CONCURRENCY:-2}"
+      RENDER_QUEUE_LIMIT: "${RENDER_QUEUE_LIMIT:-16}"
+      RENDER_TIMEOUT_MS: "${RENDER_TIMEOUT_MS:-15000}"
+      MAX_WIDTH: "${MAX_WIDTH:-4096}"
+      MAX_HEIGHT: "${MAX_HEIGHT:-8192}"
+      MAX_PIXELS: "${MAX_PIXELS:-8000000}"
+      IMAGE_CACHE_BYTES: "${IMAGE_CACHE_BYTES:-33554432}"
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 20s
