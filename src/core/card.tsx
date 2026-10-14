@@ -11,17 +11,60 @@ export type CardOptions = z.infer<typeof cardOptionsSchema>;
 
 // Used for both intrinsic-width measurement and final rendering so templates
 // never need to duplicate the frame's padding, border or typography defaults.
-export function CardFrame({ children, fontFamily, watermark, autoWidth = false }: CardOptions & { children: ReactNode; fontFamily: string; autoWidth?: boolean }) {
+export function CardFrame({
+  children,
+  fontFamily,
+  watermark,
+  autoWidth = false,
+}: CardOptions & { children: ReactNode; fontFamily: string; autoWidth?: boolean }) {
   const width = autoWidth ? undefined : '100%';
-  return <div style={{ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', width, padding: watermark ? '28px 28px 8px' : 28, backgroundColor: 'rgb(245, 245, 245)', fontFamily, color: colors.ink }}>
-    <div style={{
-      display: 'flex', boxSizing: 'border-box', flexDirection: 'column', width, padding: 32,
-      backgroundColor: '#fff', border: '1px solid ' + colors.border, borderRadius: 24,
-      boxShadow: '0 6px 18px rgba(24,35,51,0.10)',
-    }}>{children}</div>
-    {watermark && <div style={{
-      display: 'flex', justifyContent: 'center', width, marginTop: 16, color: '#9ca3af',
-      fontSize: 13, fontWeight: 400, letterSpacing: 1, textAlign: 'center', ...textStyle, lineHeight: 1.5,
-    }}>{watermark}</div>}
-  </div>;
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+        width,
+        padding: watermark ? '28px 28px 8px' : 28,
+        backgroundColor: 'rgb(245, 245, 245)',
+        fontFamily,
+        color: colors.ink,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          boxSizing: 'border-box',
+          flexDirection: 'column',
+          width,
+          padding: 32,
+          backgroundColor: '#fff',
+          border: '1px solid ' + colors.border,
+          borderRadius: 24,
+          boxShadow: '0 6px 18px rgba(24,35,51,0.10)',
+        }}
+      >
+        {children}
+      </div>
+      {watermark && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            width,
+            marginTop: 16,
+            color: '#9ca3af',
+            fontSize: 13,
+            fontWeight: 400,
+            letterSpacing: 1,
+            textAlign: 'center',
+            ...textStyle,
+            lineHeight: 1.5,
+          }}
+        >
+          {watermark}
+        </div>
+      )}
+    </div>
+  );
 }

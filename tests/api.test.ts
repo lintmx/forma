@@ -1,302 +1,268 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { build } from "esbuild";
-import { createServer, type Server } from "node:http";
-import { once } from "node:events";
-import { toNodeHandler } from "h3/node";
-import { PNG } from "pngjs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { pathToFileURL } from "node:url";
-import { resolve } from "node:path";
-import { loadConfig } from "../src/config.js";
-import { createApp, readJson } from "../src/api/app.js";
-import { RenderPool } from "../src/core/pool.js";
-import { registry } from "../src/templates/index.js";
-import { registerTestTemplates } from "./fixtures/templates.js";
+import { once } from 'node:events';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { createServer, type Server } from 'node:http';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { build } from 'esbuild';
+import { toNodeHandler } from 'h3/node';
+import { PNG } from 'pngjs';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createApp, readJson } from '../src/api/app.js';
+import { loadConfig } from '../src/config.js';
+import { RenderPool } from '../src/core/pool.js';
+import { registry } from '../src/templates/index.js';
+import { registerTestTemplates } from './fixtures/templates.js';
 
 const config = loadConfig({
-  LOG_LEVEL: "silent",
-  RENDER_CONCURRENCY: "1",
-  NODE_ENV: "production",
+  LOG_LEVEL: 'silent',
+  RENDER_CONCURRENCY: '1',
+  NODE_ENV: 'production',
 });
 let pool: RenderPool;
 let server: Server;
 let origin: string;
 const post = (data: unknown) =>
-  fetch(origin + "/v1/render", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  fetch(origin + '/v1/render', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 beforeAll(async () => {
   registerTestTemplates();
   await build({
-    entryPoints: ["tests/fixtures/worker.ts"],
-    outfile: ".dev/test-worker.js",
+    entryPoints: ['tests/fixtures/worker.ts'],
+    outfile: '.dev/test-worker.js',
     bundle: true,
-    packages: "external",
-    platform: "node",
-    format: "esm",
-    target: "node22",
+    packages: 'external',
+    platform: 'node',
+    format: 'esm',
+    target: 'node22',
   });
-  pool = new RenderPool(config, pathToFileURL(resolve(".dev/test-worker.js")));
+  pool = new RenderPool(config, pathToFileURL(resolve('.dev/test-worker.js')));
   await pool.start();
   server = createServer(toNodeHandler(createApp(config, pool)));
-  server.listen(0, "127.0.0.1");
-  await once(server, "listening");
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
   const address = server.address();
-  origin =
-    "http://127.0.0.1:" +
-    (typeof address === "object" && address ? address.port : 0);
+  origin = 'http://127.0.0.1:' + (typeof address === 'object' && address ? address.port : 0);
 });
 afterAll(async () => {
   await pool?.close();
   server?.closeAllConnections();
-  await new Promise<void>((resolve) => server?.close(() => resolve()));
+  await new Promise<void>(resolve => server?.close(() => resolve()));
 });
 
-describe("HTTP end-to-end", () => {
-  it("redirects /dev once and serves /dev/ when the production Playground is enabled", async () => {
-    const directory = await mkdtemp(resolve(tmpdir(), "forma-playground-"));
-    const html = "<!doctype html><html><body>Playground</body></html>";
+describe('HTTP end-to-end', () => {
+  it('redirects /dev once and serves /dev/ when the production Playground is enabled', async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), 'forma-playground-'));
+    const html = '<!doctype html><html><body>Playground</body></html>';
     try {
-      await writeFile(resolve(directory, "index.html"), html);
+      await writeFile(resolve(directory, 'index.html'), html);
       const app = createApp({ ...config, playground: true }, pool, directory);
-      const redirect = await app.fetch(new Request("http://localhost/dev"));
+      const redirect = await app.fetch(new Request('http://localhost/dev'));
       expect(redirect.status).toBe(302);
-      expect(redirect.headers.get("Location")).toBe("/dev/");
-      const response = await app.fetch(new Request("http://localhost/dev/"));
+      expect(redirect.headers.get('Location')).toBe('/dev/');
+      const response = await app.fetch(new Request('http://localhost/dev/'));
       expect(response.status).toBe(200);
       expect(await response.text()).toBe(html);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
   });
-  it("serves health, metadata, JSON Schema and mock data", async () => {
-    expect((await fetch(origin + "/healthz")).status).toBe(200);
-    const list = await (await fetch(origin + "/v1/templates")).json();
+  it('serves health, metadata, JSON Schema and mock data', async () => {
+    expect((await fetch(origin + '/healthz')).status).toBe(200);
+    const list = await (await fetch(origin + '/v1/templates')).json();
     expect(list.templates.map((t: { id: string }) => t.id)).toEqual([
-      "example",
-      "social_post",
-      "test-content",
-      "test-auto-height",
+      'example',
+      'social_post',
+      'test-content',
+      'test-auto-height',
     ]);
-    const metadata = await (
-      await fetch(origin + "/v1/templates/test-content")
-    ).json();
-    expect(metadata.schema.required).toContain("title");
-    expect(metadata.schema.properties).not.toHaveProperty("watermark");
-    expect(metadata.mock).not.toHaveProperty("watermark");
-    expect(metadata).not.toHaveProperty("documentation");
-    expect((await fetch(origin + "/dev/")).status).toBe(404);
+    const metadata = await (await fetch(origin + '/v1/templates/test-content')).json();
+    expect(metadata.schema.required).toContain('title');
+    expect(metadata.schema.properties).not.toHaveProperty('watermark');
+    expect(metadata.mock).not.toHaveProperty('watermark');
+    expect(metadata).not.toHaveProperty('documentation');
+    expect((await fetch(origin + '/dev/')).status).toBe(404);
   });
-  it.each(["example", "social_post", "test-content"])(
-    "returns JSON 404 for the removed plain text route for %s",
-    async (template) => {
-      const response = await fetch(origin + "/v1/templates/" + template + ".txt");
+  it.each(['example', 'social_post', 'test-content'])(
+    'returns JSON 404 for the removed plain text route for %s',
+    async template => {
+      const response = await fetch(origin + '/v1/templates/' + template + '.txt');
       expect(response.status).toBe(404);
-      expect(response.headers.get("Content-Type")).toContain("application/json");
-      expect((await response.json()).error.code).toBe("TEMPLATE_NOT_FOUND");
+      expect(response.headers.get('Content-Type')).toContain('application/json');
+      expect((await response.json()).error.code).toBe('TEMPLATE_NOT_FOUND');
     },
   );
-  it("saves and decodes actual PNG output from registered templates and renders SVG", async () => {
-    await mkdir("artifacts", { recursive: true });
+  it('saves and decodes actual PNG output from registered templates and renders SVG', async () => {
+    await mkdir('artifacts', { recursive: true });
     for (const template of registry.list()) {
       const response = await post({
         template: template.id,
         data: template.mock,
-        watermark: "Generated by Forma",
-        format: "png",
+        watermark: 'Generated by Forma',
+        format: 'png',
       });
       expect(response.status).toBe(200);
-      expect(response.headers.get("Content-Type")).toBe("image/png");
-      const path = "artifacts/" + template.id + ".png";
+      expect(response.headers.get('Content-Type')).toBe('image/png');
+      const path = 'artifacts/' + template.id + '.png';
       await writeFile(path, Buffer.from(await response.arrayBuffer()));
       const png = PNG.sync.read(await readFile(path));
-      expect(png.width).toBe(Number(response.headers.get("X-Image-Width")));
-      expect(png.height).toBe(Number(response.headers.get("X-Image-Height")));
-      expect(png.data.some((byte) => byte > 0 && byte < 200)).toBe(true);
+      expect(png.width).toBe(Number(response.headers.get('X-Image-Width')));
+      expect(png.height).toBe(Number(response.headers.get('X-Image-Height')));
+      expect(png.data.some(byte => byte > 0 && byte < 200)).toBe(true);
       const svgResponse = await post({
         template: template.id,
         data: template.mock,
-        watermark: "Generated by Forma",
-        format: "svg",
+        watermark: 'Generated by Forma',
+        format: 'svg',
       });
       const svg = await svgResponse.text();
       expect(svgResponse.status).toBe(200);
       expect(svg).toMatch(/^<svg/);
-      await writeFile("artifacts/" + template.id + ".svg", svg);
+      await writeFile('artifacts/' + template.id + '.svg', svg);
     }
   });
   it.each([2, 3, 4])(
-    "saves a %sx PNG through the HTTP worker path and reports output and layout dimensions",
-    async (scale) => {
+    'saves a %sx PNG through the HTTP worker path and reports output and layout dimensions',
+    async scale => {
       const response = await post({
-        template: "test-auto-height",
-        data: registry.get("test-auto-height").mock,
-        watermark: "Generated by Forma",
-        format: "png",
+        template: 'test-auto-height',
+        data: registry.get('test-auto-height').mock,
+        watermark: 'Generated by Forma',
+        format: 'png',
         scale,
       });
       expect(response.status).toBe(200);
-      const path = "artifacts/test-auto-height@" + scale + "x.png";
-      await mkdir("artifacts", { recursive: true });
+      const path = 'artifacts/test-auto-height@' + scale + 'x.png';
+      await mkdir('artifacts', { recursive: true });
       await writeFile(path, Buffer.from(await response.arrayBuffer()));
       const png = PNG.sync.read(await readFile(path));
-      const layoutHeight = Number(response.headers.get("X-Layout-Height"));
+      const layoutHeight = Number(response.headers.get('X-Layout-Height'));
       expect(layoutHeight).toBeGreaterThan(0);
-      expect([png.width, png.height]).toEqual([
-        620 * scale,
-        layoutHeight * scale,
-      ]);
-      expect(response.headers.get("X-Image-Width")).toBe(String(png.width));
-      expect(response.headers.get("X-Image-Height")).toBe(String(png.height));
-      expect(response.headers.get("X-Layout-Width")).toBe("620");
-      expect(response.headers.get("X-Render-Scale")).toBe(String(scale));
+      expect([png.width, png.height]).toEqual([620 * scale, layoutHeight * scale]);
+      expect(response.headers.get('X-Image-Width')).toBe(String(png.width));
+      expect(response.headers.get('X-Image-Height')).toBe(String(png.height));
+      expect(response.headers.get('X-Layout-Width')).toBe('620');
+      expect(response.headers.get('X-Render-Scale')).toBe(String(scale));
     },
   );
-  it("rejects an oversized 4x image instead of silently lowering the requested scale", async () => {
+  it('rejects an oversized 4x image instead of silently lowering the requested scale', async () => {
     const response = await post({
-      template: "test-auto-height",
-      data: { title: "长内容", body: "正文\n".repeat(50) },
-      format: "png",
+      template: 'test-auto-height',
+      data: { title: '长内容', body: '正文\n'.repeat(50) },
+      format: 'png',
       scale: 4,
     });
     expect(response.status).toBe(422);
     const { error } = await response.json();
-    expect(error.code).toBe("SIZE_LIMIT");
+    expect(error.code).toBe('SIZE_LIMIT');
     expect(error.details.width).toBe(2480);
-    expect(error.details.width * error.details.height).toBeGreaterThan(
-      config.maxPixels,
-    );
+    expect(error.details.width * error.details.height).toBeGreaterThan(config.maxPixels);
   });
-  it.each([0, -1, 1.5, 5, "2", null])(
-    "rejects invalid render scale %s",
-    async (scale) => {
+  it.each([0, -1, 1.5, 5, '2', null])('rejects invalid render scale %s', async scale => {
+    const response = await post({
+      template: 'test-content',
+      data: { title: 'Test' },
+      scale,
+    });
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.error.details[0].path).toEqual(['scale']);
+  });
+  it.each(['test-content', 'test-auto-height'])('validates the %s watermark before rendering', async template => {
+    const metadata = await (await fetch(origin + '/v1/templates/' + template)).json();
+    expect(metadata.schema.properties).not.toHaveProperty('watermark');
+    for (const watermark of [123, null, 'x'.repeat(161)]) {
       const response = await post({
-        template: "test-content",
-        data: { title: "Test" },
-        scale,
+        template,
+        data: metadata.mock,
+        watermark,
+        format: 'png',
       });
       expect(response.status).toBe(400);
       const body = await response.json();
-      expect(body.error.code).toBe("VALIDATION_ERROR");
-      expect(body.error.details[0].path).toEqual(["scale"]);
-    },
-  );
-  it.each(["test-content", "test-auto-height"])(
-    "validates the %s watermark before rendering",
-    async (template) => {
-      const metadata = await (
-        await fetch(origin + "/v1/templates/" + template)
-      ).json();
-      expect(metadata.schema.properties).not.toHaveProperty("watermark");
-      for (const watermark of [123, null, "x".repeat(161)]) {
-        const response = await post({
-          template,
-          data: metadata.mock,
-          watermark,
-          format: "png",
-        });
-        expect(response.status).toBe(400);
-        const body = await response.json();
-        expect(body.error.code).toBe("VALIDATION_ERROR");
-        expect(body.error.details[0].path).toEqual(["watermark"]);
-      }
-      for (const watermark of [undefined, "Top-level watermark"]) {
-        const response = await post({
-          template,
-          data: { ...metadata.mock, watermark: "Old location" },
-          watermark,
-          format: "png",
-        });
-        expect(response.status).toBe(400);
-        expect((await response.json()).error.code).toBe("VALIDATION_ERROR");
-      }
-    },
-  );
-  it.each(["png", "svg"])(
-    "uses top-level watermark for %s and hides omitted or blank values",
-    async (format) => {
-      const request = {
-        template: "test-content",
-        data: { title: "水印测试" },
-        format,
-      };
-      const plain = await post(request);
-      const plainBody = Buffer.from(await plain.arrayBuffer());
-      for (const watermark of ["", " \n\t "]) {
-        const blank = await post({ ...request, watermark });
-        expect(blank.status).toBe(200);
-        expect(Buffer.from(await blank.arrayBuffer())).toEqual(plainBody);
-      }
-      const marked = await post({
-        ...request,
-        watermark: "由 MagiBot 生成 · 日本語 · English",
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.details[0].path).toEqual(['watermark']);
+    }
+    for (const watermark of [undefined, 'Top-level watermark']) {
+      const response = await post({
+        template,
+        data: { ...metadata.mock, watermark: 'Old location' },
+        watermark,
+        format: 'png',
       });
-      expect(marked.status).toBe(200);
-      expect(Number(marked.headers.get("X-Layout-Height"))).toBeGreaterThan(
-        Number(plain.headers.get("X-Layout-Height")),
-      );
-      expect(Buffer.from(await marked.arrayBuffer())).not.toEqual(plainBody);
-    },
-  );
-  it("returns consistent actionable errors for malformed input and unknown templates", async () => {
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe('VALIDATION_ERROR');
+    }
+  });
+  it.each(['png', 'svg'])('uses top-level watermark for %s and hides omitted or blank values', async format => {
+    const request = {
+      template: 'test-content',
+      data: { title: '水印测试' },
+      format,
+    };
+    const plain = await post(request);
+    const plainBody = Buffer.from(await plain.arrayBuffer());
+    for (const watermark of ['', ' \n\t ']) {
+      const blank = await post({ ...request, watermark });
+      expect(blank.status).toBe(200);
+      expect(Buffer.from(await blank.arrayBuffer())).toEqual(plainBody);
+    }
+    const marked = await post({
+      ...request,
+      watermark: '由 MagiBot 生成 · 日本語 · English',
+    });
+    expect(marked.status).toBe(200);
+    expect(Number(marked.headers.get('X-Layout-Height'))).toBeGreaterThan(Number(plain.headers.get('X-Layout-Height')));
+    expect(Buffer.from(await marked.arrayBuffer())).not.toEqual(plainBody);
+  });
+  it('returns consistent actionable errors for malformed input and unknown templates', async () => {
     for (const [body, code, status] of [
-      [{ template: "test-content", data: {} }, "VALIDATION_ERROR", 400],
-      [
-        { template: "test-content", data: { title: "Hi", html: "<script/>" } },
-        "VALIDATION_ERROR",
-        400,
-      ],
-      [{ template: "unknown", data: {} }, "TEMPLATE_NOT_FOUND", 404],
-      [
-        { template: "test-content", data: { title: "Hi" }, format: "jpeg" },
-        "VALIDATION_ERROR",
-        400,
-      ],
+      [{ template: 'test-content', data: {} }, 'VALIDATION_ERROR', 400],
+      [{ template: 'test-content', data: { title: 'Hi', html: '<script/>' } }, 'VALIDATION_ERROR', 400],
+      [{ template: 'unknown', data: {} }, 'TEMPLATE_NOT_FOUND', 404],
+      [{ template: 'test-content', data: { title: 'Hi' }, format: 'jpeg' }, 'VALIDATION_ERROR', 400],
     ] as const) {
       const response = await post(body);
       expect(response.status).toBe(status);
       expect((await response.json()).error.code).toBe(code);
     }
-    const malformed = await fetch(origin + "/v1/render", {
-      method: "POST",
-      body: "{",
-      headers: { "Content-Type": "application/json" },
+    const malformed = await fetch(origin + '/v1/render', {
+      method: 'POST',
+      body: '{',
+      headers: { 'Content-Type': 'application/json' },
     });
-    expect((await malformed.json()).error.code).toBe("INVALID_JSON");
+    expect((await malformed.json()).error.code).toBe('INVALID_JSON');
     const tooLarge = await post({
-      template: "test-content",
-      data: { title: "x".repeat(config.bodyLimit) },
+      template: 'test-content',
+      data: { title: 'x'.repeat(config.bodyLimit) },
     });
     expect(tooLarge.status).toBe(413);
-    expect((await tooLarge.json()).error.code).toBe("BODY_LIMIT");
+    expect((await tooLarge.json()).error.code).toBe('BODY_LIMIT');
   });
-  it("enforces body size without Content-Length and times out a stalled stream", async () => {
+  it('enforces body size without Content-Length and times out a stalled stream', async () => {
     const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue(new TextEncoder().encode("12345"));
+        controller.enqueue(new TextEncoder().encode('12345'));
         controller.close();
       },
     });
-    const req = new Request("http://test", {
-      method: "POST",
+    const req = new Request('http://test', {
+      method: 'POST',
       body: stream,
-      headers: { "Content-Type": "application/json" },
-      duplex: "half",
+      headers: { 'Content-Type': 'application/json' },
+      duplex: 'half',
     } as RequestInit);
-    await expect(
-      readJson(req, 3, AbortSignal.timeout(1000)),
-    ).rejects.toMatchObject({ code: "BODY_LIMIT" });
-    const stalled = new Request("http://test", {
-      method: "POST",
+    await expect(readJson(req, 3, AbortSignal.timeout(1000))).rejects.toMatchObject({ code: 'BODY_LIMIT' });
+    const stalled = new Request('http://test', {
+      method: 'POST',
       body: new ReadableStream(),
-      headers: { "Content-Type": "application/json" },
-      duplex: "half",
+      headers: { 'Content-Type': 'application/json' },
+      duplex: 'half',
     } as RequestInit);
-    await expect(
-      readJson(stalled, 100, AbortSignal.timeout(20)),
-    ).rejects.toMatchObject({ code: "RENDER_TIMEOUT" });
+    await expect(readJson(stalled, 100, AbortSignal.timeout(20))).rejects.toMatchObject({ code: 'RENDER_TIMEOUT' });
   });
 });

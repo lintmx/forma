@@ -2,9 +2,11 @@ import { z } from 'zod';
 import { textStyle } from '../../core/card.js';
 import type { Template } from '../../core/types.js';
 
-const schema = z.object({
-  text: z.string().min(1).max(4000).describe('纯文本内容，保留换行'),
-}).strict();
+const schema = z
+  .object({
+    text: z.string().min(1).max(4000).describe('纯文本内容，保留换行'),
+  })
+  .strict();
 
 export const example: Template<z.infer<typeof schema>> = {
   id: 'example',

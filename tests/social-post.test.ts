@@ -1,9 +1,9 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { Resvg } from '@resvg/resvg-js';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
-import { Resvg } from '@resvg/resvg-js';
-import { textStyle } from '../src/core/card.js';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
+import { textStyle } from '../src/core/card.js';
 import { loadFonts } from '../src/core/fonts.js';
 import { ImageStore, imageDataUri } from '../src/core/images.js';
 import { Renderer } from '../src/core/renderer.js';
@@ -29,18 +29,38 @@ const media = [
   { url: source('green'), alt: '横图' },
   { url: 'https://example.com/video.mp4', type: 'video' as const, previewUrl: source('blue') },
 ];
-const imageBuffer = (url: string) => url.includes('red') ? red : url.includes('green') ? green : blue;
+const imageBuffer = (url: string) => (url.includes('red') ? red : url.includes('green') ? green : blue);
 const nearColor = (pixels: Uint8Array, offset: number, color: readonly number[]) =>
   color.every((value, channel) => Math.abs(pixels[offset + channel]! - value) <= 3);
 
 beforeAll(async () => {
   renderer = new Renderer(config, await loadFonts(config.fontConfig));
   registry.register({
-    ...socialPost, id: 'test-social-plain',
-    render: data => createElement('div', { style: { display: 'block', boxSizing: 'border-box', width: '100%', minWidth: 0, fontSize: 15, ...textStyle, lineHeight: 1.375, letterSpacing: '0.01em', marginBottom: 12 } }, data.content ?? ''),
+    ...socialPost,
+    id: 'test-social-plain',
+    render: data =>
+      createElement(
+        'div',
+        {
+          style: {
+            display: 'block',
+            boxSizing: 'border-box',
+            width: '100%',
+            minWidth: 0,
+            fontSize: 15,
+            ...textStyle,
+            lineHeight: 1.375,
+            letterSpacing: '0.01em',
+            marginBottom: 12,
+          },
+        },
+        data.content ?? '',
+      ),
   });
 });
-afterEach(() => { vi.restoreAllMocks(); });
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function mockImages() {
   return vi.spyOn(ImageStore.prototype, 'get').mockImplementation(async url => {
@@ -48,7 +68,8 @@ function mockImages() {
     return imageDataUri(imageBuffer(url), config);
   });
 }
-const render = (data: unknown, format: 'png' | 'svg' = 'png') => renderer.render({ template: 'social_post', data, format });
+const render = (data: unknown, format: 'png' | 'svg' = 'png') =>
+  renderer.render({ template: 'social_post', data, format });
 
 describe('social_post contract', () => {
   it('accepts optional sections, empty content and a media-only post', () => {
@@ -77,7 +98,8 @@ describe('social_post contract', () => {
       return imageBuffer(url);
     });
     const data = socialPostSchema.parse({
-      author: { avatarUrl: source('red') }, postKind: 'reply',
+      author: { avatarUrl: source('red') },
+      postKind: 'reply',
       media: [media[2], { type: 'audio', url: 'https://example.com/audio.mp3' }, { url: source('missing') }],
       replyChain: Array.from({ length: 11 }, (_, index) => ({ author: { avatarUrl: source('reply-' + index) } })),
       quotedPost: { author: { avatarUrl: source('hidden-quote') } },
@@ -126,10 +148,21 @@ describe('social_post real Satori and resvg output', () => {
       expect(svg).not.toContain('<text');
       expect(svg).not.toContain('<a ');
     }
-    await expect(render({ content: '<script>alert(1)</script> **plain text**' })).resolves.toMatchObject({ warnings: [] });
+    await expect(render({ content: '<script>alert(1)</script> **plain text**' })).resolves.toMatchObject({
+      warnings: [],
+    });
   });
   it('keeps highlighted tokens in the normal paragraph flow and preserves explicit newlines', async () => {
-    const data = { content: '开头'.repeat(8) + ' #话题 ' + '后文'.repeat(10) + ' @forma\n' + '第二行'.repeat(6) + ' https://example.com/post ' + '结尾'.repeat(8) };
+    const data = {
+      content:
+        '开头'.repeat(8) +
+        ' #话题 ' +
+        '后文'.repeat(10) +
+        ' @forma\n' +
+        '第二行'.repeat(6) +
+        ' https://example.com/post ' +
+        '结尾'.repeat(8),
+    };
     const colored = await render(data, 'svg');
     const plain = await renderer.render({ template: 'test-social-plain', data, format: 'svg' });
     expect([colored.width, colored.height]).toEqual([plain.width, plain.height]);
@@ -141,7 +174,7 @@ describe('social_post real Satori and resvg output', () => {
     const png = PNG.sync.read(Buffer.from(result.body));
     const xs: number[] = [];
     for (let index = 0; index < png.data.length; index += 4) {
-      if (nearColor(png.data, index, [220, 30, 40])) xs.push(index / 4 % png.width);
+      if (nearColor(png.data, index, [220, 30, 40])) xs.push((index / 4) % png.width);
     }
     expect(xs.length).toBeGreaterThan(100);
     expect(Math.min(...xs)).toBeGreaterThanOrEqual(61);
@@ -149,39 +182,68 @@ describe('social_post real Satori and resvg output', () => {
   });
   it('renders all relation kinds and ignores inactive relation fields', async () => {
     mockImages();
-    const snapshot = { author: { name: '原作者', handle: '@original', avatarUrl: source('blue'), verified: true }, content: '原文', translation: { text: '译文' }, media: [media[0]], publishedAt: '昨天' };
-    const base = { author: { name: '当前作者', handle: 'current', avatarUrl: source('red') }, content: '当前内容', source: 'Twitter', url: 'https://example.com/post' };
+    const snapshot = {
+      author: { name: '原作者', handle: '@original', avatarUrl: source('blue'), verified: true },
+      content: '原文',
+      translation: { text: '译文' },
+      media: [media[0]],
+      publishedAt: '昨天',
+    };
+    const base = {
+      author: { name: '当前作者', handle: 'current', avatarUrl: source('red') },
+      content: '当前内容',
+      source: 'Twitter',
+      url: 'https://example.com/post',
+    };
     const normal = await render(base);
-    const inactive = await render({ ...base, replyChain: [snapshot], quotedPost: snapshot, reshare: { by: { name: '转发者' } } });
+    const inactive = await render({
+      ...base,
+      replyChain: [snapshot],
+      quotedPost: snapshot,
+      reshare: { by: { name: '转发者' } },
+    });
     expect(inactive.body).toEqual(normal.body);
     const quote = await render({ ...base, postKind: 'quote', quotedPost: snapshot });
     const reply = await render({ ...base, postKind: 'reply', replyChain: [snapshot, snapshot] });
-    const reshare = await render({ ...base, postKind: 'reshare', reshare: { by: { name: '转发者' }, publishedAt: '今天' } });
+    const reshare = await render({
+      ...base,
+      postKind: 'reshare',
+      reshare: { by: { name: '转发者' }, publishedAt: '今天' },
+    });
     expect(quote.height).toBeGreaterThan(normal.height + 100);
     expect(reply.height).toBeGreaterThan(quote.height);
     expect(reshare.height).toBeGreaterThan(normal.height);
     const replies = Array.from({ length: 10 }, (_, index) => ({ content: '回复 ' + index }));
     const overflow = await render({ postKind: 'reply', replyChain: replies });
-    const replacedHidden = await render({ postKind: 'reply', replyChain: [{ content: '被隐藏的内容'.repeat(80) }, ...replies.slice(1)] });
+    const replacedHidden = await render({
+      postKind: 'reply',
+      replyChain: [{ content: '被隐藏的内容'.repeat(80) }, ...replies.slice(1)],
+    });
     expect(replacedHidden.body).toEqual(overflow.body);
   });
-  it.each(['vertical', 'grid', 'collage'] as const)('renders %s media as embedded images with no remote references', async mediaLayout => {
-    mockImages();
-    const result = await render({ media, mediaLayout }, 'svg');
-    const svg = Buffer.from(result.body).toString();
-    expect(svg.match(/href="data:image\/png;base64,/g)?.length).toBe(3);
-    expect(svg).toContain('data:image/png;base64,');
-    expect(svg).not.toMatch(/(?:href|src)="https?:/);
-    expect(result.warnings).toEqual([]);
-    const png = await render({ media, mediaLayout });
-    const decoded = PNG.sync.read(Buffer.from(png.body));
-    const raster = PNG.sync.read(new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng());
-    expect([decoded.width, decoded.height]).toEqual([raster.width, raster.height]);
-    expectPngQuality(decoded.data, raster.data);
-  });
+  it.each(['vertical', 'grid', 'collage'] as const)(
+    'renders %s media as embedded images with no remote references',
+    async mediaLayout => {
+      mockImages();
+      const result = await render({ media, mediaLayout }, 'svg');
+      const svg = Buffer.from(result.body).toString();
+      expect(svg.match(/href="data:image\/png;base64,/g)?.length).toBe(3);
+      expect(svg).toContain('data:image/png;base64,');
+      expect(svg).not.toMatch(/(?:href|src)="https?:/);
+      expect(result.warnings).toEqual([]);
+      const png = await render({ media, mediaLayout });
+      const decoded = PNG.sync.read(Buffer.from(png.body));
+      const raster = PNG.sync.read(new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng());
+      expect([decoded.width, decoded.height]).toEqual([raster.width, raster.height]);
+      expectPngQuality(decoded.data, raster.data);
+    },
+  );
   it.each([1, 2, 3, 4, 5, 6, 12])('renders a %i-image grid without clipping the canvas', async count => {
     mockImages();
-    const result = await render({ mediaLayout: 'grid', media: Array.from({ length: count }, (_, index) => media[index % media.length]) });
+    const result = await render({
+      mediaLayout: 'grid',
+      media: Array.from({ length: count }, (_, index) => media[index % media.length]),
+    });
     const png = PNG.sync.read(Buffer.from(result.body));
     expect(result.width).toBe(400);
     expect(result.height).toBeGreaterThan(180);
@@ -214,7 +276,13 @@ describe('social_post real Satori and resvg output', () => {
   });
   it('preserves successful images, warns on failures and does not download an audio-only post', async () => {
     const get = mockImages();
-    const result = await render({ author: { name: '作者', avatarUrl: source('missing-avatar') }, media: [{ url: source('red') }, { url: source('missing') }, { type: 'gif', url: source('blue') }] }, 'svg');
+    const result = await render(
+      {
+        author: { name: '作者', avatarUrl: source('missing-avatar') },
+        media: [{ url: source('red') }, { url: source('missing') }, { type: 'gif', url: source('blue') }],
+      },
+      'svg',
+    );
     const svg = Buffer.from(result.body).toString();
     expect(result.warnings).toEqual(['IMAGE_UNAVAILABLE']);
     expect(svg.match(/<image /g)?.length).toBe(2);
@@ -230,7 +298,12 @@ describe('social_post real Satori and resvg output', () => {
   it('omits blank footer metadata and keeps long names and source URLs within the frame', async () => {
     const short = await render({ content: '正文' });
     expect((await render({ content: '正文', source: ' ', url: '\n' })).body).toEqual(short.body);
-    const long = await render({ author: { name: '长名称'.repeat(50), handle: 'account'.repeat(20), verified: true }, content: '正文', source: '来源'.repeat(70), url: 'https://example.com/' + 'long-url/'.repeat(200) });
+    const long = await render({
+      author: { name: '长名称'.repeat(50), handle: 'account'.repeat(20), verified: true },
+      content: '正文',
+      source: '来源'.repeat(70),
+      url: 'https://example.com/' + 'long-url/'.repeat(200),
+    });
     expect(long.width).toBe(700);
     expect(long.height).toBeLessThan(400);
   });

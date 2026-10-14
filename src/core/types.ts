@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
-import type { ImageStore } from './images.js';
 import type { CardOptions } from './card.js';
+import type { ImageStore } from './images.js';
 
 export type SizeStrategy =
   | { mode: 'fixed'; width: number; height: number }
@@ -30,11 +30,18 @@ export interface Template<T extends Record<string, unknown> = Record<string, unk
 }
 
 export const MAX_RENDER_SCALE = 4;
-export interface RenderRequest extends CardOptions { template: string; data: unknown; format: 'png' | 'svg'; scale?: number }
+export interface RenderRequest extends CardOptions {
+  template: string;
+  data: unknown;
+  format: 'png' | 'svg';
+  scale?: number;
+}
 export interface RenderResult {
   body: Uint8Array;
-  width: number; height: number;
-  layoutWidth: number; layoutHeight: number;
+  width: number;
+  height: number;
+  layoutWidth: number;
+  layoutHeight: number;
   scale: number;
   format: 'png' | 'svg';
   warnings: string[];

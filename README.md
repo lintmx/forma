@@ -25,13 +25,29 @@ pnpm dev
 PNG 清晰度可切换 1× / 2× / 3× / 4×，默认 2×；预览按原始布局大小显示，下载保留完整像素分辨率。
 
 ```sh
-pnpm check            # TypeScript
+pnpm format           # Biome 统一格式
+pnpm format:check     # 仅检查格式
+pnpm lint             # Biome lint
+pnpm check            # Biome 格式、lint、import 排序 + TypeScript
 pnpm test             # 单元测试 + 本地 HTTP/worker/图片端到端测试
 pnpm test:e2e         # 生产模板目录 + HTTP 图片生成测试
 pnpm fonts:verify     # 随仓库字体 SHA-256 校验
 pnpm build            # 生产服务、worker、Playground
 NODE_ENV=production pnpm start
 ```
+
+代码风格由根目录 `biome.json` 统一管理：两空格缩进、LF 换行、120 列，JS/TS 使用单引号和分号。
+覆盖 JS/TS/JSX/TSX、JSON/JSONC、CSS 和 HTML；HTML 格式化使用 Biome 的实验性支持。
+依赖、构建目录和渲染产物不参与检查，Markdown、YAML 等 Biome 尚不支持的文件不做格式化。
+保留现有非空断言和字符串拼接写法，类型正确性由 TypeScript 检查。
+Satori TSX 仅用于一次性图片渲染，因此仅在图片模板范围关闭 DOM 无障碍和动态列表 key 规则；
+Playground 仍检查这些规则。
+`pnpm check` 同时检查格式、lint、import 排序和 TypeScript，`pnpm build` 会先运行该检查。
+需要应用安全的 lint 修复和 import 排序时运行 `pnpm exec biome check --write .`。
+
+VS Code 打开项目后安装推荐的 [Biome 扩展](https://marketplace.visualstudio.com/items?itemName=biomejs.biome)，
+工作区设置会使用项目内的 Biome，保存时自动格式化、应用安全修复并整理 import。
+编辑器与命令行共用 `biome.json`；扩展配置参见 [Biome VS Code 文档](https://biomejs.dev/reference/vscode/)。
 
 生产模式默认关闭 `/dev`；需要时设置 `PLAYGROUND_ENABLED=true`。
 `pnpm start` 同样自动读取项目根目录的 `.env`，已设置的 shell 环境变量优先；

@@ -1,6 +1,6 @@
-import { context } from 'esbuild';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { context } from 'esbuild';
 
 let child: ChildProcess | undefined;
 let stopping = false;
@@ -15,19 +15,39 @@ async function stopChild() {
   }
 }
 const build = await context({
-  entryPoints: { server: 'src/server.ts', worker: 'src/core/worker.ts' }, outdir: '.dev',
-  bundle: true, packages: 'external', platform: 'node', format: 'esm', target: 'node22', sourcemap: true,
-  plugins: [{ name: 'restart-server', setup(build) {
-    build.onEnd(async result => {
-      if (result.errors.length || stopping) return;
-      await stopChild();
-      child = spawn(process.execPath, ['--env-file-if-exists=.env', '--enable-source-maps', '.dev/server.js'], {
-        stdio: 'inherit', env: { ...process.env, FORMA_DEV: 'true', NODE_ENV: 'development' },
-      });
-    });
-  } }],
+  entryPoints: { server: 'src/server.ts', worker: 'src/core/worker.ts' },
+  outdir: '.dev',
+  bundle: true,
+  packages: 'external',
+  platform: 'node',
+  format: 'esm',
+  target: 'node22',
+  sourcemap: true,
+  plugins: [
+    {
+      name: 'restart-server',
+      setup(build) {
+        build.onEnd(async result => {
+          if (result.errors.length || stopping) return;
+          await stopChild();
+          child = spawn(process.execPath, ['--env-file-if-exists=.env', '--enable-source-maps', '.dev/server.js'], {
+            stdio: 'inherit',
+            env: { ...process.env, FORMA_DEV: 'true', NODE_ENV: 'development' },
+          });
+        });
+      },
+    },
+  ],
 });
 await build.watch();
-async function close() { stopping = true; await build.dispose(); await stopChild(); }
-process.once('SIGINT', () => { void close(); });
-process.once('SIGTERM', () => { void close(); });
+async function close() {
+  stopping = true;
+  await build.dispose();
+  await stopChild();
+}
+process.once('SIGINT', () => {
+  void close();
+});
+process.once('SIGTERM', () => {
+  void close();
+});

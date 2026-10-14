@@ -26,12 +26,22 @@ const envSchema = z.object({
 export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   const e = envSchema.parse(env);
   return {
-    port: e.PORT, host: e.HOST, logLevel: e.LOG_LEVEL,
-    concurrency: e.RENDER_CONCURRENCY, queueLimit: e.RENDER_QUEUE_LIMIT,
-    timeoutMs: e.RENDER_TIMEOUT_MS, bodyLimit: e.BODY_LIMIT_BYTES,
-    maxWidth: e.MAX_WIDTH, maxHeight: e.MAX_HEIGHT, maxPixels: e.MAX_PIXELS, maxOutputBytes: e.MAX_OUTPUT_BYTES,
-    imageTimeoutMs: e.IMAGE_TIMEOUT_MS, imageMaxBytes: e.IMAGE_MAX_BYTES, imageMaxPixels: e.IMAGE_MAX_PIXELS,
-    imageCacheBytes: e.IMAGE_CACHE_BYTES, imageCacheTtlMs: e.IMAGE_CACHE_TTL_MS,
+    port: e.PORT,
+    host: e.HOST,
+    logLevel: e.LOG_LEVEL,
+    concurrency: e.RENDER_CONCURRENCY,
+    queueLimit: e.RENDER_QUEUE_LIMIT,
+    timeoutMs: e.RENDER_TIMEOUT_MS,
+    bodyLimit: e.BODY_LIMIT_BYTES,
+    maxWidth: e.MAX_WIDTH,
+    maxHeight: e.MAX_HEIGHT,
+    maxPixels: e.MAX_PIXELS,
+    maxOutputBytes: e.MAX_OUTPUT_BYTES,
+    imageTimeoutMs: e.IMAGE_TIMEOUT_MS,
+    imageMaxBytes: e.IMAGE_MAX_BYTES,
+    imageMaxPixels: e.IMAGE_MAX_PIXELS,
+    imageCacheBytes: e.IMAGE_CACHE_BYTES,
+    imageCacheTtlMs: e.IMAGE_CACHE_TTL_MS,
     fontConfig: resolve(e.FONT_CONFIG ?? 'fonts/fonts.json'),
     playground: e.PLAYGROUND_ENABLED ? e.PLAYGROUND_ENABLED === 'true' : env.NODE_ENV !== 'production',
   };
@@ -40,5 +50,6 @@ export type Config = ReturnType<typeof loadConfig>;
 
 export function log(config: Config, level: 'error' | 'info' | 'debug', message: string, fields: object = {}) {
   const levels = { silent: 0, error: 1, info: 2, debug: 3 };
-  if (levels[config.logLevel] >= levels[level]) console.log(JSON.stringify({ time: new Date().toISOString(), level, message, ...fields }));
+  if (levels[config.logLevel] >= levels[level])
+    console.log(JSON.stringify({ time: new Date().toISOString(), level, message, ...fields }));
 }

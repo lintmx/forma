@@ -19,7 +19,7 @@ export function expectPngQuality(actual: ArrayLike<number>, reference: ArrayLike
     }
     alphaError = Math.max(alphaError, Math.abs(actual[index + 3]! - reference[index + 3]!));
   }
-  const samples = reference.length / 4 * 3;
+  const samples = (reference.length / 4) * 3;
   const psnr = squaredError === 0 ? Infinity : 10 * Math.log10(255 ** 2 / (squaredError / samples));
   expect(absoluteError / samples).toBeLessThan(3);
   expect(psnr).toBeGreaterThan(38);

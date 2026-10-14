@@ -11,7 +11,8 @@ export const socialPostMock: SocialPostData = {
   source: 'Twitter',
   url: 'https://example.com/post/1',
   postKind: 'reply',
-  content: '今天也发现了一些值得记录的灵感。\n把喜欢的事情慢慢做成日常，收集工作与旅行中的小片段。 #日常 @forma\n更多记录：https://example.com/notes/1',
+  content:
+    '今天也发现了一些值得记录的灵感。\n把喜欢的事情慢慢做成日常，收集工作与旅行中的小片段。 #日常 @forma\n更多记录：https://example.com/notes/1',
   translation: {
     text: '今日も記録したいインスピレーションを見つけました。\n好きなことを少しずつ日常に。仕事や旅の小さな瞬間を集めています。 #日常 @forma\n記録はこちら：https://example.com/notes/1',
     sourceLanguage: '中文',
@@ -65,7 +66,14 @@ export const socialPostMock: SocialPostData = {
       sourceLanguage: '英文',
       model: 'GPT',
     },
-    media: [{ type: 'video', url: 'https://example.com/media/studio-tour.mp4', previewUrl: workspace, alt: '引用内容的工作室视频预览' }],
+    media: [
+      {
+        type: 'video',
+        url: 'https://example.com/media/studio-tour.mp4',
+        previewUrl: workspace,
+        alt: '引用内容的工作室视频预览',
+      },
+    ],
     publishedAt: '2026-10-14 09:40',
   },
   reshare: { by: { name: 'Daily Inspiration' }, publishedAt: '2026-10-14 11:00' },

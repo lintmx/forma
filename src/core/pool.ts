@@ -10,19 +10,40 @@ interface Job {
   reject: (error: Error) => void;
   cleanup: () => void;
 }
-interface Slot { worker: Worker; ready: boolean; retired: boolean; job?: Job; startupTimer?: ReturnType<typeof setTimeout> }
+interface Slot {
+  worker: Worker;
+  ready: boolean;
+  retired: boolean;
+  job?: Job;
+  startupTimer?: ReturnType<typeof setTimeout>;
+}
 
 export class RenderPool {
   private slots: Slot[] = [];
   private queue: Job[] = [];
   private closed = false;
-  constructor(private config: Config, private workerUrl = new URL('./worker.js', import.meta.url)) {}
+  constructor(
+    private config: Config,
+    private workerUrl = new URL('./worker.js', import.meta.url),
+  ) {}
   async start() {
-    try { await Promise.all(Array.from({ length: this.config.concurrency }, () => this.spawn())); }
-    catch (error) { await this.close(); throw error; }
+    try {
+      await Promise.all(Array.from({ length: this.config.concurrency }, () => this.spawn()));
+    } catch (error) {
+      await this.close();
+      throw error;
+    }
   }
-  get healthy() { return !this.closed && this.slots.some(slot => slot.ready && !slot.retired); }
-  get stats() { return { workers: this.slots.filter(s => s.ready && !s.retired).length, active: this.slots.filter(s => s.job).length, queued: this.queue.length }; }
+  get healthy() {
+    return !this.closed && this.slots.some(slot => slot.ready && !slot.retired);
+  }
+  get stats() {
+    return {
+      workers: this.slots.filter(s => s.ready && !s.retired).length,
+      active: this.slots.filter(s => s.job).length,
+      queued: this.queue.length,
+    };
+  }
 
   private spawn(): Promise<void> {
     if (this.closed) return Promise.resolve();
@@ -43,7 +64,7 @@ export class RenderPool {
       worker.on('exit', code => {
         if (!slot.retired) fail(new Error('Worker exited: ' + code));
       });
-      worker.on('message', (message) => {
+      worker.on('message', message => {
         if (slot.retired) return;
         if (message.ready) {
           clearTimeout(startupTimer);
@@ -66,7 +87,8 @@ export class RenderPool {
   }
 
   render(request: RenderRequest, signal?: AbortSignal, timeoutMs = this.config.timeoutMs): Promise<RenderResult> {
-    if (this.closed || this.slots.length === 0) return Promise.reject(new FormaError('UNAVAILABLE', 'Renderer is unavailable', 503));
+    if (this.closed || this.slots.length === 0)
+      return Promise.reject(new FormaError('UNAVAILABLE', 'Renderer is unavailable', 503));
     if (signal?.aborted) return Promise.reject(new FormaError('CANCELLED', 'Request cancelled', 499));
     if (this.queue.length >= this.config.queueLimit && !this.slots.some(s => s.ready && !s.job)) {
       return Promise.reject(new FormaError('BUSY', 'Render queue is full; retry later', 503));
@@ -83,12 +105,20 @@ export class RenderPool {
           if (slot) this.retire(slot, error, true);
         }
       };
-      const timer = setTimeout(() => cancel(new FormaError('RENDER_TIMEOUT', 'Render deadline exceeded', 504)), Math.max(1, timeoutMs));
+      const timer = setTimeout(
+        () => cancel(new FormaError('RENDER_TIMEOUT', 'Render deadline exceeded', 504)),
+        Math.max(1, timeoutMs),
+      );
       const abort = () => cancel(new FormaError('CANCELLED', 'Request cancelled', 499));
-      const job: Job = { request, resolve, reject, cleanup: () => {
-        clearTimeout(timer);
-        signal?.removeEventListener('abort', abort);
-      } };
+      const job: Job = {
+        request,
+        resolve,
+        reject,
+        cleanup: () => {
+          clearTimeout(timer);
+          signal?.removeEventListener('abort', abort);
+        },
+      };
       signal?.addEventListener('abort', abort, { once: true });
       this.queue.push(job);
       this.drain();
@@ -115,21 +145,32 @@ export class RenderPool {
     // consuming CPU while new requests are admitted to a fresh worker.
     void slot.worker.terminate().then(async () => {
       if (replace && !this.closed) {
-        try { await this.spawn(); }
-        catch (error) { log(this.config, 'error', 'Worker replacement failed', { error: String(error) }); }
+        try {
+          await this.spawn();
+        } catch (error) {
+          log(this.config, 'error', 'Worker replacement failed', { error: String(error) });
+        }
       }
     });
   }
   async close() {
     this.closed = true;
     const error = new FormaError('UNAVAILABLE', 'Renderer is shutting down', 503);
-    for (const job of this.queue.splice(0)) { job.cleanup(); job.reject(error); }
+    for (const job of this.queue.splice(0)) {
+      job.cleanup();
+      job.reject(error);
+    }
     const slots = this.slots.splice(0);
-    await Promise.all(slots.map(slot => {
-      slot.retired = true;
-      clearTimeout(slot.startupTimer);
-      if (slot.job) { slot.job.cleanup(); slot.job.reject(error); }
-      return slot.worker.terminate();
-    }));
+    await Promise.all(
+      slots.map(slot => {
+        slot.retired = true;
+        clearTimeout(slot.startupTimer);
+        if (slot.job) {
+          slot.job.cleanup();
+          slot.job.reject(error);
+        }
+        return slot.worker.terminate();
+      }),
+    );
   }
 }
