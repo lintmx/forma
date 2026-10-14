@@ -12,6 +12,7 @@ export type SizeStrategy =
 export interface TemplateContext {
   assets: Record<string, string | undefined>;
   fontFamily: string;
+  monospaceFontFamily: string;
 }
 
 export interface Template<T extends Record<string, unknown> = Record<string, unknown>> {

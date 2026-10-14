@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf",
+    "sha256": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+    "files": [
+      {
+        "path": "NotoSansCJKsc-Regular.otf",
+        "sha256": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b"
+      }
+    ]
+  },
+  {
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf",
+    "sha256": "b5f0d1a190a7f9b43c310a8850630af12553df32c4c050543f9059732d9b4c0a",
+    "files": [
+      {
+        "path": "NotoSansCJKsc-Bold.otf",
+        "sha256": "b5f0d1a190a7f9b43c310a8850630af12553df32c4c050543f9059732d9b4c0a"
+      }
+    ]
+  },
+  {
+    "url": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+    "sha256": "9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e",
+    "files": [
+      {
+        "path": "Inter-Regular.ttf",
+        "archivePath": "extras/ttf/Inter-Regular.ttf",
+        "sha256": "40d692fce188e4471e2b3cba937be967878f631ad3ebbbdcd587687c7ebe0c82"
+      },
+      {
+        "path": "Inter-Bold.ttf",
+        "archivePath": "extras/ttf/Inter-Bold.ttf",
+        "sha256": "288316099b1e0a47a4716d159098005eef7c0066921f34e3200393dbdb01947f"
+      }
+    ]
+  },
+  {
+    "url": "https://github.com/subframe7536/maple-font/releases/download/v7.9/MapleMono-CN-unhinted.zip",
+    "sha256": "d41cb72721e99cfe4fbd1a7b0f182a013457de46aa612018f924dd024699d3b9",
+    "files": [
+      {
+        "path": "MapleMono-CN-Regular.ttf",
+        "archivePath": "MapleMono-CN-Regular.ttf",
+        "sha256": "0fcc5139bfd5ab14ff989bb7dfd5236d0cafc10e60b9828569e6883613ab4085"
+      },
+      {
+        "path": "MapleMono-CN-Bold.ttf",
+        "archivePath": "MapleMono-CN-Bold.ttf",
+        "sha256": "ca79870485fb382e01f4e70edb08bccd3cf1dbdf74b82023fdf2f0c95db55725"
+      }
+    ]
+  },
+  {
+    "url": "https://github.com/notofonts/symbols/releases/download/NotoSansSymbols2-v2.008/NotoSansSymbols2-v2.008.zip",
+    "sha256": "346c930bbe8eb946701a05c54e9c11a2094dee1d93c387bf1771c0a3e335688f",
+    "files": [
+      {
+        "path": "NotoSansSymbols2-Regular.ttf",
+        "archivePath": "NotoSansSymbols2/full/ttf/NotoSansSymbols2-Regular.ttf",
+        "sha256": "3ce38effdb615dd929c8b0f52768dfa2cd21f206e3824bc7df61e4074b41ae52"
+      }
+    ]
+  }
+]

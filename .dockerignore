@@ -6,3 +6,8 @@ artifacts
 coverage
 .env
 *.log
+fonts/*.ttf
+fonts/*.otf
+fonts/*.woff
+fonts/*.woff2
+fonts/.download-*

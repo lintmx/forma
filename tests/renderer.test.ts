@@ -1,23 +1,58 @@
 import { Resvg } from '@resvg/resvg-js';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
-import satori, { type Font } from 'satori';
+import satori from 'satori';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { loadConfig } from '../src/config.js';
 import { additionalAsset } from '../src/core/emoji.js';
-import { loadFonts } from '../src/core/fonts.js';
+import { type LoadedFonts, loadFonts } from '../src/core/fonts.js';
 import { Renderer } from '../src/core/renderer.js';
 import { assertDimensions, layoutOptions, svgDimensions } from '../src/core/sizing.js';
+import type { TemplateContext } from '../src/core/types.js';
 import { registry } from '../src/templates/index.js';
 import { expectPngQuality } from './fixtures/png-quality.js';
 import { registerTestTemplates } from './fixtures/templates.js';
 
 const config = loadConfig({ LOG_LEVEL: 'silent' });
+const typographySchema = z.object({
+  text: z.string(),
+  monospace: z.boolean().default(false),
+  weight: z.union([z.literal(400), z.literal(700)]).default(400),
+});
+const typography = (data: z.infer<typeof typographySchema>, context: TemplateContext) =>
+  createElement(
+    'div',
+    { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start' } },
+    createElement(
+      'div',
+      {
+        'data-measure': true,
+        style: {
+          display: 'flex',
+          whiteSpace: 'pre',
+          fontSize: 20,
+          fontWeight: data.weight,
+          fontFamily: data.monospace ? context.monospaceFontFamily : context.fontFamily,
+        },
+      },
+      data.text,
+    ),
+  );
 let renderer: Renderer;
-let fonts: Font[];
+let fonts: LoadedFonts;
 beforeAll(async () => {
   registerTestTemplates();
+  registry.register({
+    id: 'test-typography',
+    name: 'Typography fixture',
+    description: 'Measure and render the selected text family',
+    schema: typographySchema,
+    sizing: { mode: 'content', minWidth: 124, maxWidth: 760 },
+    mock: { text: 'Hello', monospace: false, weight: 400 },
+    measure: typography,
+    render: typography,
+  });
   fonts = await loadFonts(config.fontConfig);
   renderer = new Renderer(config, fonts);
 });
@@ -119,10 +154,10 @@ describe('real Satori + resvg rendering', () => {
     expect(paragraphs.height).toBeGreaterThan(short.height + 300);
     expect(list.height).toBeGreaterThan(short.height + 300);
   });
-  it('renders mixed Chinese, Japanese, Latin and local color emoji without external references', async () => {
+  it('renders mixed Chinese, Japanese, Korean, Latin and local color emoji without external references', async () => {
     const result = await render({
       title: '你好、世界 Hello ✨',
-      body: '中文测试 日本語 かな カナ café 🎉 👩‍💻 🇯🇵',
+      body: '中文测试 繁體中文 日本語 かな カナ 한국어 한글 café ⏻ 🎉 👩‍💻 🇯🇵',
     });
     const svg = Buffer.from(result.body).toString();
     expect(svg).toContain('<path');
@@ -130,6 +165,36 @@ describe('real Satori + resvg rendering', () => {
     expect(svg).not.toMatch(/(?:href|src)="https?:/);
     expect(svg).not.toContain('<text');
   });
+  it.each([400, 700])('keeps Maple CN ASCII, Chinese and kana on monospace cells at weight %s', async weight => {
+    const probe = (text: string, monospace = true) =>
+      renderer.render({ template: 'test-typography', data: { text, monospace, weight }, format: 'svg' });
+    const sizes = await Promise.all(['iiii', 'WWWW', '中文', 'かな'].map(text => probe(text)));
+    expect(sizes.map(result => result.width)).toEqual(Array(4).fill(170));
+    const singleAscii = await probe('A');
+    const singleCjk = await probe('中');
+    const doubleAscii = await probe('AA');
+    expect(singleCjk.width).toBe(doubleAscii.width);
+    expect(singleCjk.width - singleAscii.width).toBe(12);
+    const narrowBody = await probe('iiii', false);
+    const wideBody = await probe('WWWW', false);
+    expect(narrowBody.width).toBeLessThan(wideBody.width);
+    expect(narrowBody.width).not.toBe(sizes[0]!.width);
+  });
+  it.each([false, true])(
+    'renders the production text example in monospace=%s with all four languages',
+    async monospace => {
+      const data = {
+        text: '简体中文 繁體中文\n日本語 ひらがな カタカナ\nHello café 0123456789\n한국어 한글\n㐀㐁 ⏻',
+        monospace,
+      };
+      const svg = await renderer.render({ template: 'example', data, format: 'svg' });
+      const png = await renderer.render({ template: 'example', data, format: 'png' });
+      expect(Buffer.from(svg.body).toString()).not.toMatch(/(?:href|src)="https?:/);
+      const image = PNG.sync.read(Buffer.from(png.body));
+      expect([image.width, image.height]).toEqual([svg.width, svg.height]);
+      expect(image.data.some(byte => byte < 100)).toBe(true);
+    },
+  );
   it('reports missing glyphs rather than silently returning tofu', async () => {
     await expect(render({ title: '\u{10ffff}' })).rejects.toMatchObject({
       code: 'MISSING_GLYPH',
@@ -316,7 +381,7 @@ describe('real Satori + resvg rendering', () => {
   });
   it('supports explicit fixed sizing and constrained intrinsic auto-width', async () => {
     const node = createElement('div', { style: { display: 'flex', whiteSpace: 'nowrap', fontSize: 20 } }, 'Hello');
-    const base = { fonts };
+    const base = { fonts: fonts.fonts };
     const fixed = await layoutOptions({ mode: 'fixed', width: 300, height: 100 }, undefined, base, config);
     expect(svgDimensions(await satori(node, { ...base, ...fixed }))).toEqual({
       width: 300,

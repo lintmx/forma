@@ -6,8 +6,11 @@ RUN npm install --global pnpm@10.32.1
 FROM base AS build
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=forma-pnpm,target=/pnpm/store pnpm install --frozen-lockfile --store-dir=/pnpm/store
+COPY fonts ./fonts
+COPY scripts/font-assets.ts scripts/fetch-fonts.ts ./scripts/
+RUN pnpm fonts:fetch
 COPY . .
-RUN pnpm fonts:verify && pnpm build
+RUN pnpm build
 
 FROM base AS dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

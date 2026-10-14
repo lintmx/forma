@@ -38,7 +38,9 @@ function InlineText({ text }: { text: string }) {
     offset = match.index + match[0].length;
   }
   if (offset < text.length) parts.push(text.slice(offset));
-  return parts;
+  // Keep plain and highlighted paragraphs on the same Satori inline layout
+  // path, including when fallback fonts have different vertical metrics.
+  return <span>{parts}</span>;
 }
 
 function TextBlock({ text, size = 15, style }: { text: string; size?: number; style?: CSSProperties }) {

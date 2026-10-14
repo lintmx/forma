@@ -1,10 +1,11 @@
 import { Resvg } from '@resvg/resvg-js';
-import satori, { type Font, type SatoriOptions } from 'satori';
+import satori, { type SatoriOptions } from 'satori';
 import type { Config } from '../config.js';
 import { registry } from '../templates/index.js';
 import { CardFrame, cardOptionsSchema } from './card.js';
 import { additionalAsset } from './emoji.js';
 import { FormaError } from './errors.js';
+import type { LoadedFonts } from './fonts.js';
 import { ImageStore } from './images.js';
 import { encodePng } from './png.js';
 import { assertDimensions, layoutOptions, svgDimensions } from './sizing.js';
@@ -15,7 +16,7 @@ export class Renderer {
   private images: ImageStore;
   constructor(
     private config: Config,
-    private fonts: Font[],
+    private fonts: LoadedFonts,
   ) {
     this.images = new ImageStore(config);
   }
@@ -43,13 +44,11 @@ export class Renderer {
     }
     const context = {
       assets,
-      fontFamily: this.fonts
-        .map(f => f.name)
-        .filter((v, i, a) => a.indexOf(v) === i)
-        .join(', '),
+      fontFamily: this.fonts.fontFamily,
+      monospaceFontFamily: this.fonts.monospaceFontFamily,
     };
     const base: Omit<SatoriOptions, 'width' | 'height'> = {
-      fonts: this.fonts,
+      fonts: this.fonts.fonts,
       embedFont: true,
       loadAdditionalAsset: additionalAsset,
       onStyleError: error => {

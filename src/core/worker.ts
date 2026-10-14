@@ -10,7 +10,10 @@ import type { RenderRequest } from './types.js';
 const config = workerData as Config;
 const fonts = await loadFonts(config.fontConfig);
 // Warm Satori's WASM and font parser before accepting HTTP traffic.
-await satori(createElement('div', { style: { display: 'flex' } }, 'Ready'), { fonts, width: 100 });
+await satori(createElement('div', { style: { display: 'flex', fontFamily: fonts.fontFamily } }, 'Ready'), {
+  fonts: fonts.fonts,
+  width: 100,
+});
 const renderer = new Renderer(config, fonts);
 parentPort!.on('message', async (request: RenderRequest) => {
   try {

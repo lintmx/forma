@@ -8,8 +8,8 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "tsx scripts/dev.ts",
-    "build": "pnpm check && tsx scripts/build.ts && vite build",
+    "dev": "pnpm fonts:fetch && tsx scripts/dev.ts",
+    "build": "pnpm fonts:fetch && pnpm check && tsx scripts/build.ts && vite build",
     "start": "node --env-file-if-exists=.env dist/server.js",
     "check": "biome check . && tsc --noEmit",
     "lint": "biome lint .",
@@ -17,7 +17,8 @@
     "format:check": "biome format .",
     "test": "vitest run",
     "test:e2e": "vitest run tests/api.test.ts tests/templates.test.ts",
-    "fonts:verify": "tsx scripts/verify-fonts.ts"
+    "fonts:verify": "tsx scripts/verify-fonts.ts",
+    "fonts:fetch": "tsx scripts/fetch-fonts.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "2.6.2",
@@ -39,6 +40,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "6.1.2",
     "esbuild": "^0.27.0",
+    "fflate": "0.8.2",
     "pngjs": "7.0.0",
     "tsx": "4.23.15",
     "typescript": "7.0.2",

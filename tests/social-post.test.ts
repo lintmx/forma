@@ -54,7 +54,7 @@ beforeAll(async () => {
             marginBottom: 12,
           },
         },
-        data.content ?? '',
+        createElement('span', {}, data.content ?? ''),
       ),
   });
 });
@@ -152,20 +152,22 @@ describe('social_post real Satori and resvg output', () => {
       warnings: [],
     });
   });
-  it('keeps highlighted tokens in the normal paragraph flow and preserves explicit newlines', async () => {
-    const data = {
-      content:
-        '开头'.repeat(8) +
+  it('uses the same inline paragraph flow with or without highlighted tokens and preserves explicit newlines', async () => {
+    for (const content of [
+      '开头'.repeat(8) +
         ' #话题 ' +
         '后文'.repeat(10) +
         ' @forma\n' +
         '第二行'.repeat(6) +
         ' https://example.com/post ' +
         '结尾'.repeat(8),
-    };
-    const colored = await render(data, 'svg');
-    const plain = await renderer.render({ template: 'test-social-plain', data, format: 'svg' });
-    expect([colored.width, colored.height]).toEqual([plain.width, plain.height]);
+      '普通正文 中文 日本語 한국어 English\n第二行没有着色标记。',
+    ]) {
+      const data = { content };
+      const colored = await render(data, 'svg');
+      const plain = await renderer.render({ template: 'test-social-plain', data, format: 'svg' });
+      expect([colored.width, colored.height]).toEqual([plain.width, plain.height]);
+    }
   });
   it.each(['reply', 'quote'] as const)('keeps %s media inside the shared frame padding', async postKind => {
     mockImages();

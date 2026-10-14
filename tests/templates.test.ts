@@ -42,7 +42,7 @@ describe('production template catalog', () => {
     expect(metadata.status).toBe(200);
     const data = await metadata.json();
     expect(data.schema.required).toEqual(['text']);
-    expect(Object.keys(data.schema.properties)).toEqual(['text']);
+    expect(Object.keys(data.schema.properties)).toEqual(['text', 'monospace']);
     expect(data.mock).toEqual(registry.get('example').mock);
   });
 
@@ -74,6 +74,27 @@ describe('production template catalog', () => {
         format === 'png' ? 'PNG' : '<svg',
       );
     }
+  });
+
+  it('renders body and Maple monospace text through the production worker', async () => {
+    const app = createApp(config, pool);
+    const images = [];
+    for (const monospace of [false, true]) {
+      const response = await app.fetch(
+        new Request('http://localhost/v1/render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            template: 'example',
+            data: { text: 'iiii WWWW 中文 繁體 日本語 한국어 㐀㐁 ⏻', monospace },
+            format: 'svg',
+          }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      images.push(await response.text());
+    }
+    expect(images[0]).not.toBe(images[1]);
   });
 
   it.each(['notice', 'profile', 'test-content', 'test-auto-height'])(

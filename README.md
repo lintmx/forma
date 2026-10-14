@@ -1,7 +1,7 @@
 # forma
 
 独立的 Schema / TSX 卡片渲染服务。JSON → Zod → Satori SVG → resvg 栅格像素 → Sharp PNG。
-无需浏览器、MagiBot、数据库、Redis 或外部字体服务。
+运行时无需浏览器、MagiBot、数据库、Redis 或外部字体服务。
 
 提供 `example` 纯文本示例和 `social_post` 社交动态，Playground 启动后自动选中 `example` 并预览。
 `src/templates/index.ts` 是统一注册入口；新增业务模板按文末说明注册。
@@ -19,7 +19,8 @@ pnpm dev
 打开 http://localhost:3000/dev/。API 与 Vite Playground 共用端口，模板及服务代码修改会自动重启服务，前端支持 HMR。
 `pnpm dev` 自动读取项目根目录的 `.env`（可从 `.env.example` 复制），例如 `PORT=3100` 会监听 3100 端口。
 已设置的 shell 环境变量优先；没有 `.env` 时使用默认配置。修改 `.env` 后重启 `pnpm dev` 生效。
-字体首次解析完成后才开始监听端口。Playground 编辑 JSON 后自动调用真实的
+`pnpm dev` 启动前会下载缺失或校验不通过的默认字体，首次准备需要访问上游 GitHub；
+本地字体 SHA-256 校验通过后不再下载。字体首次解析完成后才开始监听端口。Playground 编辑 JSON 后自动调用真实的
 `POST /v1/render`，显示返回的 PNG、尺寸、错误和图片降级提示；下载也调用同一 API。
 输入错误时，旧图片明确标记为上一次成功预览，下载按钮禁用。
 PNG 清晰度可切换 1× / 2× / 3× / 4×，默认 2×；预览按原始布局大小显示，下载保留完整像素分辨率。
@@ -29,9 +30,10 @@ pnpm format           # Biome 统一格式
 pnpm format:check     # 仅检查格式
 pnpm lint             # Biome lint
 pnpm check            # Biome 格式、lint、import 排序 + TypeScript
+pnpm fonts:fetch      # 下载固定版本字体；已校验的本地文件直接复用
 pnpm test             # 单元测试 + 本地 HTTP/worker/图片端到端测试
 pnpm test:e2e         # 生产模板目录 + HTTP 图片生成测试
-pnpm fonts:verify     # 随仓库字体 SHA-256 校验
+pnpm fonts:verify     # 仅校验本地字体 SHA-256，不联网
 pnpm build            # 生产服务、worker、Playground
 NODE_ENV=production pnpm start
 ```
@@ -70,7 +72,8 @@ Compose 默认发布到本机 127.0.0.1:3000；通过 `FORMA_PORT`、`FORMA_BIND
 ## API
 
 可先通过 `GET /healthz` 和 `GET /v1/templates` 检查就绪状态及已注册模板。
-`example` 只接受 `text` 字段（1–4000 字符），保留空白和换行，不解析 Markdown 或 HTML。
+`example` 接受 `text` 字段（1–4000 字符），保留空白和换行，不解析 Markdown 或 HTML。
+可选 `monospace: true` 使用 Maple Mono CN 等宽字体；省略或设为 false 使用正文字体。
 画布固定 620px 宽，高度由文本换行自动决定：
 
 ```sh
@@ -231,9 +234,35 @@ resvg 实际栅格化得到柔和阴影；像素测试验证阴影和画布边�
 
 ## 字体、Emoji 与图片
 
-默认随仓库附带 Noto Sans CJK SC Regular/Bold 两个静态 OTF（合计约 32 MiB）。
-包含常用中文、日文假名、汉字和拉丁字母，汉字采用 SC 字形；没有加载五套地区字体
-或全部字重。每个持久 worker 在启动时读取并缓存字体，Satori 预热后才对外服务；
+默认使用七份上游原始静态 TTF/OTF（下载后合计约 69 MiB）。Git 仅保存字体配置、
+下载清单和许可证，字体二进制不入库；正文和等宽分别选择字体：
+
+| 用途 | 字体顺序 | 字重 |
+| --- | --- | --- |
+| 正文 | Inter → Noto Sans CJK SC → Noto Sans Symbols 2 | 前两套 400/700，符号 400 |
+| 等宽 | Maple Mono CN → Noto Sans Symbols 2 | Maple 400/700，符号 400 |
+
+Maple Mono CN 包含中日英文字，其 ASCII 和所覆盖的全宽 CJK 字符采用 0.6em / 1.2em 字宽；
+不含现代韩文音节和汉字扩展 A。这些字符可能由 Satori 回退到已加载的正文字体，
+不保证等宽对齐。补充符号和 Emoji 也不承诺等宽单元格。
+字体覆盖以各上游字体原有字表为准，接受缺字；所有已加载字体均不覆盖时返回 `MISSING_GLYPH`。
+汉字沿用 SC 或 Maple CN 的字形，未自动切换地区字形。
+
+`fonts/sources.json` 固定上游 commit / release 下载地址，以及下载资源和最终字体文件的
+SHA-256。`pnpm fonts:fetch` 复用校验通过的本地字体，缺失或损坏时重新下载；ZIP 只提取
+清单指定的字体，下载与文件校验通过后才替换本地文件，失败则中止，不使用未经验证的内容。
+更新字体时同步更新清单中的版本、SHA-256 和相关许可说明。
+
+`pnpm dev` 和 `pnpm build` 自动执行下载准备；单独运行测试前先执行 `pnpm fonts:fetch`。
+`pnpm fonts:verify` 仅校验七份本地字体，不联网。Docker 在复制业务源码前独立下载字体，
+复用构建层缓存；本机字体不进入 Docker 构建上下文，最终镜像仍内置完整字体和许可证。
+`pnpm start` 和渲染 worker 只读取本地字体，不下载资源；离线部署使用预先构建好的镜像，
+直接运行 Node 时需先准备好 `fonts/`。这些准备命令只管理默认字体，自定义 `FONT_CONFIG`
+引用的文件由部署方自行提供。
+
+真实 Satori / resvg 测试另行检查多语言样例 SVG/PNG，以及 Maple 自身覆盖字符的等宽测量。
+
+每个持久 worker 在启动时读取并缓存字体，Satori 预热后才对外服务；
 并发数越高，字体及解析结果内存开销越大。默认两个 worker。
 文字在 SVG 中转路径，resvg 禁用系统字体，调用方无需安装字体。
 
@@ -241,12 +270,20 @@ resvg 实际栅格化得到柔和阴影；像素测试验证阴影和画布边�
 
 ```json
 [
-  { "name": "My Font", "path": "Regular.otf", "weight": 400, "style": "normal" },
-  { "name": "My Font", "path": "Bold.otf", "weight": 700, "style": "normal" }
+  { "name": "My Body", "path": "Body-Regular.otf", "weight": 400, "usage": "body" },
+  { "name": "My Body", "path": "Body-Bold.otf", "weight": 700, "usage": "body" },
+  { "name": "My Mono", "path": "Mono-Regular.ttf", "weight": 400, "usage": "monospace" },
+  { "name": "My Symbols", "path": "Symbols.ttf", "weight": 400, "usage": "fallback" }
 ]
 ```
 
-按配置顺序 fallback。使用静态 TTF/OTF/WOFF；不要假定 WOFF2、变量字体或所有 OpenType
+配置最多 12 份字体，必须分别包含正文和等宽字体；`usage` 为 body、monospace 或 fallback，
+省略时按 body 处理。各用途内部按配置顺序选择，fallback 字体追加到两个列表末尾；
+`style` 默认 normal，可设为 italic。模板通过 `context.fontFamily` 取得正文字体，
+通过 `context.monospaceFontFamily` 取得等宽字体，在代码或表格文本的 style 中显式使用；
+测量树与渲染树必须使用相同字体。正文及水印默认继承正文字体。
+
+使用静态 TTF/OTF/WOFF；不要假定 WOFF2、变量字体或所有 OpenType
 特性都受支持。自定义字体需自行确认覆盖范围和许可。
 彩色 Emoji 来自本地 `@twemoji/svg@15.0.0`，按需读取并缓存，不联网取 Emoji。
 不覆盖所有 Unicode 新版本；找不到字形或 Emoji 时返回 `MISSING_GLYPH`，
@@ -303,7 +340,7 @@ src/templates/
     mock.ts        完整字段示例
 src/server.ts      HTTP 启动与退出
 playground/        React + Vite，调用真实渲染 API
-fonts/             两个 OTF、配置及 OFL 许可
+fonts/             字体配置、固定下载清单、OFL 许可及本地下载字体（不入库）
 scripts/           构建、开发重启、字体校验
 tests/             布局/像素、资源、并发超时、真实 HTTP 输出测试
 tests/fixtures/    仅用于测试的最小内容模板和 worker 入口
@@ -316,7 +353,8 @@ tests/fixtures/    仅用于测试的最小内容模板和 worker 入口
 
 1. 在 `src/templates/<id>/` 新建模板独立目录，以 `index.tsx` 为入口，实现 `Template<T>`：id、name、
    description、Zod 对象 schema、sizing、render、mock。
-   schema 只定义业务字段，render 只返回卡片内部内容；字体和文字颜色默认继承外框。
+   schema 只定义业务字段，render 只返回卡片内部内容；正文字体和文字颜色默认继承外框。
+   等宽文本显式设置 `fontFamily: context.monospaceFontFamily`，measure 中保持同样的字体选择。
    模板专属的 Schema、展示组件和示例数据均放在本模板目录内，按复杂度拆分文件；字段说明通过 Schema 的 describe 定义。
 2. sizing 的宽高指完整画布（包含外框和水印）。content 模板额外实现 measure，
    只测量内部无换行文本；其他尺寸模式无需 measure。优先使用 auto-height 或 content。
