@@ -1,8 +1,6 @@
 import { z } from 'zod';
 import type { Template } from './types.js';
 import { FormaError } from './errors.js';
-import { notice } from '../templates/notice.js';
-import { profile } from '../templates/profile.js';
 import { cardDocumentation, cardOptionsSchema } from './card.js';
 
 export class TemplateRegistry {
@@ -37,4 +35,3 @@ export class TemplateRegistry {
     return parsed.data;
   }
 }
-export const registry = new TemplateRegistry().register(notice).register(profile);

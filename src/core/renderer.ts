@@ -1,7 +1,7 @@
 import satori, { type Font, type SatoriOptions } from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import type { Config } from '../config.js';
-import { registry } from './registry.js';
+import { registry } from '../templates/index.js';
 import type { RenderRequest, RenderResult, TemplateContext } from './types.js';
 import { MAX_RENDER_SCALE } from './types.js';
 import { ImageStore } from './images.js';

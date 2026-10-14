@@ -3,6 +3,9 @@
 独立的 Schema / TSX 卡片渲染服务。JSON → Zod → Satori SVG → resvg PNG。
 无需浏览器、MagiBot、数据库、Redis 或外部字体服务。
 
+默认提供 `example` 纯文本示例，Playground 启动后自动选中并预览。
+`src/templates/index.ts` 是统一注册入口；新增业务模板按文末说明注册。
+
 ## 快速启动
 
 需要 Node.js 22.12+（建议 Node.js 24 LTS）、pnpm 10.32.1。
@@ -19,12 +22,12 @@ pnpm dev
 字体首次解析完成后才开始监听端口。Playground 编辑 JSON 后自动调用真实的
 `POST /v1/render`，显示返回的 PNG、尺寸、错误和图片降级提示；下载也调用同一 API。
 输入错误时，旧图片明确标记为上一次成功预览，下载按钮禁用。
-PNG 清晰度可切换 1× / 2× / 3× / 4×，默认 4×；预览按原始布局大小显示，下载保留完整像素分辨率。
+PNG 清晰度可切换 1× / 2× / 3× / 4×，默认 2×；预览按原始布局大小显示，下载保留完整像素分辨率。
 
 ```sh
 pnpm check            # TypeScript
 pnpm test             # 单元测试 + 本地 HTTP/worker/图片端到端测试
-pnpm test:e2e         # 只运行 HTTP 图片生成测试
+pnpm test:e2e         # 生产模板目录 + HTTP 图片生成测试
 pnpm fonts:verify     # 随仓库字体 SHA-256 校验
 pnpm build            # 生产服务、worker、Playground
 NODE_ENV=production pnpm start
@@ -50,38 +53,41 @@ Compose 默认发布到本机 127.0.0.1:3000；通过 `FORMA_PORT`、`FORMA_BIND
 
 ## API
 
+可先通过 `GET /healthz` 和 `GET /v1/templates` 检查就绪状态及已注册模板。
+`example` 只接受 `text` 字段（1–4000 字符），保留空白和换行，不解析 Markdown 或 HTML。
+画布固定 620px 宽，高度由文本换行自动决定：
+
 ```sh
 curl http://localhost:3000/v1/render \
   -H 'Content-Type: application/json' \
-  --data '{"template":"notice","data":{"title":"签到成功 ✨","description":"今天已经连续签到 30 天\n明日も頑張ろう。Keep going!","items":["获得 120 积分","明天继续"]},"format":"png"}' \
-  --output notice.png
+  --data '{"template":"example","data":{"text":"你好，世界。\nThis is a plain text example."},"format":"png"}' \
+  --output example.png
 ```
 
 将 `format` 改为 `svg` 得到 SVG；省略时默认 PNG。返回图片二进制，尺寸在
-`X-Image-Width`、`X-Image-Height` 响应头中。头像下载失败仍返回卡片，
-`X-Render-Warnings: IMAGE_UNAVAILABLE`，使用名字首字占位。
+`X-Image-Width`、`X-Image-Height` 响应头中。模板图片加载失败时返回
+`X-Render-Warnings: IMAGE_UNAVAILABLE`，模板通过空的 assets 显示降级内容。
 没有 base64 JSON 包装，客户端无需执行 React 或 JavaScript。
 
 PNG 请求支持 `scale`（1–4 的整数，API 默认 1）。需要精细的下载原图时使用 `"scale": 4`：
 
 ```json
 {
-  "template": "profile",
-  "data": { "name": "林 · Rin", "bio": "中文、日本語、English" },
+  "template": "example",
+  "data": { "text": "中文、日本語、English" },
   "format": "png",
   "scale": 4
 }
 ```
 
 Satori 仍按原始尺寸布局，resvg 从 SVG 按倍率直接栅格化，文字换行不变。
-例如内置 profile 示例含水印时为 620 × 498，在 2× 时输出 1240 × 996，在 4× 时输出 2480 × 1992 PNG。
 4× 的像素数是 1× 的 16 倍、2× 的 4 倍，内存和渲染开销也会增加；
 2× 适合日常消息，4× 可保留更多文字边缘细节。低分辨率头像不会因此获得新的细节。
 SVG 是矢量输出，忽略 `scale` 并保留原始布局尺寸。
 `X-Image-Width/Height` 返回实际输出尺寸，`X-Layout-Width/Height` 返回原始布局尺寸，
 `X-Render-Scale` 返回实际使用的倍率（SVG 为 1）。
 放大后的尺寸仍受 `MAX_WIDTH`、`MAX_HEIGHT`、`MAX_PIXELS` 限制，超限返回 422，
-不会静默降低倍率。默认上限支持两个内置示例的 4× 输出；较长的卡片仍可能超限。
+不会静默降低倍率；实际模板需要按内容和倍率检查输出是否超限。
 已有部署若显式配置了旧的 1600px / 400 万像素上限，需要同步调整环境变量。
 
 | 路由 | 返回 |
@@ -92,23 +98,20 @@ SVG 是矢量输出，忽略 `scale` 并保留原始布局尺寸。
 | GET /v1/templates/:template.txt | 纯文本使用说明 |
 | GET /healthz | 就绪状态、可用 worker、执行中及排队数量 |
 
-`notice`：title、description、items、label、footer。
-`profile`：name、handle、bio、avatar、tags、stats。具体字段长度及列表上限
-以各模板 Schema 和 API 文档为准。未知字段被拒绝；不接受任意 JSX、HTML、CSS 或可执行代码。
+具体字段及长度上限以各模板 Schema 和 API 文档为准。
+未知字段被拒绝；不接受任意 JSX、HTML、CSS 或可执行代码。
 
 所有已注册模板均自动支持请求顶层可选的 `watermark`，与 `template`、`format`、`scale` 并列：
 在白色卡片下方显示浅灰色居中的水印。Playground 在清晰度下方提供独立的「底部水印」输入框，
 JSON DATA 只填写模板业务内容。旧的 `data.watermark` 写法返回 400，需移到请求顶层。
 最多 160 字符，去除首尾空白；省略或空字符串时不显示，也不预留额外空间。
 长文字按卡片宽度换行，画布高度由 Satori 自动计算；PNG 和 SVG 均包含水印。
-`notice` 的 `footer` 仍显示在白色卡片内部。
 
 ```json
 {
-  "template": "notice",
+  "template": "example",
   "data": {
-    "title": "签到成功",
-    "description": "今天已经连续签到 30 天"
+    "text": "你好，世界"
   },
   "format": "png",
   "scale": 4,
@@ -123,7 +126,7 @@ JSON DATA 只填写模板业务内容。旧的 `data.watermark` 写法返回 400
   "error": {
     "code": "VALIDATION_ERROR",
     "message": "Template data is invalid",
-    "details": [{ "path": ["title"], "message": "Invalid input" }]
+    "details": [{ "path": ["text"], "message": "Invalid input" }]
   }
 }
 ```
@@ -140,10 +143,10 @@ JSON DATA 只填写模板业务内容。旧的 `data.watermark` 写法返回 400
 
 | 策略 | 实现与边界 |
 | --- | --- |
-| content | 模板提供不换行的测量树；Satori 测量真实字形/布局宽度，再限于 minWidth/maxWidth，按选定宽度重新布局得到高度。notice 为 420–760px。 |
-| auto-height | 只传 width，不传 height；Satori 计算换行和列表布局。profile 宽 620px。 |
+| content | 模板提供不换行的测量树；Satori 测量真实字形/布局宽度，再限于 minWidth/maxWidth，按选定宽度重新布局得到高度。 |
+| auto-height | 只传 width，不传 height；Satori 计算换行和列表布局。 |
 | fixed | 向 Satori 传入固定 width/height；模板作者负责内容在固定画布内适配。 |
-| auto-width | 只传 height；适用于具有自然宽度的单行或横向模板，需避免百分比宽度与依赖无限换行的布局。当前无内置此类模板，测试覆盖基本单行布局。 |
+| auto-width | 只传 height；适用于具有自然宽度的单行或横向模板，需避免百分比宽度与依赖无限换行的布局。 |
 
 不按字符串长度、预估行数计算高度，不承诺任意布局的双向自适应。
 content 的测量树只描述内部内容及其 `data-measure` 节点，不重复外框边距。
@@ -180,7 +183,7 @@ resvg 实际栅格化得到柔和阴影；像素测试验证阴影和画布边�
 不覆盖所有 Unicode 新版本；找不到字形或 Emoji 时返回 `MISSING_GLYPH`，
 调用方可调整文本或字体。版权及许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-远程头像仅接受公开 HTTP(S) PNG/JPEG/WebP。统一检查超时、下载字节数、
+远程图片仅接受公开 HTTP(S) PNG/JPEG/WebP。统一检查超时、下载字节数、
 解码后的像素数，校验并固定 DNS 地址，每一跳重定向重复验证。
 拒绝私网、回环、链路本地、保留地址、URL 凭据和远程 SVG。
 缓存为每 worker 独立的有界 LRU，最多 128 项，支持 TTL 和重复下载合并；
@@ -218,12 +221,13 @@ Compose 文件列出了常用变量；其余可通过添加 environment 条目�
 ```text
 src/api/           H3 路由、输入校验和统一错误
 src/core/          card 统一外框、registry、renderer、sizing、fonts、emoji、images、worker/pool
-src/templates/     notice.tsx、profile.tsx、内容组件（Tag 等）
+src/templates/     index.ts 注册入口、example.tsx 纯文本示例及业务模板
 src/server.ts      HTTP 启动与退出
 playground/        React + Vite，调用真实渲染 API
 fonts/             两个 OTF、配置及 OFL 许可
 scripts/           构建、开发重启、字体校验
 tests/             布局/像素、资源、并发超时、真实 HTTP 输出测试
+tests/fixtures/    仅用于测试的最小内容模板和 worker 入口
 ```
 
 外观由 `src/core/card.tsx` 统一管理：背景、内外边距、圆角、边框、阴影和水印。
@@ -237,27 +241,13 @@ tests/             布局/像素、资源、并发超时、真实 HTTP 输出测
 2. sizing 的宽高指完整画布（包含外框和水印）。content 模板额外实现 measure，
    只测量内部无换行文本；其他尺寸模式无需 measure。优先使用 auto-height 或 content。
 3. 如需图片，实现 assets，调用传入的 ImageStore，不在组件中 fetch。
-4. 在 `src/core/registry.ts` 导入并 register；模板 ID 必须唯一。
+4. 在 `src/templates/index.ts` 导入并 register；模板 ID 必须唯一。
 5. 通过 Playground 检查短文、长文、多语言及缺图情况，加入相关布局/输出测试。
    生产环境重新 build / 构建镜像。无需修改 API 或 Playground 以登记新模板。
 
-最小内容模板示例：
-
-```tsx
-import { z } from 'zod';
-import type { Template } from '../core/types.js';
-
-const schema = z.object({ title: z.string().min(1).max(160) }).strict();
-export const simple: Template<z.infer<typeof schema>> = {
-  id: 'simple', name: '简洁卡片', description: '只有标题的卡片',
-  schema, sizing: { mode: 'auto-height', width: 620 },
-  mock: { title: '你好，世界' }, documentation: 'title：必填标题，最多 160 字符。\n',
-  render: data => <div style={{ display: 'flex', fontSize: 28, fontWeight: 700 }}>{data.title}</div>,
-};
-```
-
-注册后即可使用 `{ "template": "simple", "data": { "title": "你好，世界" }, "watermark": "Generated by Forma" }`，
-自动获得与其他模板一致的外框。需要改变整个服务的外观时，只修改 `card.tsx`。
+最小实现参考 [src/templates/example.tsx](src/templates/example.tsx)：只声明文本 Schema、尺寸、示例数据和内容渲染。
+可复制为实际业务模板并调整字段和布局；统一外框由渲染器自动添加。需要改变整个服务的外观时，只修改 `card.tsx`。
+测试模板只在测试进程及测试 worker 中注册，不会出现在生产 API 或 Playground 中。
 
 第一版不提供模板上传、运行时第三方代码、任意双向自适应、远程 SVG、
 动画图片、多帧输出、所有 Unicode 字符全集或多语言地区字形自动切换。

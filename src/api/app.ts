@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { Config } from '../config.js';
 import { log } from '../config.js';
 import { FormaError, publicError } from '../core/errors.js';
-import { registry } from '../core/registry.js';
+import { registry } from '../templates/index.js';
 import type { RenderPool } from '../core/pool.js';
 import { MAX_RENDER_SCALE } from '../core/types.js';
 import { cardOptionsSchema } from '../core/card.js';

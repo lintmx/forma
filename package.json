@@ -13,7 +13,7 @@
     "start": "node --env-file-if-exists=.env dist/server.js",
     "check": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "vitest run tests/api.test.ts",
+    "test:e2e": "vitest run tests/api.test.ts tests/templates.test.ts",
     "fonts:verify": "tsx scripts/verify-fonts.ts"
   },
   "dependencies": {
