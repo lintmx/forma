@@ -193,7 +193,7 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
                   <div
                     style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', flex: 1, gap: 8, minWidth: 0 }}
                   >
-                    <Text style={{ ...typography.section }}>{entity.name.trim() || '未命名实体'}</Text>
+                    <Text style={{ ...typography.body, fontWeight: 700 }}>{entity.name.trim() || '未命名实体'}</Text>
                     {entity.handle?.trim() && <Text style={{ color: colors.muted }}>{entity.handle.trim()}</Text>}
                   </div>
                   <Text
@@ -250,7 +250,7 @@ export const comparison: Template<ComparisonData> = {
         }}
       >
         <div style={{ ...column, flex: 1 }}>
-          <Text style={{ ...typography.title }}>{data.title.trim() || '数据对比'}</Text>
+          <Text style={{ ...typography.section }}>{data.title.trim() || '数据对比'}</Text>
           {data.subtitle?.trim() && <Text style={{ marginTop: 4, color: colors.muted }}>{data.subtitle.trim()}</Text>}
         </div>
         {data.time?.trim() && (
@@ -275,7 +275,8 @@ export const comparison: Template<ComparisonData> = {
               <Text
                 style={{
                   padding: '8px 12px',
-                  ...typography.section,
+                  ...typography.body,
+                  fontWeight: 700,
                   backgroundColor: '#f6f8fa',
                   borderBottom: border,
                 }}
