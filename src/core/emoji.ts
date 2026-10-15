@@ -4,9 +4,9 @@ import { cloneElement, createElement, isValidElement, type ReactNode } from 'rea
 import presentation from '../../emoji/presentation.json' with { type: 'json' };
 import { FormaError } from './errors.js';
 
-const emojiDirectory = resolve('emoji/svg');
+const emojiDirectories = [resolve('emoji/svg'), resolve('emoji/noto-svg')];
 const cache = new Map<string, string>();
-let filenames: Promise<Map<string, string>> | undefined;
+const filenames = new Map<string, Promise<Map<string, string>>>();
 const textDefault = new Set(presentation.textDefault);
 const textVariants = new Set(presentation.textVariants);
 // Match whole candidates, including unknown ZWJ combinations and reserved emoji
@@ -31,19 +31,40 @@ async function emojiImage(segment: string, onMissing: () => void): Promise<strin
   const key = canonical(segment);
   const existing = cache.get(key);
   if (existing) return existing;
-  filenames ??= readdir(emojiDirectory).then(
-    files => new Map(files.map(file => [file.replace(/-fe0f/g, '').replace(/\.svg$/, ''), file])),
-  );
-  const filename = (await filenames).get(key);
-  if (filename) {
-    try {
-      const uri = 'data:image/svg+xml;base64,' + (await readFile(join(emojiDirectory, filename))).toString('base64');
-      if (cache.size >= 512) cache.delete(cache.keys().next().value!);
-      cache.set(key, uri);
-      return uri;
-    } catch (error) {
-      // A missing individual asset may degrade; permissions/I/O failures are not missing glyphs.
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  for (const emojiDirectory of emojiDirectories) {
+    let index = filenames.get(emojiDirectory);
+    if (!index) {
+      index = readdir(emojiDirectory).then(
+        files =>
+          new Map(
+            files
+              .filter(file => file.endsWith('.svg'))
+              .map(file => [
+                file
+                  .replace(/^emoji_u/, '')
+                  .replace(/\.svg$/, '')
+                  .split(/[-_]/)
+                  .map(part => Number.parseInt(part, 16))
+                  .filter(point => point !== 0xfe0e && point !== 0xfe0f)
+                  .map(point => point.toString(16))
+                  .join('-'),
+                file,
+              ]),
+          ),
+      );
+      filenames.set(emojiDirectory, index);
+    }
+    const filename = (await index).get(key);
+    if (filename) {
+      try {
+        const uri = 'data:image/svg+xml;base64,' + (await readFile(join(emojiDirectory, filename))).toString('base64');
+        if (cache.size >= 512) cache.delete(cache.keys().next().value!);
+        cache.set(key, uri);
+        return uri;
+      } catch (error) {
+        // A missing individual asset may degrade; permissions/I/O failures are not missing glyphs.
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
     }
   }
   onMissing();

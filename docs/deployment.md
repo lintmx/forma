@@ -17,7 +17,7 @@ NODE_ENV=production pnpm start
 生产模式默认关闭 `/dev/`，需要时设置 `PLAYGROUND_ENABLED=true`。
 
 启动会等待 worker 字体加载和 Satori 预热完成。`pnpm start` 不下载字体或 Emoji；离线运行前应准备好
-`dist/`、生产依赖、字体配置及字体文件、`emoji/svg/`，或使用预先构建的镜像。
+`dist/`、生产依赖、字体配置及字体文件、`emoji/svg/` 和 `emoji/noto-svg/`，或使用预先构建的镜像。
 可用 `pnpm fonts:verify` 和 `pnpm emoji:verify` 离线检查资源完整性。
 
 ## Docker Compose

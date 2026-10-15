@@ -71,6 +71,18 @@ the build downloads the assets for offline runtime use. See
 [emoji/LICENSE-GRAPHICS](emoji/LICENSE-GRAPHICS). When sharing images containing
 Twemoji, retain suitable attribution in accompanying documentation or credits.
 
+## Noto Color Emoji SVG
+
+Copyright 2013 Google, Inc. All Rights Reserved. The SVG artwork from
+[googlefonts/noto-emoji v2.051](https://github.com/googlefonts/noto-emoji/tree/v2.051/svg)
+is distributed under the Apache License 2.0; see [emoji/LICENSE-NOTO](emoji/LICENSE-NOTO).
+These are SVG image resources, not the separately licensed color font binary.
+[emoji/noto-source.json](emoji/noto-source.json) pins the archive and installed SVG checksums.
+Forma modifies the SVG markup during asset preparation: inline styles become
+presentation attributes, local clip-path uses are expanded, and unused background,
+unreferenced layer IDs, editor version and zero viewport offset attributes are removed. The normalized
+artwork is bundled for offline fallback after Twemoji.
+
 ## Unicode Emoji presentation data
 
 [emoji/presentation.json](emoji/presentation.json) derives text presentation
