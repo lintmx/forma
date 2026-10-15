@@ -61,4 +61,7 @@ Node.js 部署、环境变量和资源预算见 [部署指南](docs/deployment.m
 | [开发指南](docs/development.md) | 项目结构、模板注册、尺寸策略与验证 |
 | [渲染与资源](docs/rendering.md) | 渲染边界、排版、字体、Emoji 与图片加载 |
 
-字体和 Emoji 的版权、许可及署名要求见 [第三方声明](THIRD_PARTY_NOTICES.md)。
+## 许可证
+
+项目代码采用 [MIT 许可证](LICENSE)。字体和 Emoji 仍适用各自的许可，版权及署名要求见
+[第三方声明](THIRD_PARTY_NOTICES.md)。

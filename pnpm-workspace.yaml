@@ -1,2 +1,6 @@
 allowBuilds:
   esbuild: true
+
+overrides:
+  # Satori pins 0.7.3; use the ZIP64 DoS fix (GHSA-px8p-9vwx-vf98) in the same minor line.
+  'satori@0.55.1>fflate': 0.7.5
