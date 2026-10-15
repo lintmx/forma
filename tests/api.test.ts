@@ -7,13 +7,20 @@ import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import { toNodeHandler } from 'h3/node';
 import { PNG } from 'pngjs';
+import { createElement } from 'react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { z } from 'zod';
+import { buildOptions } from '../scripts/build-options.js';
 import { createApp, readJson } from '../src/api/app.js';
 import { loadConfig } from '../src/config.js';
+import { loadFonts } from '../src/core/fonts.js';
 import { RenderPool } from '../src/core/pool.js';
-import { registry } from '../src/templates/index.js';
+import { TemplateRegistry } from '../src/core/registry.js';
+import { Renderer } from '../src/core/renderer.js';
+import { createTemplateRegistry } from '../src/templates/index.js';
 import { registerTestTemplates } from './fixtures/templates.js';
 
+const registry = createTemplateRegistry();
 const config = loadConfig({
   LOG_LEVEL: 'silent',
   RENDER_CONCURRENCY: '1',
@@ -29,19 +36,15 @@ const post = (data: unknown) =>
     body: JSON.stringify(data),
   });
 beforeAll(async () => {
-  registerTestTemplates();
+  registerTestTemplates(registry);
   await build({
+    ...buildOptions,
     entryPoints: ['tests/fixtures/worker.ts'],
     outfile: '.dev/test-worker.js',
-    bundle: true,
-    packages: 'external',
-    platform: 'node',
-    format: 'esm',
-    target: 'node22',
   });
   pool = new RenderPool(config, pathToFileURL(resolve('.dev/test-worker.js')));
   await pool.start();
-  server = createServer(toNodeHandler(createApp(config, pool)));
+  server = createServer(toNodeHandler(createApp(config, pool, registry)));
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const address = server.address();
@@ -54,6 +57,49 @@ afterAll(async () => {
 });
 
 describe('HTTP end-to-end', () => {
+  it('does not feed transformed HTTP data back through the renderer schema', async () => {
+    const seen: string[] = [];
+    const templates = new TemplateRegistry().register({
+      id: 'transform',
+      name: 'Transform fixture',
+      description: 'Non-idempotent data normalization',
+      schema: z.object({ text: z.string().overwrite(text => text + '!') }),
+      sizing: { mode: 'auto-height', width: 300 },
+      mock: { text: 'Hello' },
+      render: data => {
+        seen.push(data.text);
+        return createElement('div', { style: { display: 'flex' } }, data.text);
+      },
+    });
+    const renderer = new Renderer(config, await loadFonts(config.fontConfig), templates);
+    const app = createApp(
+      config,
+      {
+        healthy: true,
+        stats: { workers: 1, active: 0, queued: 0 },
+        render: request => renderer.render(request),
+      },
+      templates,
+    );
+    const response = await app.fetch(
+      new Request('http://localhost/v1/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: 'transform', data: { text: 'Hello' }, format: 'svg' }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('<svg');
+    expect(seen).toEqual(['Hello!']);
+  });
+
+  it('uses the supplied empty catalog without leaking production templates', async () => {
+    const app = createApp(config, pool, new TemplateRegistry());
+    const response = await app.fetch(new Request('http://localhost/v1/templates'));
+    expect(await response.json()).toEqual({ templates: [] });
+    const missing = await app.fetch(new Request('http://localhost/v1/templates/example'));
+    expect(missing.status).toBe(404);
+  });
   it('serves the homepage even when the Playground is disabled', async () => {
     const response = await fetch(origin + '/');
     expect(response.status).toBe(200);
@@ -91,7 +137,7 @@ describe('HTTP end-to-end', () => {
     const html = '<!doctype html><html><body>Playground</body></html>';
     try {
       await writeFile(resolve(directory, 'index.html'), html);
-      const app = createApp({ ...config, playground: true }, pool, directory);
+      const app = createApp({ ...config, playground: true }, pool, registry, directory);
       const redirect = await app.fetch(new Request('http://localhost/dev'));
       expect(redirect.status).toBe(302);
       expect(redirect.headers.get('Location')).toBe('/dev/');

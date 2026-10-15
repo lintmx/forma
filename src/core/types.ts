@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
-import type { CardOptions } from './card.js';
 import type { ImageStore } from './images.js';
 
 export type SizeStrategy =
@@ -30,11 +29,6 @@ export interface Template<T extends Record<string, unknown> = Record<string, unk
   render: (data: T, context: TemplateContext) => ReactNode;
 }
 
-export interface RenderRequest extends CardOptions {
-  template: string;
-  data: unknown;
-  format: 'png' | 'svg';
-}
 export interface RenderResult {
   body: Uint8Array;
   width: number;

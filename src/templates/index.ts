@@ -4,9 +4,7 @@ import { comparison } from './comparison/index.js';
 import { example } from './example/index.js';
 import { socialPost } from './social_post/index.js';
 
-// Import and register production templates here as they are developed.
-export const registry = new TemplateRegistry()
-  .register(example)
-  .register(socialPost)
-  .register(comparison)
-  .register(article);
+// Each server, worker or test owns its catalog; registration has no global side effects.
+export function createTemplateRegistry() {
+  return new TemplateRegistry().register(example).register(socialPost).register(comparison).register(article);
+}

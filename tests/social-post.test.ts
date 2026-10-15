@@ -13,11 +13,12 @@ import { ImageStore, imageDataUri } from '../src/core/images.js';
 import { rasterize } from '../src/core/rasterize.js';
 import { Renderer } from '../src/core/renderer.js';
 import { textStyle, typography } from '../src/core/typography.js';
-import { registry } from '../src/templates/index.js';
+import { createTemplateRegistry } from '../src/templates/index.js';
 import { socialPost } from '../src/templates/social_post/index.js';
 import { socialPostSchema } from '../src/templates/social_post/schema.js';
 import { expectPngQuality } from './fixtures/png-quality.js';
 
+const registry = createTemplateRegistry();
 const config = loadConfig({ LOG_LEVEL: 'silent' });
 let renderer: Renderer;
 let fonts: LoadedFonts;
@@ -42,7 +43,7 @@ const nearColor = (pixels: Uint8Array, offset: number, color: readonly number[])
 
 beforeAll(async () => {
   fonts = await loadFonts(config.fontConfig);
-  renderer = new Renderer(config, fonts);
+  renderer = new Renderer(config, fonts, registry);
   registry.register({
     ...socialPost,
     id: 'test-social-plain',

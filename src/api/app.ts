@@ -1,23 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import { getRouterParam, H3, type H3Event } from 'h3';
-import { z } from 'zod';
 import type { Config } from '../config.js';
 import { log } from '../config.js';
-import { cardOptionsSchema } from '../core/card.js';
 import { FormaError, publicError } from '../core/errors.js';
 import type { RenderPool } from '../core/pool.js';
-import { registry } from '../templates/index.js';
+import type { TemplateRegistry } from '../core/registry.js';
+import { renderRequestSchema } from '../core/request.js';
 import { pageResponse } from './pages.js';
-
-const requestSchema = z
-  .object({
-    template: z.string().min(1).max(64),
-    data: z.unknown().refine(value => value !== undefined, 'data is required'),
-    format: z.enum(['png', 'svg']).default('png'),
-    ...cardOptionsSchema.shape,
-  })
-  .strict();
 
 export async function readJson(request: Request, maxBytes: number, signal: AbortSignal) {
   if (request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json')
@@ -56,7 +46,12 @@ export async function readJson(request: Request, maxBytes: number, signal: Abort
   }
 }
 
-export function createApp(config: Config, pool: RenderPool, playgroundDirectory = resolve('dist/playground')) {
+export function createApp(
+  config: Config,
+  pool: Pick<RenderPool, 'healthy' | 'stats' | 'render'>,
+  registry: TemplateRegistry,
+  playgroundDirectory = resolve('dist/playground'),
+) {
   function errorResponse(error: unknown, event?: H3Event) {
     const e = publicError(error);
     if (
@@ -107,9 +102,12 @@ export function createApp(config: Config, pool: RenderPool, playgroundDirectory 
     handle(async event => {
       const start = Date.now();
       const signal = AbortSignal.any([event.req.signal, AbortSignal.timeout(config.timeoutMs)]);
-      const parsed = requestSchema.safeParse(await readJson(event.req, config.bodyLimit, signal));
+      const parsed = renderRequestSchema.safeParse(await readJson(event.req, config.bodyLimit, signal));
       if (!parsed.success) throw new FormaError('VALIDATION_ERROR', 'Invalid render request', 400, parsed.error.issues);
-      const request = { ...parsed.data, data: registry.validate(parsed.data.template, parsed.data.data) };
+      const request = parsed.data;
+      // Reject invalid data before queueing, but send original input to the worker.
+      // Feeding parsed output back through a schema can apply transformations twice.
+      registry.validate(request.template, request.data);
       // The worker's deadline includes queue time and is shortened by body reading.
       // Use the original request signal here so deadline errors consistently use 504.
       const result = await pool.render(request, event.req.signal, config.timeoutMs - (Date.now() - start));

@@ -1,6 +1,6 @@
 import { type Change, diffLines as calculateLineDiff } from 'diff';
 
-export type MetricTrend = 'up' | 'down' | 'neutral';
+type MetricTrend = 'up' | 'down' | 'neutral';
 
 interface ParsedMetric {
   number: number;
@@ -9,7 +9,7 @@ interface ParsedMetric {
   decimals: number;
 }
 
-export interface MetricDelta {
+interface MetricDelta {
   label: string | null;
   trend: MetricTrend;
 }
@@ -64,7 +64,7 @@ export function calculateMetricDelta(before: unknown, after: unknown): MetricDel
   return { label, trend };
 }
 
-export type DiffLineKind = 'del' | 'add' | 'same';
+type DiffLineKind = 'del' | 'add' | 'same';
 
 export interface DiffLine {
   kind: DiffLineKind;

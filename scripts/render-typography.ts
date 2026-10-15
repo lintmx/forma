@@ -4,7 +4,8 @@ import sharp from 'sharp';
 import { loadConfig } from '../src/config.js';
 import { loadFonts } from '../src/core/fonts.js';
 import { Renderer } from '../src/core/renderer.js';
-import type { RenderRequest } from '../src/core/types.js';
+import type { RenderRequest } from '../src/core/request.js';
+import { createTemplateRegistry } from '../src/templates/index.js';
 
 // Local-only content, rendered by the same pipeline as the HTTP worker.
 const markdown = [
@@ -151,8 +152,9 @@ const samples: { name: string; request: RenderRequest }[] = [
 ];
 const directory = resolve('artifacts/typography');
 await mkdir(directory, { recursive: true });
+const registry = createTemplateRegistry();
 const config = loadConfig({ LOG_LEVEL: 'silent' });
-const renderer = new Renderer(config, await loadFonts(config.fontConfig));
+const renderer = new Renderer(config, await loadFonts(config.fontConfig), registry);
 const results = [];
 for (const { name, request } of samples) {
   const result = await renderer.render(request);

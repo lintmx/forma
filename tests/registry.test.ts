@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { TemplateRegistry } from '../src/core/registry.js';
 import type { Template } from '../src/core/types.js';
+import { createTemplateRegistry } from '../src/templates/index.js';
 
 const template: Template<{ title: string }> = {
   id: 'content-only',
@@ -15,6 +16,13 @@ const template: Template<{ title: string }> = {
 };
 
 describe('content-only template registry', () => {
+  it('isolates registrations between production catalogs and supports an empty catalog', () => {
+    const first = createTemplateRegistry().register(template);
+    const second = createTemplateRegistry();
+    expect(first.get(template.id).id).toBe(template.id);
+    expect(() => second.get(template.id)).toThrow(expect.objectContaining({ code: 'TEMPLATE_NOT_FOUND' }));
+    expect(new TemplateRegistry().list()).toEqual([]);
+  });
   it('allows underscore template IDs and still rejects invalid or duplicate IDs', () => {
     const registry = new TemplateRegistry().register({ ...template, id: 'social_post' });
     expect(registry.get('social_post').id).toBe('social_post');

@@ -2,7 +2,8 @@ import { Worker } from 'node:worker_threads';
 import type { Config } from '../config.js';
 import { log } from '../config.js';
 import { FormaError } from './errors.js';
-import type { RenderRequest, RenderResult } from './types.js';
+import type { RenderRequest } from './request.js';
+import type { RenderResult } from './types.js';
 
 interface Job {
   request: RenderRequest;

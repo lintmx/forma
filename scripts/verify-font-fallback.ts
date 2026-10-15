@@ -7,7 +7,8 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { MessageChannel, Worker } from 'node:worker_threads';
 import { loadConfig } from '../src/config.js';
-import type { RenderRequest, RenderResult } from '../src/core/types.js';
+import type { RenderRequest } from '../src/core/request.js';
+import type { RenderResult } from '../src/core/types.js';
 
 const directory = resolve(process.argv[2] ?? 'artifacts/ancient-fallback');
 const samples = [

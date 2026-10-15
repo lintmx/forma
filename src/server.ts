@@ -3,11 +3,12 @@ import { toNodeHandler } from 'h3/node';
 import { createApp } from './api/app.js';
 import { loadConfig, log } from './config.js';
 import { RenderPool } from './core/pool.js';
+import { createTemplateRegistry } from './templates/index.js';
 
 const config = loadConfig();
 const pool = new RenderPool(config);
 await pool.start();
-const handler = toNodeHandler(createApp(config, pool));
+const handler = toNodeHandler(createApp(config, pool, createTemplateRegistry()));
 const vite =
   process.env.FORMA_DEV === 'true'
     ? await (await import('vite')).createServer({ server: { middlewareMode: true }, appType: 'spa' })

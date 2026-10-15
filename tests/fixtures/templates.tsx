@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { textStyle } from '../../src/core/card.js';
+import type { TemplateRegistry } from '../../src/core/registry.js';
 import type { Template } from '../../src/core/types.js';
-import { registry } from '../../src/templates/index.js';
+import { textStyle } from '../../src/core/typography.js';
 
 // Minimal renderer fixtures; these are never registered by the production entry point.
 const schema = z
@@ -66,6 +66,6 @@ export const autoHeightFixture: Template<Content> = {
   measure: undefined,
 };
 
-export function registerTestTemplates() {
+export function registerTestTemplates(registry: TemplateRegistry) {
   registry.register(contentFixture).register(autoHeightFixture);
 }

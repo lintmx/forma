@@ -10,11 +10,12 @@ import { rasterize } from '../src/core/rasterize.js';
 import { Renderer } from '../src/core/renderer.js';
 import { assertDimensions, layoutOptions, svgDimensions } from '../src/core/sizing.js';
 import type { TemplateContext } from '../src/core/types.js';
-import { registry } from '../src/templates/index.js';
+import { createTemplateRegistry } from '../src/templates/index.js';
 import { expectPngQuality } from './fixtures/png-quality.js';
 import { rasterPng } from './fixtures/raster-png.js';
 import { registerTestTemplates } from './fixtures/templates.js';
 
+const registry = createTemplateRegistry();
 const config = loadConfig({ LOG_LEVEL: 'silent' });
 const typographySchema = z.object({
   text: z.string(),
@@ -43,7 +44,7 @@ const typography = (data: z.infer<typeof typographySchema>, context: TemplateCon
 let renderer: Renderer;
 let fonts: LoadedFonts;
 beforeAll(async () => {
-  registerTestTemplates();
+  registerTestTemplates(registry);
   registry.register({
     id: 'test-typography',
     name: 'Typography fixture',
@@ -55,7 +56,7 @@ beforeAll(async () => {
     render: typography,
   });
   fonts = await loadFonts(config.fontConfig);
-  renderer = new Renderer(config, fonts);
+  renderer = new Renderer(config, fonts, registry);
 });
 const render = (data: unknown, format: 'png' | 'svg' = 'svg') =>
   renderer.render({ template: 'test-content', data, format });
@@ -203,11 +204,15 @@ describe('real Satori + Skia rendering', () => {
     const family = 'Noto Sans Egyptian Hieroglyphs';
     expect(fonts.fontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient')).toBe(true);
     expect(fonts.monospaceFontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient')).toBe(true);
-    const previous = new Renderer(config, {
-      fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Ancient'),
-      fontFamily: fonts.fontFamily.replace(', Go Noto Ancient', ''),
-      monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Ancient', ''),
-    });
+    const previous = new Renderer(
+      config,
+      {
+        fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Ancient'),
+        fontFamily: fonts.fontFamily.replace(', Go Noto Ancient', ''),
+        monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Ancient', ''),
+      },
+      registry,
+    );
     const request = {
       template: 'example',
       data: { text: '中文 日本語 한국어 Hello ⏻ 🎉', monospace },
@@ -231,11 +236,15 @@ describe('real Satori + Skia rendering', () => {
   });
 
   it.each([false, true])('uses Ancient for uncovered historical scripts in monospace=%s', async monospace => {
-    const previous = new Renderer(config, {
-      fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Ancient'),
-      fontFamily: fonts.fontFamily.replace(', Go Noto Ancient', ''),
-      monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Ancient', ''),
-    });
+    const previous = new Renderer(
+      config,
+      {
+        fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Ancient'),
+        fontFamily: fonts.fontFamily.replace(', Go Noto Ancient', ''),
+        monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Ancient', ''),
+      },
+      registry,
+    );
     const data = { text: '中文 Hello 𖤐 𒀀 𐎀 𐌰', monospace, weight: 700 };
     const request = { template: 'test-typography', data, format: 'svg' as const };
     const before = await previous.render(request);
@@ -330,7 +339,7 @@ describe('real Satori + Skia rendering', () => {
       });
       expect(wrapped.width).toBe(plain.width);
       expect(wrapped.height).toBeGreaterThan(marked.height);
-      const limited = new Renderer({ ...config, maxHeight: plain.height }, fonts);
+      const limited = new Renderer({ ...config, maxHeight: plain.height }, fonts, registry);
       await expect(
         limited.render({
           template,
@@ -362,12 +371,12 @@ describe('real Satori + Skia rendering', () => {
   it('checks final output limits before rasterization', async () => {
     const request = { template: 'test-auto-height', data: { title: 'Output limit' }, format: 'png' as const };
     const original = await renderer.render(request);
-    const limited = new Renderer({ ...config, maxPixels: original.width * original.height - 1 }, fonts);
+    const limited = new Renderer({ ...config, maxPixels: original.width * original.height - 1 }, fonts, registry);
     await expect(limited.render(request)).rejects.toMatchObject({
       code: 'SIZE_LIMIT',
       details: { width: original.width, height: original.height },
     });
-    const widthLimited = new Renderer({ ...config, maxWidth: 1000 }, fonts);
+    const widthLimited = new Renderer({ ...config, maxWidth: 1000 }, fonts, registry);
     await expect(widthLimited.render(request)).rejects.toMatchObject({ code: 'SIZE_LIMIT', details: { width: 1240 } });
   });
   it('checks intermediate pixel limits before allocation, independently of output limits', async () => {
@@ -378,12 +387,12 @@ describe('real Satori + Skia rendering', () => {
     };
     const svg = await renderer.render({ ...request, format: 'svg' });
     const pixels = svg.width * svg.height * 16;
-    const limited = new Renderer({ ...config, maxRasterPixels: pixels - 1 }, fonts);
+    const limited = new Renderer({ ...config, maxRasterPixels: pixels - 1 }, fonts, registry);
     await expect(limited.render(request)).rejects.toMatchObject({
       code: 'SIZE_LIMIT',
       details: { width: svg.width * 4, height: svg.height * 4, maxPixels: pixels - 1 },
     });
-    const exact = new Renderer({ ...config, maxRasterPixels: pixels }, fonts);
+    const exact = new Renderer({ ...config, maxRasterPixels: pixels }, fonts, registry);
     await expect(exact.render(request)).resolves.toMatchObject({
       width: svg.width * 2,
       height: svg.height * 2,
@@ -391,7 +400,7 @@ describe('real Satori + Skia rendering', () => {
     await expect(limited.render({ ...request, format: 'svg' })).resolves.toMatchObject({ scale: 1 });
   });
   it('rejects excessive dimensions before PNG rasterization', async () => {
-    const limited = new Renderer({ ...config, maxHeight: 250 }, fonts);
+    const limited = new Renderer({ ...config, maxHeight: 250 }, fonts, registry);
     await expect(
       limited.render({
         template: 'test-content',
@@ -408,7 +417,7 @@ describe('real Satori + Skia rendering', () => {
     ).toThrow();
   });
   it('caps content width to the service limit and lays out the text at that width', async () => {
-    const limited = new Renderer({ ...config, maxWidth: 500 }, fonts);
+    const limited = new Renderer({ ...config, maxWidth: 500 }, fonts, registry);
     const result = await limited.render({
       template: 'test-content',
       data: { title: '长标题'.repeat(20) },

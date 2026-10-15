@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { cardOptionsSchema } from './card.js';
 import { FormaError } from './errors.js';
+import { cardOptionsSchema } from './request.js';
 import type { Template } from './types.js';
 
 export class TemplateRegistry {

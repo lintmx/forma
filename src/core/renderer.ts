@@ -1,21 +1,23 @@
 import satori, { type SatoriOptions } from 'satori';
 import type { Config } from '../config.js';
-import { registry } from '../templates/index.js';
-import { CardFrame, cardOptionsSchema } from './card.js';
+import { CardFrame } from './card.js';
 import { additionalAsset, prepareEmoji } from './emoji.js';
 import { FormaError } from './errors.js';
 import type { LoadedFonts } from './fonts.js';
 import { ImageStore } from './images.js';
 import { encodePng } from './png.js';
 import { rasterize } from './rasterize.js';
+import type { TemplateRegistry } from './registry.js';
+import { cardOptionsSchema, type RenderRequest } from './request.js';
 import { assertDimensions, layoutOptions, svgDimensions } from './sizing.js';
-import type { RenderRequest, RenderResult, TemplateContext } from './types.js';
+import type { RenderResult, TemplateContext } from './types.js';
 
 export class Renderer {
   private images: ImageStore;
   constructor(
     private config: Config,
     private fonts: LoadedFonts,
+    private registry: TemplateRegistry,
   ) {
     this.images = new ImageStore(config);
   }
@@ -25,8 +27,8 @@ export class Renderer {
     const { watermark } = options.data;
     // SVG stays vector-based at its logical size; only PNG is supersampled.
     const scale = request.format === 'png' ? 2 : 1;
-    const template = registry.get(request.template);
-    const data = registry.validate(request.template, request.data);
+    const template = this.registry.get(request.template);
+    const data = this.registry.validate(request.template, request.data);
     const warnings: string[] = [];
     const missingEmoji = () => {
       if (!warnings.includes('EMOJI_UNAVAILABLE')) warnings.push('EMOJI_UNAVAILABLE');

@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { ImageStore } from '../../core/images.js';
 import type { TemplateContext } from '../../core/types.js';
 import { colors, markdownHeading, proseSpacing, textStyle, typography } from '../../core/typography.js';
-import { highlightTextRuns, type TextRun, textHighlightColor } from '../shared/highlight.js';
+import { highlightTextRuns, type TextRun } from '../shared/highlight.js';
 import type { ArticleData } from './schema.js';
 
 export const column: CSSProperties = {
@@ -70,7 +70,7 @@ function inlineParts(
           context,
           {
             ...style,
-            color: textHighlightColor,
+            color: colors.link,
             textDecoration: [style.textDecoration, 'underline'].filter(Boolean).join(' '),
           },
           false,

@@ -2,23 +2,21 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { buildOptions } from '../scripts/build-options.js';
 import { createApp } from '../src/api/app.js';
 import { loadConfig } from '../src/config.js';
 import { RenderPool } from '../src/core/pool.js';
-import { registry } from '../src/templates/index.js';
+import { createTemplateRegistry } from '../src/templates/index.js';
 
+const registry = createTemplateRegistry();
 const config = loadConfig({ LOG_LEVEL: 'silent', RENDER_CONCURRENCY: '1', NODE_ENV: 'production' });
 let pool: RenderPool;
 
 beforeAll(async () => {
   await build({
-    entryPoints: ['src/core/worker.ts'],
+    ...buildOptions,
+    entryPoints: ['src/worker.ts'],
     outfile: '.dev/templates-test-worker.js',
-    bundle: true,
-    packages: 'external',
-    platform: 'node',
-    format: 'esm',
-    target: 'node22',
   });
   pool = new RenderPool(config, pathToFileURL(resolve('.dev/templates-test-worker.js')));
   await pool.start();
@@ -29,7 +27,7 @@ afterAll(async () => {
 
 describe('production template catalog', () => {
   it('returns missing text and emoji placeholders with warnings through the real worker', async () => {
-    const app = createApp(config, pool);
+    const app = createApp(config, pool, registry);
     for (const format of ['svg', 'png']) {
       const response = await app.fetch(
         new Request('http://localhost/v1/render', {
@@ -54,7 +52,7 @@ describe('production template catalog', () => {
 
   it('starts real workers and serves example as the default template', async () => {
     expect(registry.list().map(template => template.id)).toEqual(['example', 'social_post', 'comparison', 'article']);
-    const app = createApp(config, pool);
+    const app = createApp(config, pool, registry);
     const health = await app.fetch(new Request('http://localhost/healthz'));
     expect(health.status).toBe(200);
     expect(await health.json()).toMatchObject({ status: 'ok', workers: 1 });
@@ -76,7 +74,7 @@ describe('production template catalog', () => {
   });
 
   it('exposes the social_post schema and renders it through a real worker', async () => {
-    const app = createApp(config, pool);
+    const app = createApp(config, pool, registry);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/social_post'));
     expect(metadata.status).toBe(200);
     const info = await metadata.json();
@@ -106,7 +104,7 @@ describe('production template catalog', () => {
   });
 
   it('serves comparison metadata and renders through the production worker', async () => {
-    const app = createApp(config, pool);
+    const app = createApp(config, pool, registry);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/comparison'));
     expect(metadata.status).toBe(200);
     const info = await metadata.json();
@@ -129,7 +127,7 @@ describe('production template catalog', () => {
   });
 
   it('exposes article with only content required and renders both formats through the production worker', async () => {
-    const app = createApp(config, pool);
+    const app = createApp(config, pool, registry);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/article'));
     expect(metadata.status).toBe(200);
     const info = await metadata.json();
@@ -165,7 +163,7 @@ describe('production template catalog', () => {
   });
 
   it('renders body and Maple monospace text through the production worker', async () => {
-    const app = createApp(config, pool);
+    const app = createApp(config, pool, registry);
     const images = [];
     for (const monospace of [false, true]) {
       const response = await app.fetch(
@@ -188,7 +186,7 @@ describe('production template catalog', () => {
   it.each(['notice', 'profile', 'test-content', 'test-auto-height'])(
     'does not expose or render the unregistered template %s',
     async template => {
-      const app = createApp(config, pool);
+      const app = createApp(config, pool, registry);
       const metadata = await app.fetch(new Request('http://localhost/v1/templates/' + template));
       expect(metadata.status).toBe(404);
       expect((await metadata.json()).error.code).toBe('TEMPLATE_NOT_FOUND');

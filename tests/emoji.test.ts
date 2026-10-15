@@ -6,16 +6,18 @@ import { loadConfig } from '../src/config.js';
 import { additionalAsset, prepareEmoji } from '../src/core/emoji.js';
 import { loadFonts } from '../src/core/fonts.js';
 import { Renderer } from '../src/core/renderer.js';
+import { createTemplateRegistry } from '../src/templates/index.js';
 
 function images(node: ReactNode): string[] {
   if (Array.isArray(node)) return node.flatMap(images);
   if (!isValidElement<{ children?: ReactNode; src?: string }>(node)) return [];
   return node.type === 'img' ? [node.props.src!] : images(node.props.children);
 }
+const registry = createTemplateRegistry();
 const config = loadConfig({ LOG_LEVEL: 'silent' });
 let renderer: Renderer;
 beforeAll(async () => {
-  renderer = new Renderer(config, await loadFonts(config.fontConfig));
+  renderer = new Renderer(config, await loadFonts(config.fontConfig), registry);
 });
 const render = (text: string, format: 'png' | 'svg' = 'svg') =>
   renderer.render({ template: 'example', data: { text }, format });

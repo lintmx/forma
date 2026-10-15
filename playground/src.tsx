@@ -1,15 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { render, renderWarningMessage, type TemplateMetadata } from './api.js';
 import './style.css';
 
-interface TemplateMetadata {
-  id: string;
-  name: string;
-  description: string;
-  mock: unknown;
-  sizing: { mode: string };
-  schema: unknown;
-}
 interface Preview {
   url: string;
   width: number;
@@ -29,31 +22,6 @@ function formatBytes(bytes: number) {
 }
 function message(error: unknown) {
   return error instanceof Error ? error.message : String(error);
-}
-async function render(template: string, data: unknown, format: 'png' | 'svg', watermark: string) {
-  const response = await fetch('/v1/render', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      template,
-      data,
-      format,
-      watermark,
-    }),
-  });
-  if (!response.ok) {
-    const body = await response.json();
-    const details = Array.isArray(body.error?.details)
-      ? body.error.details
-          .map(
-            (issue: { path: (string | number)[]; message: string }) =>
-              (issue.path.join('.') || 'data') + ': ' + issue.message,
-          )
-          .join('\n')
-      : '';
-    throw new Error((body.error?.message ?? '渲染失败') + (details ? '\n' + details : ''));
-  }
-  return response;
 }
 function App() {
   const [templates, setTemplates] = useState<TemplateMetadata[]>([]);
@@ -102,7 +70,7 @@ function App() {
       try {
         const data = JSON.parse(json);
         const start = performance.now();
-        const response = await render(selected, data, 'png', watermark);
+        const response = await render({ template: selected, data, format: 'png', watermark });
         const blob = await response.blob();
         if (!active) return;
         const url = URL.createObjectURL(blob);
@@ -147,7 +115,7 @@ function App() {
     if (!template) return;
     setDownloading(true);
     try {
-      const response = await render(selected, JSON.parse(json), format, watermark);
+      const response = await render({ template: selected, data: JSON.parse(json), format, watermark });
       const url = URL.createObjectURL(await response.blob());
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -306,7 +274,7 @@ function App() {
               </span>
               <span>{template?.sizing.mode}</span>
             </div>
-            {preview?.warnings && <div className="warning">图片资源加载失败，已使用模板的降级内容。</div>}
+            {preview?.warnings && <div className="warning">{renderWarningMessage(preview.warnings)}</div>}
             <div className="downloads">
               <button
                 type="button"

@@ -8,11 +8,13 @@ import { Renderer } from '../src/core/renderer.js';
 import { calculateMetricDelta, diffLines } from '../src/templates/comparison/comparison.js';
 import { comparison } from '../src/templates/comparison/index.js';
 import { comparisonSchema } from '../src/templates/comparison/schema.js';
+import { createTemplateRegistry } from '../src/templates/index.js';
 
 let renderer: Renderer;
 beforeAll(async () => {
+  const registry = createTemplateRegistry();
   const config = loadConfig({ LOG_LEVEL: 'silent' });
-  renderer = new Renderer(config, await loadFonts(config.fontConfig));
+  renderer = new Renderer(config, await loadFonts(config.fontConfig), registry);
 });
 afterEach(() => vi.restoreAllMocks());
 it('calculates formatted metric deltas and pairs changed lines', () => {

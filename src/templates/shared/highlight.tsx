@@ -2,8 +2,6 @@ import type { CSSProperties, ReactNode } from 'react';
 import twitterText from 'twitter-text';
 import { colors } from '../../core/typography.js';
 
-export const textHighlightColor = colors.link;
-
 export interface TextRun {
   text: string;
   style?: CSSProperties;
@@ -44,7 +42,7 @@ export function highlightTextRuns(runs: TextRun[], { urls = false }: { urls?: bo
     const append = (end: number, highlighted = false) => {
       if (end <= cursor) return;
       nodes.push(
-        <span key={cursor} style={highlighted ? { ...run.style, color: textHighlightColor } : run.style}>
+        <span key={cursor} style={highlighted ? { ...run.style, color: colors.link } : run.style}>
           {text.slice(cursor, end)}
         </span>,
       );

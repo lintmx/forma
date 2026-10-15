@@ -6,7 +6,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { loadConfig } from '../src/config.js';
 import { RenderPool } from '../src/core/pool.js';
-import type { RenderRequest } from '../src/core/types.js';
+import type { RenderRequest } from '../src/core/request.js';
 
 const out = process.argv[2] ?? 'artifacts/skia-migration/workers.json';
 const worker = pathToFileURL(resolve(process.argv[3] ?? 'dist/worker.js'));

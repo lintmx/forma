@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { Template, TemplateContext } from '../../core/types.js';
 import { colors, textStyle, typography } from '../../core/typography.js';
-import { highlightTextRuns, textHighlightColor } from '../shared/highlight.js';
+import { highlightTextRuns } from '../shared/highlight.js';
 import { SourceFooter } from '../shared/source-footer.js';
 import { loadAssets, MediaList } from './media.js';
 import { socialPostMock } from './mock.js';
@@ -131,7 +131,7 @@ function Header({
             {author?.verified && (
               <svg width={20} height={20} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                 <path
-                  fill={textHighlightColor}
+                  fill={colors.link}
                   d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.27 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.46 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z"
                 />
               </svg>
@@ -201,14 +201,14 @@ function PostBody({
             {translation.model && (
               <>
                 <span>使用 </span>
-                <span style={{ color: textHighlightColor }}>{translation.model}</span>
+                <span style={{ color: colors.link }}>{translation.model}</span>
                 <span> </span>
               </>
             )}
             {translation.sourceLanguage ? (
               <>
                 <span>翻译自 </span>
-                <span style={{ color: textHighlightColor }}>{translation.sourceLanguage}</span>
+                <span style={{ color: colors.link }}>{translation.sourceLanguage}</span>
               </>
             ) : (
               '翻译'
@@ -262,7 +262,7 @@ function SocialPost({ data, assets }: { data: SocialPostData; assets: TemplateCo
       {replies.length > 0 && (
         <div style={{ ...column, marginBottom: 12 }}>
           {(data.replyChain?.length ?? 0) > 9 && (
-            <div style={{ display: 'flex', color: textHighlightColor, ...typography.meta, marginBottom: 12 }}>
+            <div style={{ display: 'flex', color: colors.link, ...typography.meta, marginBottom: 12 }}>
               显示更多回复
             </div>
           )}

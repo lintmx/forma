@@ -11,12 +11,14 @@ import { Renderer } from '../src/core/renderer.js';
 import { ArticleBody, loadArticleImages } from '../src/templates/article/body.js';
 import { article } from '../src/templates/article/index.js';
 import { articleSchema } from '../src/templates/article/schema.js';
+import { createTemplateRegistry } from '../src/templates/index.js';
 
 let renderer: Renderer;
 const context = { assets: {}, fontFamily: 'sans-serif', monospaceFontFamily: 'monospace' };
 beforeAll(async () => {
+  const registry = createTemplateRegistry();
   const config = loadConfig({ LOG_LEVEL: 'silent' });
-  renderer = new Renderer(config, await loadFonts(config.fontConfig));
+  renderer = new Renderer(config, await loadFonts(config.fontConfig), registry);
 });
 afterEach(() => vi.restoreAllMocks());
 

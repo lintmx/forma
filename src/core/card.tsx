@@ -1,13 +1,6 @@
 import type { ReactNode } from 'react';
-import { z } from 'zod';
+import type { CardOptions } from './request.js';
 import { colors, textStyle, typography } from './typography.js';
-
-export { colors, textStyle } from './typography.js';
-
-export const cardOptionsSchema = z.object({
-  watermark: z.string().trim().max(160).optional().describe('卡片外底部水印，最多 160 字符；省略或留空时隐藏'),
-});
-export type CardOptions = z.infer<typeof cardOptionsSchema>;
 
 // Used for both intrinsic-width measurement and final rendering so templates
 // never need to duplicate the frame's padding, border or typography defaults.

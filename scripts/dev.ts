@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { context } from 'esbuild';
+import { buildOptions } from './build-options.js';
 
 let child: ChildProcess | undefined;
 let stopping = false;
@@ -15,14 +16,8 @@ async function stopChild() {
   }
 }
 const build = await context({
-  entryPoints: { server: 'src/server.ts', worker: 'src/core/worker.ts' },
+  ...buildOptions,
   outdir: '.dev',
-  bundle: true,
-  packages: 'external',
-  platform: 'node',
-  format: 'esm',
-  target: 'node22',
-  sourcemap: true,
   plugins: [
     {
       name: 'restart-server',
