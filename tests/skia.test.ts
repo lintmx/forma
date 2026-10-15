@@ -169,7 +169,7 @@ describe('Skia CPU raster lifetime and pixels', () => {
   it('checks dimensions before any canvas allocation or SVG decode', async () => {
     const decode = vi.spyOn(Image.prototype, 'decode');
     const context = vi.spyOn(Canvas.prototype, 'getContext');
-    await expect(rasterize('not SVG', 4000, 4000, config)).rejects.toMatchObject({ code: 'SIZE_LIMIT' });
+    await expect(rasterize('not SVG', 8000, 8000, config)).rejects.toMatchObject({ code: 'SIZE_LIMIT' });
     expect(decode).not.toHaveBeenCalled();
     expect(context).not.toHaveBeenCalled();
   });

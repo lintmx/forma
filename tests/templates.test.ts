@@ -29,7 +29,7 @@ afterAll(async () => {
 
 describe('production template catalog', () => {
   it('starts real workers and serves example as the default template', async () => {
-    expect(registry.list().map(template => template.id)).toEqual(['example', 'social_post']);
+    expect(registry.list().map(template => template.id)).toEqual(['example', 'social_post', 'comparison']);
     const app = createApp(config, pool);
     const health = await app.fetch(new Request('http://localhost/healthz'));
     expect(health.status).toBe(200);
@@ -37,7 +37,7 @@ describe('production template catalog', () => {
     const list = await app.fetch(new Request('http://localhost/v1/templates'));
     expect(list.status).toBe(200);
     const { templates } = await list.json();
-    expect(templates.map((template: { id: string }) => template.id)).toEqual(['example', 'social_post']);
+    expect(templates.map((template: { id: string }) => template.id)).toEqual(['example', 'social_post', 'comparison']);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/example'));
     expect(metadata.status).toBe(200);
     const data = await metadata.json();
@@ -67,13 +67,36 @@ describe('production template catalog', () => {
       );
       expect(response.status).toBe(200);
       expect(response.headers.get('Content-Type')).toContain(format === 'png' ? 'image/png' : 'image/svg+xml');
-      expect(Number(response.headers.get('X-Image-Width'))).toBeGreaterThanOrEqual(400);
-      expect(Number(response.headers.get('X-Image-Width'))).toBeLessThanOrEqual(700);
+      expect(Number(response.headers.get('X-Image-Width'))).toBeGreaterThanOrEqual(format === 'png' ? 800 : 400);
+      expect(Number(response.headers.get('X-Image-Width'))).toBeLessThanOrEqual(format === 'png' ? 1400 : 700);
       const body = Buffer.from(await response.arrayBuffer());
       expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
         format === 'png' ? 'PNG' : '<svg',
       );
     }
+  });
+
+  it('serves comparison metadata and renders through the production worker', async () => {
+    const app = createApp(config, pool);
+    const metadata = await app.fetch(new Request('http://localhost/v1/templates/comparison'));
+    expect(metadata.status).toBe(200);
+    const info = await metadata.json();
+    expect(info.schema.properties).toHaveProperty('modules');
+    expect(info.schema.properties).not.toHaveProperty('watermark');
+    const response = await app.fetch(
+      new Request('http://localhost/v1/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: 'comparison', data: info.mock, format: 'png' }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('X-Image-Width')).toBe('1200');
+    expect(
+      Buffer.from(await response.arrayBuffer())
+        .subarray(1, 4)
+        .toString(),
+    ).toBe('PNG');
   });
 
   it('renders body and Maple monospace text through the production worker', async () => {

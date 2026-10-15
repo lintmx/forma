@@ -23,6 +23,7 @@
   "dependencies": {
     "@twemoji/svg": "15.0.0",
     "@xmldom/xmldom": "0.9.12",
+    "diff": "9.0.0",
     "h3": "2.0.2",
     "image-size": "2.0.4",
     "ipaddr.js": "2.5.0",

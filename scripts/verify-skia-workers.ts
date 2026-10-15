@@ -11,7 +11,7 @@ import type { RenderRequest } from '../src/core/types.js';
 const out = process.argv[2] ?? 'artifacts/skia-migration/workers.json';
 const worker = pathToFileURL(resolve(process.argv[3] ?? 'dist/worker.js'));
 const small: RenderRequest = { template: 'example', format: 'png', data: { text: '中文 日本語 한국어 Memory 😀' } };
-const large: RenderRequest = { ...small, scale: 4, data: { text: '中文 日本語 한국어 Scale 4 😀\n'.repeat(12) } };
+const large: RenderRequest = { ...small, data: { text: '中文 日本語 한국어 Fixed 2x 😀\n'.repeat(12) } };
 const evidence: object[] = [];
 const sample = () => ({
   time: Date.now(),
@@ -39,7 +39,7 @@ for (const concurrency of (process.argv[4] ?? '1,2,4').split(',').map(Number)) {
           const start = performance.now();
           const result = await pool.render(request);
           latencies.push(performance.now() - start);
-          assert.equal(result.scale, request.scale ?? 1);
+          assert.equal(result.scale, 2);
           assert.equal(Buffer.from(result.body).subarray(1, 4).toString(), 'PNG');
         }),
       );

@@ -30,12 +30,10 @@ export interface Template<T extends Record<string, unknown> = Record<string, unk
   render: (data: T, context: TemplateContext) => ReactNode;
 }
 
-export const MAX_RENDER_SCALE = 4;
 export interface RenderRequest extends CardOptions {
   template: string;
   data: unknown;
   format: 'png' | 'svg';
-  scale?: number;
 }
 export interface RenderResult {
   body: Uint8Array;

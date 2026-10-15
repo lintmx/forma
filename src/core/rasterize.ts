@@ -4,8 +4,14 @@ import type { Raster } from './png.js';
 import { assertDimensions } from './sizing.js';
 import { svgForSkia } from './svg-for-skia.js';
 
-export async function rasterize(svg: string, width: number, height: number, config: Config): Promise<Raster> {
-  assertDimensions(width, height, config);
+export async function rasterize(
+  svg: string,
+  width: number,
+  height: number,
+  config: Config,
+  limits: Pick<Config, 'maxWidth' | 'maxHeight' | 'maxPixels'> = config,
+): Promise<Raster> {
+  assertDimensions(width, height, limits);
   const adapted = svgForSkia(svg, config);
   const canvas = new Canvas(width, height, { gpu: false });
   let image: Image | undefined;

@@ -126,9 +126,9 @@ describe('social_post real Satori and Skia output', () => {
     const empty = await render({});
     const short = await render({ content: '短文' });
     const long = await render({ content: '中文、日本語、English '.repeat(80) });
-    expect(empty.width).toBe(400);
-    expect(short.width).toBe(400);
-    expect(long.width).toBe(700);
+    expect(empty.layoutWidth).toBe(400);
+    expect(short.layoutWidth).toBe(400);
+    expect(long.layoutWidth).toBe(700);
     expect(long.height).toBeGreaterThan(short.height + 200);
     expect(short.height).toBeGreaterThan(empty.height);
     expect((await render({ content: '✨ 👩‍💻 你好 日本語 Hello' }, 'svg')).warnings).toEqual([]);
@@ -241,12 +241,16 @@ describe('social_post real Satori and Skia output', () => {
       expect(result.warnings).toEqual([]);
       const png = await render({ media, mediaLayout });
       const decoded = PNG.sync.read(Buffer.from(png.body));
-      expect([decoded.width, decoded.height]).toEqual([result.width, result.height]);
-      const skia = await rasterize(svg, decoded.width, decoded.height, config);
+      expect([decoded.width, decoded.height]).toEqual([result.width * 2, result.height * 2]);
+      const skia = await rasterize(svg, decoded.width * 2, decoded.height * 2, {
+        ...config,
+        maxPixels: config.maxRasterPixels,
+      });
       const unquantized = PNG.sync.read(
         await sharp(skia.pixels, {
           raw: { width: skia.width, height: skia.height, channels: 4, premultiplied: true },
         })
+          .resize(decoded.width, decoded.height, { kernel: 'lanczos3' })
           .png()
           .toBuffer(),
       );
@@ -260,7 +264,7 @@ describe('social_post real Satori and Skia output', () => {
       media: Array.from({ length: count }, (_, index) => media[index % media.length]),
     });
     const png = PNG.sync.read(Buffer.from(result.body));
-    expect(result.width).toBe(400);
+    expect(result.layoutWidth).toBe(400);
     expect(result.height).toBeGreaterThan(180);
     expect([png.width, png.height]).toEqual([result.width, result.height]);
     expectPngQuality(png.data.subarray(0, 4), [245, 245, 245, 255]);
@@ -319,7 +323,7 @@ describe('social_post real Satori and Skia output', () => {
       source: '来源'.repeat(70),
       url: 'https://example.com/' + 'long-url/'.repeat(200),
     });
-    expect(long.width).toBe(700);
-    expect(long.height).toBeLessThan(400);
+    expect(long.layoutWidth).toBe(700);
+    expect(long.layoutHeight).toBeLessThan(400);
   });
 });

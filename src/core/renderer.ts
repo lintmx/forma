@@ -10,7 +10,6 @@ import { encodePng } from './png.js';
 import { rasterize } from './rasterize.js';
 import { assertDimensions, layoutOptions, svgDimensions } from './sizing.js';
 import type { RenderRequest, RenderResult, TemplateContext } from './types.js';
-import { MAX_RENDER_SCALE } from './types.js';
 
 export class Renderer {
   private images: ImageStore;
@@ -21,15 +20,11 @@ export class Renderer {
     this.images = new ImageStore(config);
   }
   async render(request: RenderRequest): Promise<RenderResult> {
-    const requestedScale = request.scale ?? 1;
-    if (!Number.isInteger(requestedScale) || requestedScale < 1 || requestedScale > MAX_RENDER_SCALE) {
-      throw new FormaError('VALIDATION_ERROR', 'scale must be an integer between 1 and ' + MAX_RENDER_SCALE, 400);
-    }
     const options = cardOptionsSchema.safeParse(request);
     if (!options.success) throw new FormaError('VALIDATION_ERROR', 'Invalid render options', 400, options.error.issues);
     const { watermark } = options.data;
     // SVG stays vector-based at its logical size; only PNG is supersampled.
-    const scale = request.format === 'png' ? requestedScale : 1;
+    const scale = request.format === 'png' ? 2 : 1;
     const template = registry.get(request.template);
     const data = registry.validate(request.template, request.data);
     const warnings: string[] = [];
@@ -74,12 +69,22 @@ export class Renderer {
     const { width: layoutWidth, height: layoutHeight } = svgDimensions(svg);
     const width = layoutWidth * scale;
     const height = layoutHeight * scale;
-    // Apply limits to the raster allocation, not just the unscaled SVG.
+    // Final output limits apply independently of the intermediate raster.
     assertDimensions(width, height, this.config);
     if (Buffer.byteLength(svg) > this.config.maxOutputBytes)
       throw new FormaError('OUTPUT_LIMIT', 'SVG exceeds output byte limit');
-    const body =
-      request.format === 'svg' ? Buffer.from(svg) : await encodePng(await rasterize(svg, width, height, this.config));
+    let body: Buffer;
+    if (request.format === 'svg') body = Buffer.from(svg);
+    else {
+      // The recommended 2x output gets 4x sampling before Lanczos downsampling.
+      const factor = 2;
+      const raster = await rasterize(svg, width * factor, height * factor, this.config, {
+        maxWidth: this.config.maxWidth * factor,
+        maxHeight: this.config.maxHeight * factor,
+        maxPixels: this.config.maxRasterPixels,
+      });
+      body = await encodePng(raster, { width, height });
+    }
     if (body.byteLength > this.config.maxOutputBytes)
       throw new FormaError('OUTPUT_LIMIT', 'Image exceeds output byte limit');
     return {

@@ -1,4 +1,5 @@
 import { PNG } from 'pngjs';
+import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { encodePng } from '../src/core/png.js';
@@ -24,5 +25,26 @@ describe('PNG encoding', () => {
     expect(actual.data[(32 * actual.width + 32) * 4 + 3]).toBeGreaterThan(0);
     expect(actual.data[(32 * actual.width + 32) * 4 + 3]).toBeLessThan(255);
     expectPngQuality(actual.data, reference.data);
+    const reduced = PNG.sync.read(await encodePng(raster, { width: 128, height: 64 }));
+    const expected = PNG.sync.read(
+      await sharp(await rasterPng(raster))
+        .resize(128, 64, { kernel: 'lanczos3' })
+        .png()
+        .toBuffer(),
+    );
+    expect([reduced.width, reduced.height]).toEqual([128, 64]);
+    // Palette quantization also rounds alpha on newly filtered edges. Check
+    // visible color against white separately from the small alpha deviation.
+    let alphaError = 0;
+    for (let i = 3; i < reduced.data.length; i += 4)
+      alphaError = Math.max(alphaError, Math.abs(reduced.data[i]! - expected.data[i]!));
+    expect(alphaError).toBeLessThanOrEqual(8);
+    const composite = (png: PNG) =>
+      sharp(png.data, { raw: { width: png.width, height: png.height, channels: 4 } })
+        .flatten({ background: '#fff' })
+        .ensureAlpha()
+        .raw()
+        .toBuffer();
+    expectPngQuality(await composite(reduced), await composite(expected));
   });
 });

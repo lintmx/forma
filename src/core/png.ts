@@ -6,8 +6,8 @@ export interface Raster {
   height: number;
 }
 
-export async function encodePng(raster: Raster): Promise<Buffer> {
-  return sharp(raster.pixels, {
+export async function encodePng(raster: Raster, output?: { width: number; height: number }): Promise<Buffer> {
+  const image = sharp(raster.pixels, {
     raw: {
       width: raster.width,
       height: raster.height,
@@ -15,13 +15,15 @@ export async function encodePng(raster: Raster): Promise<Buffer> {
       // The raster already premultiplies RGB by alpha; doing it twice darkens edges.
       premultiplied: true,
     },
-  })
+  });
+  if (output) image.resize(output.width, output.height, { kernel: 'lanczos3' });
+  return image
     .png({
       compressionLevel: 5,
       palette: true,
-      quality: 85,
-      effort: 3,
-      dither: 0.25,
+      quality: 95,
+      effort: 1,
+      dither: 0.2,
       adaptiveFiltering: false,
     })
     .toBuffer();

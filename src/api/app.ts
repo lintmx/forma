@@ -7,7 +7,6 @@ import { log } from '../config.js';
 import { cardOptionsSchema } from '../core/card.js';
 import { FormaError, publicError } from '../core/errors.js';
 import type { RenderPool } from '../core/pool.js';
-import { MAX_RENDER_SCALE } from '../core/types.js';
 import { registry } from '../templates/index.js';
 
 const requestSchema = z
@@ -15,7 +14,6 @@ const requestSchema = z
     template: z.string().min(1).max(64),
     data: z.unknown().refine(value => value !== undefined, 'data is required'),
     format: z.enum(['png', 'svg']).default('png'),
-    scale: z.number().int().min(1).max(MAX_RENDER_SCALE).default(1),
     ...cardOptionsSchema.shape,
   })
   .strict();
