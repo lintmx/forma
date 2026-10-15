@@ -77,6 +77,7 @@ describe('HTTP end-to-end', () => {
       'example',
       'social_post',
       'comparison',
+      'article',
       'test-content',
       'test-auto-height',
     ]);

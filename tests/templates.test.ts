@@ -29,7 +29,7 @@ afterAll(async () => {
 
 describe('production template catalog', () => {
   it('starts real workers and serves example as the default template', async () => {
-    expect(registry.list().map(template => template.id)).toEqual(['example', 'social_post', 'comparison']);
+    expect(registry.list().map(template => template.id)).toEqual(['example', 'social_post', 'comparison', 'article']);
     const app = createApp(config, pool);
     const health = await app.fetch(new Request('http://localhost/healthz'));
     expect(health.status).toBe(200);
@@ -37,7 +37,12 @@ describe('production template catalog', () => {
     const list = await app.fetch(new Request('http://localhost/v1/templates'));
     expect(list.status).toBe(200);
     const { templates } = await list.json();
-    expect(templates.map((template: { id: string }) => template.id)).toEqual(['example', 'social_post', 'comparison']);
+    expect(templates.map((template: { id: string }) => template.id)).toEqual([
+      'example',
+      'social_post',
+      'comparison',
+      'article',
+    ]);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/example'));
     expect(metadata.status).toBe(200);
     const data = await metadata.json();
@@ -97,6 +102,42 @@ describe('production template catalog', () => {
         .subarray(1, 4)
         .toString(),
     ).toBe('PNG');
+  });
+
+  it('exposes article with only content required and renders both formats through the production worker', async () => {
+    const app = createApp(config, pool);
+    const metadata = await app.fetch(new Request('http://localhost/v1/templates/article'));
+    expect(metadata.status).toBe(200);
+    const info = await metadata.json();
+    expect(info.schema.required).toEqual(['content']);
+    expect(info.schema.properties).toHaveProperty('authorAvatarUrl');
+    expect(info.schema.properties.translation.required ?? []).toEqual([]);
+    expect(info.mock).toEqual(registry.get('article').mock);
+    for (const format of ['png', 'svg']) {
+      const response = await app.fetch(
+        new Request('http://localhost/v1/render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ template: 'article', data: info.mock, format }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toContain(format === 'png' ? 'image/png' : 'image/svg+xml');
+      expect(response.headers.get('X-Image-Width')).toBe(format === 'png' ? '1400' : '700');
+      const body = Buffer.from(await response.arrayBuffer());
+      expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
+        format === 'png' ? 'PNG' : '<svg',
+      );
+    }
+    const invalid = await app.fetch(
+      new Request('http://localhost/v1/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: 'article', data: { title: '缺少正文' } }),
+      }),
+    );
+    expect(invalid.status).toBe(400);
+    expect((await invalid.json()).error.code).toBe('VALIDATION_ERROR');
   });
 
   it('renders body and Maple monospace text through the production worker', async () => {

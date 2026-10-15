@@ -145,6 +145,9 @@ JSON DATA 只填写模板业务内容。旧的 `data.watermark` 写法返回 400
 
 沿用 `forma_old` 的业务字段与主要排版：作者和认证标记、正文、译文、媒体、回复链、引用、转发和底部来源。
 模板内部使用蓝色链接与话题、灰色译文框和圆角媒体区；背景、外框及水印仍由当前统一外框管理。
+正文、译文、回复及引用的 hashtag 和 @提及与文章共用 Twitter 识别规则，包括 15 字符用户名限制。
+HTTP(S) 链接也经同一解析器识别，末尾标点不纳入高亮；邮箱、纯数字话题和 URL 内片段不会被误识别为提及或话题。
+文章与社交动态的文字高亮共用 `#1d9bf0`，包括 hashtag、@提及、正文链接、Markdown 链接及社交动态的翻译元信息。
 宽度按可见文本在 400–700px 之间调整，高度由实际布局计算，图片不撑大卡片宽度。
 
 ```json
@@ -187,6 +190,61 @@ JSON DATA 只填写模板业务内容。旧的 `data.watermark` 写法返回 400
 默认示例填写所有业务字段，包含作者头像、译文及四类媒体预览，使用 `postKind=reply`、`mediaLayout=grid`。
 示例也填好了 `quotedPost` 和 `reshare`：在 JSON 中将 `postKind` 改为 `quote` 或 `reshare` 即可查看对应关系；
 将 `mediaLayout` 改为 `vertical` 或 `collage` 可查看另外两种布局。
+
+### article 文章
+
+仅 `content`（正文）必填，非空白，最多 20000 字符。画布宽 700px，高度随内容自适应；
+PNG 输出宽 1400px。可选字段为空时不显示，也不预留空间。
+
+```json
+{
+  "template": "article",
+  "format": "png",
+  "data": {
+    "content": "## 正文小标题\n\n支持 **Markdown**，也支持普通文本。",
+    "title": "文章标题",
+    "author": "作者",
+    "authorAvatarUrl": "https://example.com/avatar.png",
+    "publishedAt": "2026-10-15 10:30",
+    "contentFormat": "markdown",
+    "translation": {
+      "title": "Article title",
+      "text": "Supports **Markdown** and plain text.",
+      "format": "markdown",
+      "model": "GPT",
+      "sourceLanguage": "中文"
+    },
+    "source": "来源名称",
+    "url": "https://example.com/article"
+  }
+}
+```
+
+最小请求为 `{"template":"article","data":{"content":"正文"}}`。
+
+| 字段 | 说明 |
+| --- | --- |
+| content / contentFormat | 正文；格式为 `markdown`（默认）或 `text`。纯文本模式保留所有符号、缩进和换行。 |
+| title / author / publishedAt | 可选标题（400）、作者名称（160）与时间文本（160）；均按普通文本显示。 |
+| authorAvatarUrl | 可选作者头像（2048），公开 HTTP(S) PNG/JPEG/WebP 地址；作者与时间左侧显示 36px 圆形头像，也可单独提供。省略或空字符串时隐藏；加载失败显示作者名称前两个字符（无名称则为 `?`），并返回 `IMAGE_UNAVAILABLE`。 |
+| translation | 标题译文 `title`（400）、正文译文 `text`（20000）、正文格式 `format`、翻译模型 `model`（160）、原文语言 `sourceLanguage`（80），全部可选，可仅传标题译文。译文格式独立选择，默认 `markdown`。 |
+| source / url | 底部来源（160）与链接（2048），与社交动态统一使用来源标签、圆点分隔和灰色链接；链接按普通文本单行显示，超长时省略。 |
+
+原文与正文译文共用 Markdown 排版，使用 [Marked](https://marked.js.org/using_pro) 解析为 token 后渲染为 Satori 节点。
+支持段落、换行、六级标题、粗体、斜体、删除线、行内代码、代码块、有序/无序及嵌套列表、
+任务列表、引用、分隔线、链接、GFM 表格和图片；代码块不做语法高亮，链接只展示文字。
+HTML 标签/块被忽略，不执行 HTML；数学公式和脚注扩展不在支持范围内。
+Markdown 图片独占一行、按可用宽度等比缩小，仅通过统一资源管理器加载公开 HTTP(S) PNG/JPEG/WebP；
+相对路径、其他协议或加载失败时显示替代文字占位，并返回 `IMAGE_UNAVAILABLE`。
+原文与正文译文在两种格式下均自动以推特蓝高亮 hashtag 和 @提及。
+识别使用 [Twitter 官方 twitter-text](https://github.com/twitter/twitter-text) 的 Unicode、边界与 URL 重叠规则；
+用户名额外遵循 [X 当前规则](https://help.x.com/en/managing-your-account/change-x-handle)，仅允许英文字母、数字、下划线，最长 15 字符。
+支持中文等多语言话题及全角 `＃` / `＠`；纯数字话题、邮箱地址、URL 内的片段不会被误识别为话题或提及（Markdown 邮箱仍保留原有链接样式）。
+Markdown 的粗体、斜体、列表、引用和表格保留原有格式；代码、转义字符与已有链接不再叠加话题/提及高亮。
+文字高亮颜色与社交动态统一为 `#1d9bf0`，Markdown 链接同样使用此颜色。
+高亮仅改变文字颜色，不创建可点击链接；文章标题、标题译文和来源链接继续按原有规则显示。
+纯文本模式不解析 Markdown，也不加载其中的图片语法，但会高亮 hashtag 和 @提及。所有输入仍受请求体、输出尺寸和超时上限约束。
+完整示例和字段 Schema 可在 Playground 或 `GET /v1/templates/article` 查看，水印沿用请求顶层 `watermark`。
 
 ## 尺寸与 Satori 限制
 
@@ -317,6 +375,11 @@ src/templates/
   index.ts         统一注册入口
   example/
     index.tsx      纯文本示例
+  article/
+    index.tsx      文章与译文展示
+    schema.ts      业务 Schema 与类型
+    body.tsx       Markdown / 纯文本正文与图片资源
+    mock.ts        完整字段示例
   social_post/
     index.tsx      社交动态入口与展示
     schema.ts      业务 Schema 与类型

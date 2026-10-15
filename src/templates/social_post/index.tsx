@@ -1,6 +1,8 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 import { textStyle } from '../../core/card.js';
 import type { Template, TemplateContext } from '../../core/types.js';
+import { highlightTextRuns, textHighlightColor } from '../shared/highlight.js';
+import { SourceFooter } from '../shared/source-footer.js';
 import { loadAssets, MediaList } from './media.js';
 import { socialPostMock } from './mock.js';
 import {
@@ -12,7 +14,6 @@ import {
   visibleReplies,
 } from './schema.js';
 
-const linkColor = '#1d9bf0';
 const secondary = '#6b7280';
 const column: CSSProperties = {
   display: 'flex',
@@ -21,26 +22,8 @@ const column: CSSProperties = {
   minWidth: 0,
   width: '100%',
 };
-// Keep the source template's token boundaries, including excluding numeric-only hashtags.
-const inlineTokenPattern =
-  /(https?:\/\/[^\s]+|(?<![\p{L}\p{N}])#(?=[\p{L}\p{N}]*\p{L})[\p{L}\p{N}]+|@[\p{L}\p{N}_.-]+)/gu;
-
 function InlineText({ text }: { text: string }) {
-  const parts: ReactNode[] = [];
-  let offset = 0;
-  for (const match of text.matchAll(inlineTokenPattern)) {
-    if (match.index > offset) parts.push(text.slice(offset, match.index));
-    parts.push(
-      <span key={match.index} style={{ color: linkColor }}>
-        {match[0]}
-      </span>,
-    );
-    offset = match.index + match[0].length;
-  }
-  if (offset < text.length) parts.push(text.slice(offset));
-  // Keep plain and highlighted paragraphs on the same Satori inline layout
-  // path, including when fallback fonts have different vertical metrics.
-  return <span>{parts}</span>;
+  return <span>{highlightTextRuns([{ text }], { urls: true })}</span>;
 }
 
 function TextBlock({ text, size = 15, style }: { text: string; size?: number; style?: CSSProperties }) {
@@ -150,7 +133,7 @@ function Header({
             {author?.verified && (
               <svg width={20} height={20} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                 <path
-                  fill={linkColor}
+                  fill={textHighlightColor}
                   d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.27 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.46 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z"
                 />
               </svg>
@@ -228,14 +211,14 @@ function PostBody({
             {translation.model && (
               <>
                 <span>使用 </span>
-                <span style={{ color: linkColor }}>{translation.model}</span>
+                <span style={{ color: textHighlightColor }}>{translation.model}</span>
                 <span> </span>
               </>
             )}
             {translation.sourceLanguage ? (
               <>
                 <span>翻译自 </span>
-                <span style={{ color: linkColor }}>{translation.sourceLanguage}</span>
+                <span style={{ color: textHighlightColor }}>{translation.sourceLanguage}</span>
               </>
             ) : (
               '翻译'
@@ -255,67 +238,6 @@ function PostBody({
         </div>
       )}
       <MediaList media={post.media} layout={layout} assets={assets} prefix={prefix} />
-    </div>
-  );
-}
-
-function Footer({ source, url }: Pick<SocialPostData, 'source' | 'url'>) {
-  const label = source?.trim();
-  const address = url?.trim();
-  if (!label && !address) return null;
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        minWidth: 0,
-        width: '100%',
-        borderTop: '1px solid #eef0f3',
-        marginTop: 12,
-        paddingTop: 10,
-        color: '#9ca3af',
-        fontSize: 12,
-        lineHeight: 1.5,
-      }}
-    >
-      {label && (
-        <div
-          style={{
-            display: 'flex',
-            maxWidth: address ? '50%' : '100%',
-            flexShrink: 0,
-            padding: '1px 6px',
-            border: '1px solid #e5e7eb',
-            borderRadius: 4,
-            backgroundColor: '#f6f7f8',
-            color: secondary,
-            fontSize: 11,
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {label}
-        </div>
-      )}
-      {label && address && <div style={{ display: 'flex', flexShrink: 0, margin: '0 5px' }}>·</div>}
-      {address && (
-        <div
-          style={{
-            display: 'flex',
-            minWidth: 0,
-            flexGrow: 1,
-            flexShrink: 1,
-            flexBasis: 0,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {address}
-        </div>
-      )}
     </div>
   );
 }
@@ -350,7 +272,9 @@ function SocialPost({ data, assets }: { data: SocialPostData; assets: TemplateCo
       {replies.length > 0 && (
         <div style={{ ...column, marginBottom: 12 }}>
           {(data.replyChain?.length ?? 0) > 9 && (
-            <div style={{ display: 'flex', color: linkColor, fontSize: 13, marginBottom: 12 }}>显示更多回复</div>
+            <div style={{ display: 'flex', color: textHighlightColor, fontSize: 13, marginBottom: 12 }}>
+              显示更多回复
+            </div>
           )}
           {replies.map((post, index) => (
             <div key={index} style={{ ...column, position: 'relative', padding: '12px 0 12px 60px' }}>
@@ -386,7 +310,7 @@ function SocialPost({ data, assets }: { data: SocialPostData; assets: TemplateCo
           <PostBody post={data.quotedPost} prefix="quote" assets={assets} layout={data.mediaLayout} compact />
         </div>
       )}
-      <Footer source={data.source} url={data.url} />
+      <SourceFooter source={data.source} url={data.url} />
     </div>
   );
 }

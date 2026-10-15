@@ -329,7 +329,7 @@ function App() {
         </div>
         <footer className="page-footer">
           <span>FORMA / SCHEMA-DRIVEN CARDS</span>
-          <span>中 · 日 · EN &nbsp; / &nbsp; 同一管线，一致输出</span>
+          <span>同一管线，一致输出</span>
         </footer>
       </main>
     </div>

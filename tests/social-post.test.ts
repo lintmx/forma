@@ -1,5 +1,8 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { decodeHTML } from 'entities';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import sharp from 'sharp';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
@@ -122,6 +125,40 @@ describe('social_post contract', () => {
 });
 
 describe('social_post real Satori and Skia output', () => {
+  it('shares Twitter boundaries and one highlight color across all post and translation paths', async () => {
+    const text =
+      '👋 #中文 #hello_world #2026go @user_01 ＠bob @abcdefghijklmno\n#123 word@alice person@example.com @abcdefghijklmnop @中文\nhttps://example.com/@user#fragment。';
+    const snapshot = { content: text, translation: { text } };
+    const expected = [
+      '#中文',
+      '#hello_world',
+      '#2026go',
+      '@user_01',
+      '＠bob',
+      '@abcdefghijklmno',
+      'https://example.com/@user#fragment',
+    ];
+    for (const data of [
+      snapshot,
+      { postKind: 'reply' as const, replyChain: [snapshot] },
+      { postKind: 'quote' as const, quotedPost: snapshot },
+    ]) {
+      const html = renderToStaticMarkup(
+        socialPost.render(data, { assets: {}, fontFamily: 'sans-serif', monospaceFontFamily: 'monospace' }),
+      );
+      const highlighted = [...html.matchAll(/<span style="[^"]*color:#1d9bf0[^"]*">([^<]*)<\/span>/g)].map(match =>
+        decodeHTML(match[1]!),
+      );
+      expect(highlighted).toEqual([...expected, ...expected]);
+      expect(html).not.toContain('#2563eb');
+      const svg = await render(data, 'svg');
+      expect(Buffer.from(svg.body).toString()).toContain('fill="#1d9bf0"');
+    }
+    const result = await render(snapshot);
+    expect(result.warnings).toEqual([]);
+    await mkdir('artifacts/social-post', { recursive: true });
+    await writeFile('artifacts/social-post/highlights.png', result.body);
+  });
   it('sizes short and long text from 400 to 700px, wraps multilingual text and renders empty data', async () => {
     const empty = await render({});
     const short = await render({ content: '短文' });
