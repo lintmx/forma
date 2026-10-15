@@ -1,18 +1,30 @@
 import { colors, typography } from '../../core/typography.js';
 
-export function SourceFooter({ source, url }: { source?: string; url?: string }) {
+export function SourceFooter({
+  source,
+  url,
+  marginTop = 12,
+  measure = false,
+}: {
+  source?: string;
+  url?: string;
+  marginTop?: number;
+  measure?: boolean;
+}) {
   const label = source?.trim();
   const address = url?.trim();
   if (!label && !address) return null;
   return (
     <div
+      data-measure={measure || undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
         minWidth: 0,
-        width: '100%',
+        width: measure ? undefined : '100%',
+        flexShrink: 0,
         borderTop: '1px solid #eef0f3',
-        marginTop: 12,
+        marginTop,
         paddingTop: 10,
         color: colors.muted,
         ...typography.meta,
@@ -22,8 +34,8 @@ export function SourceFooter({ source, url }: { source?: string; url?: string })
         <div
           style={{
             display: 'flex',
-            maxWidth: address ? '50%' : '100%',
-            flexShrink: 0,
+            minWidth: 0,
+            flexShrink: measure ? 0 : 1,
             padding: '1px 6px',
             border: '1px solid #e5e7eb',
             borderRadius: 4,
@@ -45,9 +57,8 @@ export function SourceFooter({ source, url }: { source?: string; url?: string })
           style={{
             display: 'flex',
             minWidth: 0,
-            flexGrow: 1,
-            flexShrink: 1,
-            flexBasis: 0,
+            flexGrow: measure ? 0 : 1,
+            flexShrink: measure ? 0 : 1,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',

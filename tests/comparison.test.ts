@@ -33,7 +33,7 @@ it('validates each module and rejects mismatched content and legacy render optio
     { type: 'text', before: {}, after: '' },
     { type: 'metric', items: [{ before: 1 }] },
     { type: 'entity', items: [{ name: 'a' }] },
-    { type: 'image', before: { url: 'file:///tmp/a' }, after: { url: '' } },
+    { type: 'image', before: { url: 'ftp://example.com/a' }, after: { url: '' } },
   ]) {
     expect(comparisonSchema.safeParse({ title: '', modules: [module] }).success).toBe(false);
   }

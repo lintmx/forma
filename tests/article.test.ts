@@ -185,7 +185,7 @@ it('requires only nonblank content and allows each translation field independent
     { content: 123 },
     { content: 'x', watermark: 'x' },
     { content: 'x', contentFormat: 'html' },
-    { content: 'x', authorAvatarUrl: 'file:///tmp/avatar.png' },
+    { content: 'x', authorAvatarUrl: 'ftp://example.com/avatar.png' },
     { content: 'x', authorAvatarUrl: 'data:image/png;base64,abc' },
     { content: 'x', translation: { unknown: true } },
   ]) {
@@ -299,7 +299,7 @@ it('loads only Markdown images, leaves plain text and HTML inert, and keeps fail
   expect(get).toHaveBeenCalledExactlyOnceWith('https://example.com/translated.png');
   const failed = await renderer.render({
     template: 'article',
-    data: { content: '![blocked](file:///tmp/private.png)\n\n![invalid](__proto__)' },
+    data: { content: '![blocked](ftp://example.com/private.png)\n\n![invalid](__proto__)' },
     format: 'png',
   });
   expect(failed.warnings).toEqual(['IMAGE_UNAVAILABLE']);

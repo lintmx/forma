@@ -174,6 +174,91 @@ describe('HTTP end-to-end', () => {
     expect(png.height).toBe(Number(response.headers.get('X-Layout-Height')) * 2);
     expect(response.headers.get('X-Render-Scale')).toBe('2');
   });
+  it('embeds HTTP and local file media in production templates through HTTP and workers', async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), 'forma-media-'));
+    const image = new PNG({ width: 64, height: 32 });
+    for (let i = 0; i < image.data.length; i += 4) image.data.set([20, 180, 90, 255], i);
+    const bytes = PNG.sync.write(image);
+    const path = resolve(directory, '测试 image.png');
+    await writeFile(path, bytes);
+    const mediaServer = createServer((_request, response) => {
+      response.writeHead(200, { 'Content-Type': 'image/png' });
+      response.end(bytes);
+    });
+    try {
+      mediaServer.listen(0, '127.0.0.1');
+      await once(mediaServer, 'listening');
+      const address = mediaServer.address();
+      if (!address || typeof address === 'string') throw new Error('Missing media server address');
+      await mkdir('artifacts/media-sources', { recursive: true });
+      for (const url of [pathToFileURL(path).href, 'http://127.0.0.1:' + address.port + '/image.png']) {
+        const requests = [
+          {
+            template: 'social_post',
+            data: {
+              author: { name: '媒体测试', avatarUrl: url },
+              content: '中文 日本語 English',
+              media: [{ url }, { type: 'video', url, previewUrl: url }],
+            },
+          },
+          {
+            template: 'article',
+            data: {
+              author: '图片测试',
+              authorAvatarUrl: url,
+              content: '中文 日本語 English\n\n![本地或 HTTP 图片](' + url + ')',
+            },
+          },
+          {
+            template: 'comparison',
+            data: { title: '图片对比', modules: [{ type: 'image', before: { url }, after: { url } }] },
+          },
+        ];
+        for (const request of requests) {
+          for (const format of ['png', 'svg']) {
+            const response = await post({ ...request, format });
+            expect(response.status).toBe(200);
+            expect(response.headers.get('X-Render-Warnings')).toBe('');
+            const body = Buffer.from(await response.arrayBuffer());
+            if (format === 'svg') {
+              expect(body.toString()).toContain('data:image/png;base64,' + bytes.toString('base64'));
+              expect(body.toString()).not.toContain(url);
+            } else {
+              const decoded = PNG.sync.read(body);
+              expect(decoded.width).toBe(Number(response.headers.get('X-Image-Width')));
+              expect(decoded.height).toBe(Number(response.headers.get('X-Image-Height')));
+              let greenPixels = 0;
+              for (let i = 0; i < decoded.data.length; i += 4) {
+                if (
+                  Math.abs(decoded.data[i]! - 20) < 5 &&
+                  Math.abs(decoded.data[i + 1]! - 180) < 5 &&
+                  Math.abs(decoded.data[i + 2]! - 90) < 5
+                )
+                  greenPixels++;
+              }
+              expect(greenPixels).toBeGreaterThan(1000);
+            }
+            await writeFile(
+              'artifacts/media-sources/' + request.template + '-' + new URL(url).protocol.slice(0, -1) + '.' + format,
+              body,
+            );
+          }
+        }
+      }
+      const missing = await post({
+        template: 'social_post',
+        data: { media: [{ url: pathToFileURL(path + '.missing').href }] },
+        format: 'png',
+      });
+      expect(missing.status).toBe(200);
+      expect(missing.headers.get('X-Render-Warnings')).toContain('IMAGE_UNAVAILABLE');
+      await writeFile('artifacts/media-sources/missing.png', Buffer.from(await missing.arrayBuffer()));
+    } finally {
+      mediaServer.closeAllConnections();
+      await new Promise<void>(resolve => mediaServer.close(() => resolve()));
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
   it('accepts long output beyond the former pixel limit', async () => {
     const response = await post({
       template: 'test-auto-height',

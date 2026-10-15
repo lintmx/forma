@@ -3,10 +3,12 @@ import { decodeHTML } from 'entities';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import satori from 'satori';
 import sharp from 'sharp';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
-import { loadFonts } from '../src/core/fonts.js';
+import { CardFrame } from '../src/core/card.js';
+import { type LoadedFonts, loadFonts } from '../src/core/fonts.js';
 import { ImageStore, imageDataUri } from '../src/core/images.js';
 import { rasterize } from '../src/core/rasterize.js';
 import { Renderer } from '../src/core/renderer.js';
@@ -18,6 +20,7 @@ import { expectPngQuality } from './fixtures/png-quality.js';
 
 const config = loadConfig({ LOG_LEVEL: 'silent' });
 let renderer: Renderer;
+let fonts: LoadedFonts;
 
 function image(width: number, height: number, color: [number, number, number]) {
   const png = new PNG({ width, height });
@@ -38,7 +41,8 @@ const nearColor = (pixels: Uint8Array, offset: number, color: readonly number[])
   color.every((value, channel) => Math.abs(pixels[offset + channel]! - value) <= 3);
 
 beforeAll(async () => {
-  renderer = new Renderer(config, await loadFonts(config.fontConfig));
+  fonts = await loadFonts(config.fontConfig);
+  renderer = new Renderer(config, fonts);
   registry.register({
     ...socialPost,
     id: 'test-social-plain',
@@ -86,7 +90,7 @@ describe('social_post contract', () => {
     { author: { surprise: true } },
     { translation: { model: 'GPT' } },
     { media: [{ type: 'image' }] },
-    { media: [{ url: 'file:///tmp/private.png' }] },
+    { media: [{ url: 'ftp://example.com/private.png' }] },
     { quotedPost: { postKind: 'quote' } },
     { reshare: { by: {} } },
     { content: 'x'.repeat(4001) },
@@ -348,6 +352,35 @@ describe('social_post real Satori and Skia output', () => {
     const result = await render({ content: '正文保留', media: [{ url: 'http://127.0.0.1/private.png' }] });
     expect(result.warnings).toEqual(['IMAGE_UNAVAILABLE']);
     expect(PNG.sync.read(Buffer.from(result.body)).width).toBeGreaterThanOrEqual(400);
+  });
+  it.each([
+    { source: '来源'.repeat(16) },
+    { url: 'https://example.com/' + 'segment/'.repeat(7) },
+    { source: '来源'.repeat(12), url: 'https://example.com/post/1' },
+  ])('expands to fit footer metadata without premature truncation: %j', async metadata => {
+    const data = { content: '简短正文', ...metadata };
+    const result = await render(data, 'svg');
+    expect(result.layoutWidth).toBeGreaterThan(400);
+    expect(result.layoutWidth).toBeLessThan(700);
+    const svg = await satori(
+      CardFrame({
+        children: socialPost.render(data, { assets: {}, ...fonts }),
+        fontFamily: fonts.fontFamily,
+        monospaceFontFamily: fonts.monospaceFontFamily,
+      }),
+      { fonts: fonts.fonts, width: result.layoutWidth, embedFont: false },
+    );
+    const text = [...svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)].map(match => decodeHTML(match[1]!)).join('');
+    expect(text).toContain(metadata.source ?? metadata.url);
+    if (metadata.url) expect(text).toContain(metadata.url);
+    expect(text).not.toContain('…');
+  });
+  it('caps footer-driven width at the template maximum', async () => {
+    const result = await render(
+      { content: '正文', source: '来源'.repeat(70), url: 'https://example.com/' + 'x'.repeat(500) },
+      'svg',
+    );
+    expect(result.layoutWidth).toBe(700);
   });
   it('omits blank footer metadata and keeps long names and source URLs within the frame', async () => {
     const short = await render({ content: '正文' });

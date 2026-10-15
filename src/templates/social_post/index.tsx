@@ -300,7 +300,7 @@ function SocialPost({ data, assets }: { data: SocialPostData; assets: TemplateCo
           <PostBody post={data.quotedPost} prefix="quote" assets={assets} layout={data.mediaLayout} compact />
         </div>
       )}
-      <SourceFooter source={data.source} url={data.url} />
+      <SourceFooter source={data.source} url={data.url} marginTop={0} />
     </div>
   );
 }
@@ -355,7 +355,7 @@ function Measure({ data }: { data: SocialPostData }) {
           400,
           25,
         )}
-      {line([data.source?.trim(), data.url?.trim()].filter(Boolean).join(' · '), typography.meta.fontSize)}
+      <SourceFooter source={data.source} url={data.url} measure />
     </div>
   );
 }

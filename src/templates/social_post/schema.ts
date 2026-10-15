@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-const imageUrl = z.url({ protocol: /^https?$/ }).max(2048);
+const imageUrl = z.url({ protocol: /^(https?|file)$/ }).max(2048);
 const author = z
   .object({
     name: z.string().max(160).optional().describe('作者显示名称'),
     handle: z.string().max(160).optional().describe('账号，允许带或不带 @'),
-    avatarUrl: imageUrl.optional().describe('公开 HTTP(S) 头像地址'),
+    avatarUrl: imageUrl.optional().describe('HTTP(S) 或 file:// 头像地址'),
     verified: z.boolean().optional().describe('显示认证标记'),
   })
   .strict();
@@ -22,7 +22,7 @@ const media = z
       .object({
         type: z.enum(['image', 'video', 'gif', 'audio']).optional().describe('媒体类型，省略为 image'),
         url: imageUrl.describe('原始媒体地址；图片可直接加载，其他类型建议提供 previewUrl'),
-        previewUrl: imageUrl.optional().describe('公开 HTTP(S) PNG/JPEG/WebP 预览图地址'),
+        previewUrl: imageUrl.optional().describe('HTTP(S) 或 file:// PNG/JPEG/WebP 预览图地址'),
         alt: z.string().max(400).optional().describe('媒体描述'),
       })
       .strict(),

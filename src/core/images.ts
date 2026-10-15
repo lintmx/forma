@@ -1,53 +1,37 @@
-import { lookup } from 'node:dns/promises';
+import { createReadStream } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
-import { isIP } from 'node:net';
 import { imageSize } from 'image-size';
-import ipaddr from 'ipaddr.js';
 import sharp from 'sharp';
 import type { Config } from '../config.js';
 import { FormaError } from './errors.js';
 
-export function isPublicAddress(address: string) {
-  try {
-    const parsed = ipaddr.process(address);
-    return parsed.range() === 'unicast';
-  } catch {
-    return false;
-  }
-}
-
-export async function resolvePublicUrl(input: string) {
-  const url = new URL(input);
-  if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) {
-    throw new FormaError('IMAGE_URL_BLOCKED', 'Only public HTTP(S) image URLs without credentials are allowed');
-  }
-  const host = url.hostname.replace(/^\[|\]$/g, '');
-  const addresses = isIP(host) ? [{ address: host, family: isIP(host) }] : await lookup(host, { all: true });
-  if (!addresses.length || addresses.some(({ address }) => !isPublicAddress(address))) {
-    throw new FormaError('IMAGE_URL_BLOCKED', 'Private and reserved image destinations are blocked');
-  }
-  return { url, address: addresses[0]! };
-}
-
-// DNS is checked and the selected address is pinned into the actual connection.
-// Every redirect repeats this validation; Satori only receives embedded data.
+// HTTP(S) and local files share resource limits; Satori only receives embedded data.
 export async function downloadImage(input: string, config: Config): Promise<Buffer> {
   const signal = AbortSignal.timeout(config.imageTimeoutMs);
   const download = async (inputUrl: string, redirects: number): Promise<Buffer> => {
-    const { url, address } = await resolvePublicUrl(inputUrl);
+    const url = new URL(inputUrl);
     signal.throwIfAborted();
+    if (url.protocol === 'file:') {
+      const chunks: Buffer[] = [];
+      let size = 0;
+      for await (const chunk of createReadStream(url, { signal })) {
+        const buffer = chunk as Buffer;
+        size += buffer.length;
+        if (size > config.imageMaxBytes) throw new Error('Image is too large');
+        chunks.push(buffer);
+      }
+      return Buffer.concat(chunks);
+    }
+    if (!['https:', 'http:'].includes(url.protocol)) {
+      throw new FormaError('IMAGE_URL_BLOCKED', 'Only HTTP(S) and file image URLs are supported');
+    }
     return new Promise((resolve, reject) => {
       const request = (url.protocol === 'https:' ? httpsRequest : httpRequest)(
         url,
         {
           signal,
           headers: { Accept: 'image/png,image/jpeg,image/webp', 'User-Agent': 'forma/0.1' },
-          lookup: (_host, _options, callback) => {
-            // Node may request all addresses for autoSelectFamily.
-            if (_options.all) callback(null, [address]);
-            else callback(null, address.address, address.family);
-          },
         },
         response => {
           const status = response.statusCode ?? 500;
@@ -70,8 +54,11 @@ export async function downloadImage(input: string, config: Config): Promise<Buff
           const chunks: Buffer[] = [];
           response.on('data', (chunk: Buffer) => {
             size += chunk.length;
-            if (size > config.imageMaxBytes) request.destroy(new Error('Image is too large'));
-            else chunks.push(chunk);
+            if (size > config.imageMaxBytes) {
+              const error = new Error('Image is too large');
+              reject(error);
+              request.destroy(error);
+            } else chunks.push(chunk);
           });
           response.on('error', reject);
           response.on('end', () => resolve(Buffer.concat(chunks)));
@@ -81,14 +68,7 @@ export async function downloadImage(input: string, config: Config): Promise<Buff
       request.end();
     });
   };
-  // Also bound DNS resolution, which does not itself accept AbortSignal.
-  return new Promise((resolve, reject) => {
-    const abort = () => reject(new Error('Image download timed out'));
-    signal.addEventListener('abort', abort, { once: true });
-    download(input, 0)
-      .then(resolve, reject)
-      .finally(() => signal.removeEventListener('abort', abort));
-  });
+  return download(input, 0);
 }
 
 export function imageDataUri(buffer: Buffer, config: Config) {

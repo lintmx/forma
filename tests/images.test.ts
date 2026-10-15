@@ -1,42 +1,82 @@
+import { once } from 'node:events';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { createServer, type Server } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { PNG } from 'pngjs';
 import sharp from 'sharp';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
-import { ImageStore, imageDataUri, isPublicAddress, resolvePublicUrl } from '../src/core/images.js';
+import { downloadImage, ImageStore, imageDataUri } from '../src/core/images.js';
 import { rasterize } from '../src/core/rasterize.js';
 
 const config = loadConfig({});
 const png = PNG.sync.write(new PNG({ width: 2, height: 2 }));
-describe('bounded image resources', () => {
-  it.each([
-    '127.0.0.1',
-    '10.1.2.3',
-    '192.168.1.1',
-    '169.254.169.254',
-    '0.0.0.0',
-    '100.64.0.1',
-    '224.0.0.1',
-    '::1',
-    '::',
-    'fe80::1',
-    'fc00::1',
-    '::ffff:127.0.0.1',
-    '2001:db8::1',
-  ])('blocks private/reserved address %s', address => {
-    expect(isPublicAddress(address)).toBe(false);
-  });
-  it('accepts public addresses and rejects disallowed URL schemes/credentials', async () => {
-    expect(isPublicAddress('1.1.1.1')).toBe(true);
-    expect(isPublicAddress('2606:4700:4700::1111')).toBe(true);
-    for (const url of [
-      'file:///etc/passwd',
-      'http://user:pass@example.com',
-      'http://localhost/test',
-      'http://[::1]/',
-      'http://2130706433/',
-    ]) {
-      await expect(resolvePublicUrl(url)).rejects.toThrow();
+let directory: string;
+let fileUrl: string;
+let origin: string;
+let server: Server;
+beforeAll(async () => {
+  directory = await mkdtemp(join(tmpdir(), 'forma-images-'));
+  const path = join(directory, '图片 #1.png');
+  await writeFile(path, png);
+  fileUrl = pathToFileURL(path).href;
+  server = createServer((request, response) => {
+    if (request.url === '/redirect' || request.url === '/loop' || request.url === '/file') {
+      response.writeHead(302, {
+        Location: request.url === '/file' ? fileUrl : request.url === '/loop' ? '/loop' : '/image',
+      });
+    } else if (request.url === '/missing') {
+      response.writeHead(404);
+    } else if (request.url === '/slow') {
+      return;
+    } else if (request.url === '/auth' && request.headers.authorization !== 'Basic dXNlcjpwYXNz') {
+      response.writeHead(401);
+    } else {
+      response.writeHead(200, { 'Content-Type': 'image/png' });
+      response.write(png);
     }
+    response.end();
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Missing test server address');
+  origin = 'http://127.0.0.1:' + address.port;
+});
+afterAll(async () => {
+  server?.closeAllConnections();
+  await new Promise<void>(resolve => server?.close(() => resolve()));
+  await rm(directory, { recursive: true, force: true });
+});
+describe('bounded image resources', () => {
+  it('loads loopback HTTP, redirects and credentials', async () => {
+    for (const url of [
+      origin + '/image',
+      origin + '/redirect',
+      origin.replace('http://', 'http://user:pass@') + '/auth',
+    ]) {
+      expect(await downloadImage(url, config)).toEqual(png);
+    }
+  });
+  it('loads encoded local file URLs directly and via redirects', async () => {
+    for (const url of [fileUrl, origin + '/file']) {
+      expect(await new ImageStore(config).get(url)).toBe(imageDataUri(png, config));
+    }
+  });
+  it('keeps byte limits, timeouts, redirect limits and load errors', async () => {
+    for (const url of [fileUrl, origin + '/image']) {
+      await expect(downloadImage(url, { ...config, imageMaxBytes: png.length - 1 })).rejects.toThrow('too large');
+    }
+    await expect(downloadImage(origin + '/slow', { ...config, imageTimeoutMs: 20 })).rejects.toThrow();
+    await expect(downloadImage(origin + '/loop', config)).rejects.toThrow('Too many image redirects');
+    await expect(downloadImage(origin + '/missing', config)).rejects.toThrow();
+    await expect(downloadImage(fileUrl + '.missing', config)).rejects.toThrow();
+    await expect(downloadImage('ftp://example.com/image.png', config)).rejects.toThrow('Only HTTP(S) and file');
+    const invalid = pathToFileURL(join(directory, 'invalid.png'));
+    await writeFile(invalid, 'not an image');
+    await expect(new ImageStore(config).get(invalid.href)).rejects.toThrow();
   });
   it('rejects SVG, excessive encoded bytes and decoded pixel counts', () => {
     expect(() => imageDataUri(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'), config)).toThrow();

@@ -64,6 +64,8 @@ tests/fixtures/   仅供测试使用的模板和 worker 入口
 
 尺寸包含统一外框和水印，优先采用 `auto-height` 或 `content`。
 `content` 必须提供内部内容的无换行测量树及 `data-measure` 节点，不重复外框边距，也不依赖远程资源。
+`social_post` 的底部来源和链接也参与宽度测量，包含标签字重、边框、内边距和分隔符间距；
+卡片可由底栏撑宽至 700px，超过上限后单行省略显示。
 使用实际字形和布局测量，不按字符数或预估行数计算高度。
 
 统一复用 [typography.ts](../src/core/typography.ts) 的语义字号和换行样式。

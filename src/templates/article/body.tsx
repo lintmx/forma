@@ -36,7 +36,7 @@ export async function loadArticleImages(data: ArticleData, images: ImageStore) {
     });
   }
   const assets: TemplateContext['assets'] = Object.create(null);
-  // Load through the existing bounded, SSRF-protected store, never from Satori.
+  // Load through the existing bounded image store, never from Satori.
   for (const url of urls) assets[url] = await images.get(url).catch(() => undefined);
   return assets;
 }
