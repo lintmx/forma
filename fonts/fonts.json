@@ -13,5 +13,6 @@
     "path": "NotoSansEgyptianHieroglyphs-Regular.ttf",
     "weight": 400,
     "usage": "fallback"
-  }
+  },
+  { "name": "Go Noto Ancient", "path": "GoNotoAncient.ttf", "weight": 400, "usage": "fallback" }
 ]

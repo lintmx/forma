@@ -55,9 +55,25 @@ for the upstream copyright and license.
 The unmodified `NotoSansEgyptianHieroglyphs-Regular.ttf` comes from
 `NotoSansEgyptianHieroglyphs/full/ttf` in the official
 [Noto Sans Egyptian Hieroglyphs v2.002 release](https://github.com/notofonts/egyptian-hieroglyphs/releases/tag/NotoSansEgyptianHieroglyphs-v2.002),
-archive `NotoSansEgyptianHieroglyphs-v2.002.zip`. It is the last fallback for both
+archive `NotoSansEgyptianHieroglyphs-v2.002.zip`. It is a fallback for both
 body and monospace text, after Noto Sans Symbols 2. It supplies Egyptian
 hieroglyphs at weight 400 and does not guarantee a monospace grid.
+
+## Go Noto Ancient
+
+Copyright 2022 The Noto Project Authors
+(https://github.com/notofonts/latin-greek-cyrillic), as recorded in the font's
+embedded copyright notice. Distributed under the SIL Open Font License 1.1;
+see [fonts/GoNotoAncient-OFL.txt](fonts/GoNotoAncient-OFL.txt).
+
+The unmodified `GoNotoAncient.ttf` comes from the third-party
+[Go Noto Universal v7.0 release](https://github.com/satbyy/go-noto-universal/releases/tag/v7.0).
+It combines Noto fonts for historical scripts and is the final fallback for
+body and monospace text, after Noto Sans Egyptian Hieroglyphs. It provides
+Regular glyphs only and does not guarantee a monospace grid or full Unicode
+coverage. The upstream build scripts use the Unlicense, but the generated
+font is licensed under the SIL Open Font License, as stated in the
+[upstream license section](https://github.com/satbyy/go-noto-universal/tree/v7.0#license).
 
 ## Twemoji
 

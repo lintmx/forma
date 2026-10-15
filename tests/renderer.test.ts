@@ -199,14 +199,14 @@ describe('real Satori + Skia rendering', () => {
       expect(image.data.some(byte => byte < 100)).toBe(true);
     },
   );
-  it.each([false, true])('renders Egyptian hieroglyphs as the final fallback in monospace=%s', async monospace => {
+  it.each([false, true])('keeps the dedicated Egyptian fallback ahead of Ancient in monospace=%s', async monospace => {
     const family = 'Noto Sans Egyptian Hieroglyphs';
-    expect(fonts.fontFamily.endsWith('Noto Sans Symbols 2, ' + family)).toBe(true);
-    expect(fonts.monospaceFontFamily.endsWith('Noto Sans Symbols 2, ' + family)).toBe(true);
+    expect(fonts.fontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient')).toBe(true);
+    expect(fonts.monospaceFontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient')).toBe(true);
     const previous = new Renderer(config, {
-      fonts: fonts.fonts.filter(font => font.name !== family),
-      fontFamily: fonts.fontFamily.replace(', ' + family, ''),
-      monospaceFontFamily: fonts.monospaceFontFamily.replace(', ' + family, ''),
+      fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Ancient'),
+      fontFamily: fonts.fontFamily.replace(', Go Noto Ancient', ''),
+      monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Ancient', ''),
     });
     const request = {
       template: 'example',
@@ -217,13 +217,35 @@ describe('real Satori + Skia rendering', () => {
     const after = await renderer.render(request);
     expect(after.body).toEqual(before.body);
     const egyptian = { ...request, data: { text: '中文 Hello 𓀀 𓂀 𓆣 𓋹', monospace } };
-    expect((await previous.render(egyptian)).warnings).toEqual(['MISSING_GLYPH']);
     const svg = await renderer.render(egyptian);
+    expect(svg.warnings).toEqual([]);
+    expect(svg.body).toEqual((await previous.render(egyptian)).body);
     const source = Buffer.from(svg.body).toString();
     expect(source).toContain('<path');
     expect(source).not.toContain('<text');
     expect(source).not.toMatch(/(?:href|src)="https?:/);
     const png = await renderer.render({ ...egyptian, format: 'png' });
+    const image = PNG.sync.read(Buffer.from(png.body));
+    expect([image.width, image.height]).toEqual([svg.width * 2, svg.height * 2]);
+    expect(image.data.some(byte => byte < 100)).toBe(true);
+  });
+
+  it.each([false, true])('uses Ancient for uncovered historical scripts in monospace=%s', async monospace => {
+    const previous = new Renderer(config, {
+      fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Ancient'),
+      fontFamily: fonts.fontFamily.replace(', Go Noto Ancient', ''),
+      monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Ancient', ''),
+    });
+    const data = { text: '中文 Hello 𖤐 𒀀 𐎀 𐌰', monospace, weight: 700 };
+    const request = { template: 'test-typography', data, format: 'svg' as const };
+    const before = await previous.render(request);
+    expect(before.warnings).toEqual(['MISSING_GLYPH']);
+    const svg = await renderer.render(request);
+    expect(svg.warnings).toEqual([]);
+    expect(svg.body).not.toEqual(before.body);
+    expect(Buffer.from(svg.body).toString()).not.toContain('<text');
+    const png = await renderer.render({ ...request, format: 'png' });
+    expect(png.warnings).toEqual([]);
     const image = PNG.sync.read(Buffer.from(png.body));
     expect([image.width, image.height]).toEqual([svg.width * 2, svg.height * 2]);
     expect(image.data.some(byte => byte < 100)).toBe(true);

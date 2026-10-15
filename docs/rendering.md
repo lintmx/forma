@@ -37,12 +37,34 @@ Markdown 正文使用 GFM 和可见单换行；代码块保留缩进与空行，
 
 | 用途 | 字体顺序 |
 | --- | --- |
-| 正文 | Inter → Noto Sans CJK SC → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs |
-| 等宽 | Maple Mono CN → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs |
+| 正文 | Inter → Noto Sans CJK SC → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs → Go Noto Ancient |
+| 等宽 | Maple Mono CN → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs → Go Noto Ancient |
 
 正文与等宽主字体提供 400 / 700 字重，符号字体仅 400。Inter 提供真实斜体与粗斜体；
 CJK 和等宽字体没有独立斜体文件，由 Satori 合成。汉字默认采用 SC / Maple CN 字形，不自动切换地区字形。
 Maple 未覆盖的部分字符可能回退到正文字体，补充符号和 Emoji 也不保证等宽对齐。
+
+Go Noto Ancient 使用第三方合并项目 Go Noto Universal v7.0 的静态 Regular TTF，
+作为两种用途的末级 fallback，补充 `𖤐` 等巴姆文字、楔形文字及多种历史文字。
+原有字体优先，埃及象形文字仍优先使用独立的 Noto 字体。该字体仅提供 400 字重，
+不保证等宽或完整 Unicode 覆盖；单个字符有字形也不代表支持所有复杂文字排版。
+字体文件约 9.88 MiB，每个 worker 独立加载、解析和缓存，实际内存开销高于文件大小。
+
+2026-10-15 在 macOS arm64 / Node 26.10.0 上，以构建后的真实 worker 对比去掉 / 保留
+Go Noto Ancient 的配置。每组使用独立进程，1 / 2 个 worker 各运行三轮，快照前主动 GC；
+每个 worker 完成 36 次请求，包含正文 / 等宽、PNG / SVG、多语言、历史文字和长文本。
+下表为三轮的进程 RSS 中位数，包含主线程、所有 worker 和原生渲染分配，不是单个 worker 的 JS 堆：
+
+| worker 数量 | 预热后 RSS：原配置 → 新配置 | 渲染后 RSS：原配置 → 新配置 |
+| --- | --- | --- |
+| 1 | 385.6 → 421.9 MiB（+36.3） | 842.8 → 896.6 MiB（+53.8） |
+| 2 | 726.0 → 791.9 MiB（+65.9） | 1518.1 → 1627.9 MiB（+109.8） |
+
+单 worker 的 JS `heapUsed` 在预热后约增加 10.6 MiB，渲染后约增加 10.8–12.1 MiB。
+RSS 包含分配器保留空间，渲染后数值会受请求、输出尺寸和 GC 时机影响；这些数据不是 Linux
+容器内存上限或长期压力测试结果。原有文字（含独立埃及字体和 Emoji）的样张 PNG / SVG 逐字节一致。
+复现：先执行 `pnpm build`，再执行 `pnpm exec tsx scripts/verify-font-fallback.ts`；
+样张、尺寸和警告记录及内存原始数据输出到 `artifacts/ancient-fallback/`。
 
 Emoji 按「Twemoji 17.0.3 → Noto Color Emoji 2.051 → 方块占位符」顺序读取本地 SVG 并缓存。
 Twemoji 未收录完整序列或单个文件缺失时尝试 Noto，成功回退不产生警告；目录缺失、权限和其他 I/O 错误仍会抛出。

@@ -82,5 +82,15 @@
         "sha256": "2c01dc92d80636c078abcbfbf47a19f3a5c995e40d908a334ff6f2b3f3bf404a"
       }
     ]
+  },
+  {
+    "url": "https://github.com/satbyy/go-noto-universal/releases/download/v7.0/GoNotoAncient.ttf",
+    "sha256": "07e24101c936b67581c5c44a7582adbd616ab4f9da88a5cec855d2eaf68e7578",
+    "files": [
+      {
+        "path": "GoNotoAncient.ttf",
+        "sha256": "07e24101c936b67581c5c44a7582adbd616ab4f9da88a5cec855d2eaf68e7578"
+      }
+    ]
   }
 ]
