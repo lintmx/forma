@@ -1,9 +1,9 @@
-import { Resvg } from '@resvg/resvg-js';
 import { PNG } from 'pngjs';
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { ImageStore, imageDataUri, isPublicAddress, resolvePublicUrl } from '../src/core/images.js';
+import { rasterize } from '../src/core/rasterize.js';
 
 const config = loadConfig({});
 const png = PNG.sync.write(new PNG({ width: 2, height: 2 }));
@@ -61,7 +61,7 @@ describe('bounded image resources', () => {
       '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="2"><image href="' +
       data +
       '" width="4" height="2" /></svg>';
-    expect(PNG.sync.read(new Resvg(svg).render().asPng()).data).toEqual(decoded.data);
+    expect((await rasterize(svg, 4, 2, config)).pixels).toEqual(decoded.data);
     expect(await store.get('webp')).toBe(data);
     expect(download).toHaveBeenCalledTimes(1);
     await expect(new ImageStore({ ...config, imageMaxPixels: 1 }, download).get('webp')).rejects.toThrow(

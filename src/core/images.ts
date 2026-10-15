@@ -129,7 +129,7 @@ export class ImageStore {
     const promise = this.download(url, this.config)
       .then(async buffer => {
         let data = imageDataUri(buffer, this.config);
-        // resvg 2.6.2 cannot decode WebP; normalize only after validating input limits.
+        // Keep input normalization stable; convert WebP only after validating input limits.
         if (data.startsWith('data:image/webp;')) {
           const png = await sharp(buffer, { limitInputPixels: this.config.imageMaxPixels, pages: 1 }).png().toBuffer();
           data = imageDataUri(png, this.config);

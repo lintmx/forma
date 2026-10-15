@@ -1,6 +1,6 @@
 # forma
 
-独立的 Schema / TSX 卡片渲染服务。JSON → Zod → Satori SVG → resvg 栅格像素 → Sharp PNG。
+独立的 Schema / TSX 卡片渲染服务。JSON → Zod → Satori SVG → Skia Canvas CPU 栅格像素 → Sharp PNG。
 运行时无需浏览器、MagiBot、数据库、Redis 或外部字体服务。
 
 提供 `example` 纯文本示例和 `social_post` 社交动态，Playground 启动后自动选中 `example` 并预览。
@@ -88,9 +88,9 @@ curl http://localhost:3000/v1/render \
 `X-Render-Warnings: IMAGE_UNAVAILABLE`，模板通过空的 assets 显示降级内容。
 没有 base64 JSON 包装，客户端无需执行 React 或 JavaScript。
 
-PNG 将 resvg 的栅格像素直接交给 Sharp 编码，省去中间 PNG 的编码与解码。
-保持请求的分辨率，使用调色板量化减小文件：`quality: 85`、`effort: 3`、`dither: 0.5`、
-`compressionLevel: 7`，关闭自适应行过滤。量化会轻微改变颜色，半强度抖动用于缓解照片渐变的色带；
+PNG 将 Skia Canvas 的预乘 RGBA 栅格像素直接交给 Sharp 编码，省去中间 PNG 的编码与解码。
+保持请求的分辨率，使用调色板量化减小文件：`quality: 85`、`effort: 3`、`dither: 0.25`、
+`compressionLevel: 5`，关闭自适应行过滤。量化会轻微改变颜色，抖动用于缓解照片渐变的色带；
 `quality` 是量化质量目标，不代表严格的画质损失百分比。
 `MAX_OUTPUT_BYTES` 检查最终 PNG 字节数。
 
@@ -105,7 +105,7 @@ PNG 请求支持 `scale`（1–4 的整数，API 默认 1）。需要精细的�
 }
 ```
 
-Satori 仍按原始尺寸布局，resvg 从 SVG 按倍率直接栅格化，文字换行不变。
+Satori 仍按原始尺寸布局，Skia Canvas 从 PNG 专用适配后的 SVG 按倍率直接栅格化，文字换行不变。
 4× 的像素数是 1× 的 16 倍、2× 的 4 倍，内存和渲染开销也会增加；
 2× 适合日常消息，4× 可保留更多文字边缘细节。低分辨率头像不会因此获得新的细节。
 SVG 是矢量输出，忽略 `scale` 并保留原始布局尺寸。
@@ -209,9 +209,9 @@ JSON DATA 只填写模板业务内容。旧的 `data.watermark` 写法返回 400
 
 ## 尺寸与 Satori 限制
 
-固定版本 `satori@0.55.1`、`@resvg/resvg-js@2.6.2`，开发前核对了
+固定版本 `satori@0.55.1`、`skia-canvas@4.0.0`。参见
 [Satori 文档](https://github.com/vercel/satori)及实际类型、
-[resvg API](https://github.com/thx/resvg-js/blob/main/index.d.ts)。
+[Skia Canvas API](https://skia-canvas.org/api/canvas)。
 
 | 策略 | 实现与边界 |
 | --- | --- |
@@ -228,8 +228,8 @@ content 的测量树只描述内部内容及其 `data-measure` 节点，不重�
 Schema 内容长度上限、请求体上限、worker 并发限制与超时共同限制 SVG 布局阶段的开销。
 
 卡片显式使用 Flex、`boxSizing: border-box` 和受支持的文本换行样式。
-当前锁定版本支持 `boxShadow`，Satori 将其转换为 SVG filter，
-resvg 实际栅格化得到柔和阴影；像素测试验证阴影和画布边缘。
+当前注册模板不使用 SVG filter。PNG 适配器仅支持已验证的路径、图形、图片、渐变、pattern、clipPath 和 mask；
+`boxShadow` 等产生 filter 的新模板需要先扩充兼容验证，当前会明确拒绝。SVG 输出仍保持 Satori 原始结果。
 不把完整浏览器 CSS 作为模板契约；不支持的样式直接使渲染失败，避免静默失效。
 
 ## 字体、Emoji 与图片
@@ -262,11 +262,11 @@ SHA-256。`pnpm fonts:fetch` 复用校验通过的本地字体，缺失或损坏
 直接运行 Node 时需先准备好 `fonts/`。这些准备命令只管理默认字体，自定义 `FONT_CONFIG`
 引用的文件由部署方自行提供。
 
-真实 Satori / resvg 测试另行检查多语言样例 SVG/PNG，以及 Maple 自身覆盖字符的等宽测量。
+真实 Satori / Skia 测试另行检查多语言样例 SVG/PNG，以及 Maple 自身覆盖字符的等宽测量。
 
 每个持久 worker 在启动时读取并缓存字体，Satori 预热后才对外服务；
 并发数越高，字体及解析结果内存开销越大。默认两个 worker。
-文字在 SVG 中转路径，resvg 禁用系统字体，调用方无需安装字体。
+文字在 Satori SVG 中转路径，PNG 适配器不接受 text 节点，调用方无需安装系统字体。
 
 `FONT_CONFIG` 可指向 JSON 数组（路径相对于配置文件）：
 
@@ -297,15 +297,15 @@ SHA-256。`pnpm fonts:fetch` 复用校验通过的本地字体，缺失或损坏
 缓存为每 worker 独立的有界 LRU，最多 128 项，支持 TTL 和重复下载合并；
 两个 worker 可能分别下载同一 URL。缓存不持久化，过期内容在访问/淘汰时移除。
 模板仅从资源管理器取到 data URI，不让 Satori 自行访问用户 URL。
-WebP 在输入尺寸及字节数校验后通过 `sharp` 转为 PNG，供 resvg 栅格化；
+WebP 在输入尺寸及字节数校验后通过 `sharp` 转为 PNG，供 PNG 栅格化，迁移期间保留此输入归一化行为；
 转换结果也受图片字节数限制，缓存的是转换后的图片。PNG/JPEG 保持原始编码。
 
 ## 并发与配置
 
-持久 worker 处理 Satori / resvg，HTTP 主线程保持响应。默认 2 个 worker、
+持久 worker 处理 Satori / Skia Canvas，HTTP 主线程保持响应。默认 2 个 worker、
 最多 16 个等待请求。请求总截止时间包含正文读取、排队、下载与渲染。
 超时立即返回 504，worker 被终止且等其退出后才补建，避免后台工作无限累积；
-原生 resvg 调用不能保证在任意指令处立即中断，因此还必须限制输出像素。
+原生 Skia 调用不能保证在任意指令处立即中断，因此还必须限制输出像素。
 客户端断开时取消等待任务或回收对应 worker。退出时停止接收请求并关闭 worker。
 
 | 变量 | 默认值 | 含义 |
@@ -372,3 +372,35 @@ tests/fixtures/    仅用于测试的最小内容模板和 worker 入口
 第一版不提供模板上传、运行时第三方代码、任意双向自适应、远程 SVG、
 动画图片、多帧输出、所有 Unicode 字符全集或多语言地区字形自动切换。
 没有引入第二套渲染引擎或浏览器截图。
+
+## Skia PNG 兼容范围与迁移验证
+
+SVG 请求直接返回 Satori 结果。PNG 专用适配只接受自包含 SVG；PNG/JPEG/WebP
+仍经现有图片资源管理器。内嵌 SVG 支持 base64/百分号编码、独立 ID、显式 viewBox
+及 image 的 meet/slice/none。坐标与 clip/mask 保持各自作用层级，不增加隐式嵌套 viewport 裁剪。
+内嵌 SVG 内再次嵌套 image、CSS、text、filter、use、外部资源、DTD、循环引用、
+objectBoundingBox clipPath/maskContentUnits 和隐式 overflow 裁剪不在当前支持范围内；
+错误仍通过现有 INTERNAL_ERROR 返回。
+
+适配器是内部模板兼容层，不是对外 SVG 上传 API。新增 SVG 特性需增加针对性测试。
+Canvas 固定 CPU，raw 明确为 RGBA/premultiplied；Canvas 和 Image 在成功及错误路径显式释放。
+raw 在 Worker 内同步导出，避开 Skia 4.0.0 异步 Promise 与 Worker 强制终止之间的原生崩溃。
+sharp 的 PNG 调色板、压缩、质量和抖动参数保持不变。
+
+本机生命周期验证：
+
+```bash
+pnpm build
+pnpm exec tsx scripts/verify-skia-workers.ts artifacts/skia-migration/workers.json
+```
+
+脚本使用编译后的真实 Worker，覆盖并发 1/2/4、连续渲染、取消、超时和重建，采样整个进程 RSS。
+旧渲染依赖与日常对照脚本已移除；适配器回归测试使用冻结的原始 SVG/PNG 基线。
+本机历史对照报告及脚本保留在 `artifacts/skia-migration/`，归档脚本需要独立恢复旧依赖及源码环境才能重跑。
+Linux 容器已验证 arm64（原生指令）和 amd64（Apple Silicon 上的指令转译）：Node 24 / Debian bookworm，
+amd64 使用 8 GiB 内存、4 CPU 限额，覆盖实际 HTTP 渲染和并发 1/2/4 的 Worker 生命周期。
+构建阶段与生产依赖阶段共用 pnpm 缓存时必须使用 `sharing=locked`，防止并发写入原生包。
+本机及两种 Linux 架构的测试均为 145/145 通过。镜像安装标准 `fontconfig-config`（含系统依赖字体），
+解决 slim 镜像缺少 `/etc/fonts` 的警告；Satori 仍使用项目显式配置的字体。
+这不等于真实 x86_64 主机验收：生产运行时、CPU 配额、网络和长时间负载仍需在部署环境确认。
+回滚需恢复迁移前源码和 lockfile 并重新构建/恢复旧镜像，不提供多后端运行时开关。

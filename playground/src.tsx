@@ -163,7 +163,7 @@ function App() {
           <span className="version">PLAYGROUND / 01</span>
         </a>
         <div className="header-note">
-          <span className="status-dot" /> Satori + resvg
+          <span className="status-dot" /> Satori + Skia
         </div>
       </header>
       <main>

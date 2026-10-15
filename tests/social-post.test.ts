@@ -1,11 +1,12 @@
-import { Resvg } from '@resvg/resvg-js';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
+import sharp from 'sharp';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { textStyle } from '../src/core/card.js';
 import { loadFonts } from '../src/core/fonts.js';
 import { ImageStore, imageDataUri } from '../src/core/images.js';
+import { rasterize } from '../src/core/rasterize.js';
 import { Renderer } from '../src/core/renderer.js';
 import { registry } from '../src/templates/index.js';
 import { socialPost } from '../src/templates/social_post/index.js';
@@ -120,7 +121,7 @@ describe('social_post contract', () => {
   });
 });
 
-describe('social_post real Satori and resvg output', () => {
+describe('social_post real Satori and Skia output', () => {
   it('sizes short and long text from 400 to 700px, wraps multilingual text and renders empty data', async () => {
     const empty = await render({});
     const short = await render({ content: '短文' });
@@ -179,8 +180,13 @@ describe('social_post real Satori and resvg output', () => {
       if (nearColor(png.data, index, [220, 30, 40])) xs.push((index / 4) % png.width);
     }
     expect(xs.length).toBeGreaterThan(100);
-    expect(xs.reduce((min, x) => Math.min(min, x), Infinity)).toBeGreaterThanOrEqual(37);
-    expect(xs.reduce((max, x) => Math.max(max, x), -Infinity)).toBeLessThan(result.width - 37);
+    // Shared frame: 12px outside + 1px border + 16px inside.
+    // Replies reserve 60px for the avatar; quotes add their own 16px padding + border.
+    const frameInset = 12 + 1 + 16;
+    const leftInset = frameInset + (postKind === 'reply' ? 60 : 17);
+    const rightInset = frameInset + (postKind === 'quote' ? 17 : 0);
+    expect(xs.reduce((min, x) => Math.min(min, x), Infinity)).toBeGreaterThanOrEqual(leftInset);
+    expect(xs.reduce((max, x) => Math.max(max, x), -Infinity)).toBeLessThan(result.width - rightInset);
   });
   it('renders all relation kinds and ignores inactive relation fields', async () => {
     mockImages();
@@ -235,9 +241,16 @@ describe('social_post real Satori and resvg output', () => {
       expect(result.warnings).toEqual([]);
       const png = await render({ media, mediaLayout });
       const decoded = PNG.sync.read(Buffer.from(png.body));
-      const raster = PNG.sync.read(new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng());
-      expect([decoded.width, decoded.height]).toEqual([raster.width, raster.height]);
-      expectPngQuality(decoded.data, raster.data);
+      expect([decoded.width, decoded.height]).toEqual([result.width, result.height]);
+      const skia = await rasterize(svg, decoded.width, decoded.height, config);
+      const unquantized = PNG.sync.read(
+        await sharp(skia.pixels, {
+          raw: { width: skia.width, height: skia.height, channels: 4, premultiplied: true },
+        })
+          .png()
+          .toBuffer(),
+      );
+      expectPngQuality(decoded.data, unquantized.data);
     },
   );
   it.each([1, 2, 3, 4, 5, 6, 12])('renders a %i-image grid without clipping the canvas', async count => {

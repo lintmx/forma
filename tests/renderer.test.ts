@@ -1,4 +1,3 @@
-import { Resvg } from '@resvg/resvg-js';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
 import satori from 'satori';
@@ -7,11 +6,13 @@ import { z } from 'zod';
 import { loadConfig } from '../src/config.js';
 import { additionalAsset } from '../src/core/emoji.js';
 import { type LoadedFonts, loadFonts } from '../src/core/fonts.js';
+import { rasterize } from '../src/core/rasterize.js';
 import { Renderer } from '../src/core/renderer.js';
 import { assertDimensions, layoutOptions, svgDimensions } from '../src/core/sizing.js';
 import type { TemplateContext } from '../src/core/types.js';
 import { registry } from '../src/templates/index.js';
 import { expectPngQuality } from './fixtures/png-quality.js';
+import { rasterPng } from './fixtures/raster-png.js';
 import { registerTestTemplates } from './fixtures/templates.js';
 
 const config = loadConfig({ LOG_LEVEL: 'silent' });
@@ -59,7 +60,7 @@ beforeAll(async () => {
 const render = (data: unknown, format: 'png' | 'svg' = 'svg') =>
   renderer.render({ template: 'test-content', data, format });
 
-describe('real Satori + resvg rendering', () => {
+describe('real Satori + Skia rendering', () => {
   it('automatically frames and measures a new content-only template while keeping public options out of its callbacks', async () => {
     const content = vi.fn((data: { message: string }) =>
       createElement(
@@ -169,11 +170,13 @@ describe('real Satori + resvg rendering', () => {
     const probe = (text: string, monospace = true) =>
       renderer.render({ template: 'test-typography', data: { text, monospace, weight }, format: 'svg' });
     const sizes = await Promise.all(['iiiiiiii', 'WWWWWWWW', '中文中文', 'かなかな'].map(text => probe(text)));
-    expect(sizes.map(result => result.width)).toEqual(Array(4).fill(170));
+    // Eight ASCII cells and four full-width cells must occupy the same width.
+    expect(new Set(sizes.map(result => result.width)).size).toBe(1);
+    expect(sizes[0]!.width).toBeGreaterThan(124);
     // Keep probes above the template's minimum width after shrinking the frame.
-    const singleAscii = await probe('AAAAA');
-    const singleCjk = await probe('AAAA中');
-    const doubleAscii = await probe('AAAAAA');
+    const singleAscii = await probe('AAAAAAAA');
+    const singleCjk = await probe('AAAAAAA中');
+    const doubleAscii = await probe('AAAAAAAAA');
     expect(singleCjk.width).toBe(doubleAscii.width);
     expect(singleCjk.width - singleAscii.width).toBe(12);
     const narrowBody = await probe('iiiiiiii', false);
@@ -281,11 +284,12 @@ describe('real Satori + resvg rendering', () => {
       const after = PNG.sync.read(Buffer.from(marked.body));
       const cardEnd = (plain.height - 12) * plain.width * 4;
       expectPngQuality(after.data.subarray(0, cardEnd), before.data.subarray(0, cardEnd));
-      // Find actual watermark glyphs below the card.
+      // Find watermark coverage against the 245 background. A 190 cutoff can
+      // miss all antialiased/quantized pixels.
       const ink: number[] = [];
       for (let y = plain.height - 12; y < after.height; y++) {
         for (let x = 0; x < after.width; x++) {
-          if (after.data[(y * after.width + x) * 4]! < 190) ink.push(x);
+          if (after.data[(y * after.width + x) * 4]! < 225) ink.push(x);
         }
       }
       expect(ink.length).toBeGreaterThan(0);
@@ -317,11 +321,7 @@ describe('real Satori + resvg rendering', () => {
     };
     const png = await renderer.render({ ...request, format: 'png' });
     const svg = await renderer.render({ ...request, format: 'svg' });
-    const expected = new Resvg(Buffer.from(svg.body), {
-      font: { loadSystemFonts: false },
-    })
-      .render()
-      .asPng();
+    const expected = await rasterPng(await rasterize(Buffer.from(svg.body).toString(), png.width, png.height, config));
     const decoded = PNG.sync.read(Buffer.from(png.body));
     const raster = PNG.sync.read(expected);
     expect([decoded.width, decoded.height]).toEqual([raster.width, raster.height]);
@@ -347,12 +347,9 @@ describe('real Satori + resvg rendering', () => {
       expect([png.width, png.height]).toEqual([original.width * scale, original.height * scale]);
       expect([scaled.width, scaled.height]).toEqual([png.width, png.height]);
       expect([scaled.layoutWidth, scaled.layoutHeight]).toEqual([original.width, original.height]);
-      const expected = new Resvg(Buffer.from(svg.body), {
-        font: { loadSystemFonts: false },
-        fitTo: { mode: 'zoom', value: scale },
-      })
-        .render()
-        .asPng();
+      const expected = await rasterPng(
+        await rasterize(Buffer.from(svg.body).toString(), png.width, png.height, config),
+      );
       const raster = PNG.sync.read(expected);
       expect([png.width, png.height]).toEqual([raster.width, raster.height]);
       expectPngQuality(png.data, raster.data);

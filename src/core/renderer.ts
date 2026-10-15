@@ -1,4 +1,3 @@
-import { Resvg } from '@resvg/resvg-js';
 import satori, { type SatoriOptions } from 'satori';
 import type { Config } from '../config.js';
 import { registry } from '../templates/index.js';
@@ -8,6 +7,7 @@ import { FormaError } from './errors.js';
 import type { LoadedFonts } from './fonts.js';
 import { ImageStore } from './images.js';
 import { encodePng } from './png.js';
+import { rasterize } from './rasterize.js';
 import { assertDimensions, layoutOptions, svgDimensions } from './sizing.js';
 import type { RenderRequest, RenderResult, TemplateContext } from './types.js';
 import { MAX_RENDER_SCALE } from './types.js';
@@ -79,14 +79,7 @@ export class Renderer {
     if (Buffer.byteLength(svg) > this.config.maxOutputBytes)
       throw new FormaError('OUTPUT_LIMIT', 'SVG exceeds output byte limit');
     const body =
-      request.format === 'svg'
-        ? Buffer.from(svg)
-        : await encodePng(
-            new Resvg(svg, {
-              font: { loadSystemFonts: false },
-              fitTo: { mode: 'zoom', value: scale },
-            }).render(),
-          );
+      request.format === 'svg' ? Buffer.from(svg) : await encodePng(await rasterize(svg, width, height, this.config));
     if (body.byteLength > this.config.maxOutputBytes)
       throw new FormaError('OUTPUT_LIMIT', 'Image exceeds output byte limit');
     return {

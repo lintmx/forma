@@ -1,13 +1,18 @@
-import type { RenderedImage } from '@resvg/resvg-js';
 import sharp from 'sharp';
 
-export async function encodePng(raster: RenderedImage): Promise<Buffer> {
+export interface Raster {
+  pixels: Uint8Array;
+  width: number;
+  height: number;
+}
+
+export async function encodePng(raster: Raster): Promise<Buffer> {
   return sharp(raster.pixels, {
     raw: {
       width: raster.width,
       height: raster.height,
       channels: 4,
-      // resvg already premultiplies RGB by alpha; doing it twice darkens edges.
+      // The raster already premultiplies RGB by alpha; doing it twice darkens edges.
       premultiplied: true,
     },
   })
