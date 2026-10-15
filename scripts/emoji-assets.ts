@@ -3,25 +3,14 @@ import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:f
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { unzipSync } from 'fflate';
-import noto from '../emoji/noto-source.json' with { type: 'json' };
-import source from '../emoji/source.json' with { type: 'json' };
-import { normalizeNotoSvg } from './noto-svg.js';
+import manifest from '../emoji/source.json' with { type: 'json' };
 
 const directory = fileURLToPath(new URL('../emoji/', import.meta.url));
 const checksum = (data: Uint8Array) => createHash('sha256').update(data).digest('hex');
 
-const sources = [
-  { ...source, name: 'Twemoji', directory: 'svg', pattern: /^[a-f0-9-]+\.svg$/, normalize: (data: Uint8Array) => data },
-  {
-    ...noto,
-    name: 'Noto Color Emoji',
-    directory: 'noto-svg',
-    pattern: /^emoji_u[a-f0-9_]+\.svg$/,
-    normalize: normalizeNotoSvg,
-  },
-];
+const source = { ...manifest, name: 'Twemoji', directory: 'svg', pattern: /^[a-f0-9-]+\.svg$/ };
 
-async function verifySource(root: string, source: (typeof sources)[number]) {
+async function verifySource(root: string) {
   const files = (await readdir(join(root, source.directory))).sort();
   if (files.length !== source.count) throw new Error(source.name + ' Emoji asset count mismatch');
   const hash = createHash('sha256');
@@ -34,7 +23,7 @@ async function verifySource(root: string, source: (typeof sources)[number]) {
 }
 
 export async function verifyEmoji(root = directory) {
-  for (const source of sources) await verifySource(root, source);
+  await verifySource(root);
 }
 
 export async function fetchEmoji(
@@ -45,30 +34,28 @@ export async function fetchEmoji(
     return new Uint8Array(await response.arrayBuffer());
   },
 ) {
-  for (const source of sources) {
+  try {
+    await verifySource(root);
+  } catch {
+    console.log('Downloading ' + source.name + ' ' + source.version);
+    const data = await download(source.url);
+    if (checksum(data) !== source.sha256) throw new Error('Emoji archive checksum mismatch');
+    const archive = unzipSync(data, {
+      filter: entry =>
+        entry.name.startsWith(source.prefix) && source.pattern.test(entry.name.slice(source.prefix.length)),
+    });
+    await mkdir(root, { recursive: true });
+    const temporary = await mkdtemp(join(root, '.download-'));
     try {
-      await verifySource(root, source);
-    } catch {
-      console.log('Downloading ' + source.name + ' ' + source.version);
-      const data = await download(source.url);
-      if (checksum(data) !== source.sha256) throw new Error('Emoji archive checksum mismatch');
-      const archive = unzipSync(data, {
-        filter: entry =>
-          entry.name.startsWith(source.prefix) && source.pattern.test(entry.name.slice(source.prefix.length)),
-      });
-      await mkdir(root, { recursive: true });
-      const temporary = await mkdtemp(join(root, '.download-'));
-      try {
-        await mkdir(join(temporary, source.directory));
-        for (const [name, bytes] of Object.entries(archive))
-          await writeFile(join(temporary, source.directory, name.slice(source.prefix.length)), source.normalize(bytes));
-        await verifySource(temporary, source);
-        await rm(join(root, source.directory), { recursive: true, force: true });
-        await rename(join(temporary, source.directory), join(root, source.directory));
-      } finally {
-        await rm(temporary, { recursive: true, force: true });
-      }
+      await mkdir(join(temporary, source.directory));
+      for (const [name, bytes] of Object.entries(archive))
+        await writeFile(join(temporary, source.directory, name.slice(source.prefix.length)), bytes);
+      await verifySource(temporary);
+      await rm(join(root, source.directory), { recursive: true, force: true });
+      await rename(join(temporary, source.directory), join(root, source.directory));
+    } finally {
+      await rm(temporary, { recursive: true, force: true });
     }
-    console.log(source.name + ' ' + source.version + ': OK (' + source.count + ' SVGs)');
   }
+  console.log(source.name + ' ' + source.version + ': OK (' + source.count + ' SVGs)');
 }

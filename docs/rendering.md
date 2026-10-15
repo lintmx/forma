@@ -66,8 +66,8 @@ RSS 包含分配器保留空间，渲染后数值会受请求、输出尺寸和 
 复现：先执行 `pnpm build`，再执行 `pnpm exec tsx scripts/verify-font-fallback.ts`；
 样张、尺寸和警告记录及内存原始数据输出到 `artifacts/ancient-fallback/`。
 
-Emoji 按「Twemoji 17.0.3 → Noto Color Emoji 2.051 → 方块占位符」顺序读取本地 SVG 并缓存。
-Twemoji 未收录完整序列或单个文件缺失时尝试 Noto，成功回退不产生警告；目录缺失、权限和其他 I/O 错误仍会抛出。
+Emoji 从本地 Twemoji 17.0.3 SVG 资源读取并缓存。
+未收录完整序列或单个文件缺失时显示方块占位符并产生警告；目录缺失、权限和其他 I/O 错误仍会抛出。
 公共渲染层将完整序列替换为内嵌图片，
 覆盖肤色、ZWJ、国旗、地区旗帜和键帽组合；测量与最终渲染共用相同处理，模板无需单独适配。
 `FE0F` 请求彩色 Emoji；标准 `FE0E` 文本变体优先使用已有文字字形，缺字时回退到 Emoji 图片。
@@ -83,14 +83,18 @@ Satori 0.55.1 的本地补丁仅将行内换行片段的 SVG ID 后缀改为 `-f
 避免与子图片的 mask ID 冲突；补丁随 pnpm 安装应用，SVG 与 PNG 使用相同结果。
 升级 Satori 时需复测多行行内 Emoji，确认上游修复后再移除补丁。
 
-[Twemoji 清单](../emoji/source.json) 和 [Noto 清单](../emoji/noto-source.json)
-固定官方资源版本、下载来源及归档/安装后完整 SVG 集合的 SHA-256。
+[Twemoji 清单](../emoji/source.json) 固定官方资源版本、下载来源及归档/安装后完整 SVG 集合的 SHA-256。
 `pnpm emoji:fetch` 下载并校验资源，`pnpm emoji:verify` 离线校验；`dev` 和 `build` 自动准备资源，
-运行时不联网。SVG 分别安装到 `emoji/svg/` 和 `emoji/noto-svg/`，不提交 Git。
-Noto 与项目 Unicode 17 呈现数据对齐；当前两套资源的有效 Emoji 覆盖基本重合，备用图源不代表新增完整 Unicode 覆盖。
-Noto 安装前将内联样式转为呈现属性、展开裁剪中的局部 `use` 引用，并移除无滤镜用途的
-`enable-background`、未引用的图层 ID 和编辑器版本/零偏移属性；不改变图形内容，不扩展运行时 SVG 适配器支持范围。
-Noto 清单的 `svgSha256` 校验转换后的文件；转换实现见 [noto-svg.ts](../scripts/noto-svg.ts)。
+运行时不联网。SVG 安装到 `emoji/svg/`，不提交 Git。
+
+2026-10-15 对通过清单哈希校验的 Twemoji 17.0.3（4009 项）与 Noto Color Emoji 2.051（3731 项）
+按码点序列比较：去除 FE0E/FE0F、统一十六进制前导零和文件名分隔符后，共有 3717 项重合，
+Noto 独有 14 项（14 / 3731 = 0.38%），Twemoji 独有 292 项；双向差异占并集
+306 / 4023 = 7.61%，低于 10%，因此移除 Noto SVG 资源及回退链路，减少约 28.86 MiB 的 SVG 内容。
+Noto 独有项是 U+0023、U+002A、U+0030–0039、U+20E3 和 U+FE82B；这些单独码点
+不被当前 Emoji 候选匹配器识别，实际 Emoji 图片覆盖没有减少。完整键帽序列仍由 Twemoji 提供。
+单个 Twemoji 文件缺失时不再有备用图源，而是按上述规则显示占位符和警告。
+
 更新资源时同步清单、
 [文本呈现元数据](../emoji/presentation.json) 及测试；元数据记录 Unicode 17 数据来源和哈希，
 `textDefault` 来自单码点 unqualified 条目，`textVariants` 来自标准 FE0E 变体条目。

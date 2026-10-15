@@ -22,16 +22,14 @@ describe('pinned emoji resources', () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
-  it('verifies the Noto archive independently after reusing Twemoji', async () => {
+  it('requires only Twemoji in a fresh resource directory', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'forma-emoji-'));
     try {
       await symlink(resolve('emoji/svg'), join(directory, 'svg'));
-      const download = vi.fn(async () => new Uint8Array([1, 2, 3]));
-      await expect(fetchEmoji(directory, download)).rejects.toThrow('archive checksum mismatch');
-      expect(download).toHaveBeenCalledExactlyOnceWith(
-        'https://codeload.github.com/googlefonts/noto-emoji/zip/refs/tags/v2.051',
-      );
-      await expect(verifyEmoji(directory)).rejects.toMatchObject({ code: 'ENOENT' });
+      const download = vi.fn(async () => new Uint8Array());
+      await verifyEmoji(directory);
+      await fetchEmoji(directory, download);
+      expect(download).not.toHaveBeenCalled();
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

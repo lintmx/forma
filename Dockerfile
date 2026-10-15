@@ -17,7 +17,7 @@ COPY fonts ./fonts
 COPY scripts/font-assets.ts scripts/fetch-fonts.ts ./scripts/
 RUN pnpm fonts:fetch
 COPY emoji ./emoji
-COPY scripts/emoji-assets.ts scripts/noto-svg.ts scripts/fetch-emoji.ts ./scripts/
+COPY scripts/emoji-assets.ts scripts/fetch-emoji.ts ./scripts/
 RUN pnpm emoji:fetch
 COPY . .
 RUN pnpm build

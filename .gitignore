@@ -12,5 +12,4 @@ fonts/*.woff
 fonts/*.woff2
 fonts/.download-*/
 emoji/svg/
-emoji/noto-svg/
 emoji/.download-*/
