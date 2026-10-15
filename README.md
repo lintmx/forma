@@ -18,7 +18,7 @@ pnpm dev
 ```
 
 打开 [Playground](http://localhost:3000/dev/)，选择模板、编辑 JSON 并下载图片。
-首次启动会从上游 GitHub 下载并校验字体；后续启动复用本地文件。
+首次启动会从上游 GitHub 下载并校验字体和 Emoji；后续启动复用本地文件。
 可参考 [.env.example](.env.example) 创建 `.env`，调整端口等配置。
 
 ## 渲染图片

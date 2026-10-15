@@ -11,6 +11,7 @@ src/templates/    模板实现；index.ts 为生产注册入口
 src/server.ts     服务启动与退出
 playground/       React + Vite 编辑与预览界面
 fonts/            字体配置、下载清单与许可证
+emoji/            Emoji 下载清单、呈现元数据与许可证
 scripts/          构建、开发重启、字体准备与渲染验证
 tests/            单元测试、布局及 HTTP/worker 测试
 tests/fixtures/   仅供测试使用的模板和 worker 入口
@@ -29,10 +30,11 @@ tests/fixtures/   仅供测试使用的模板和 worker 入口
 | `pnpm test` | 单元测试及本地 HTTP、worker、图片测试 |
 | `pnpm test:e2e` | API 与生产模板的 HTTP 图片生成测试 |
 | `pnpm fonts:fetch` / `pnpm fonts:verify` | 下载并校验默认字体 / 仅离线校验 |
+| `pnpm emoji:fetch` / `pnpm emoji:verify` | 下载并校验 Emoji / 仅离线校验 |
 | `pnpm preview:typography` | 生成排版样张到 `artifacts/typography/` |
 | `pnpm build` | 检查并构建生产服务、worker 与 Playground |
 
-首次单独运行测试前执行 `pnpm fonts:fetch`。代码风格以 [biome.json](../biome.json) 为准：
+首次单独运行测试前执行 `pnpm fonts:fetch` 和 `pnpm emoji:fetch`。代码风格以 [biome.json](../biome.json) 为准：
 两空格、LF、120 列，JS/TS 使用单引号与分号。Markdown 不由 Biome 检查。
 仓库包含 VS Code 推荐扩展与工作区设置，可安装 Biome 扩展使用相同规则。
 

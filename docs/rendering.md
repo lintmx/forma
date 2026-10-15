@@ -44,9 +44,26 @@ Markdown 正文使用 GFM 和可见单换行；代码块保留缩进与空行，
 CJK 和等宽字体没有独立斜体文件，由 Satori 合成。汉字默认采用 SC / Maple CN 字形，不自动切换地区字形。
 Maple 未覆盖的部分字符可能回退到正文字体，补充符号和 Emoji 也不保证等宽对齐。
 
-Emoji 使用本地 `@twemoji/svg`，按需读取并缓存。字体与 Emoji 不覆盖全部 Unicode；
-无法找到字形时返回 `MISSING_GLYPH`。字体及 Emoji 的版权和署名要求见
-[第三方声明](../THIRD_PARTY_NOTICES.md)。
+Emoji 使用本地 Twemoji 17.0.3 SVG，按需读取并缓存。公共渲染层将完整序列替换为内嵌图片，
+覆盖肤色、ZWJ、国旗、地区旗帜和键帽组合；测量与最终渲染共用相同处理，模板无需单独适配。
+`FE0F` 请求彩色 Emoji；标准 `FE0E` 文本变体优先使用已有文字字形，缺字时回退到 Emoji 图片。
+非标准的冗余选择符（如 `💕︎` 的 `FE0E`）忽略后匹配基础 Emoji。
+没有选择符的默认文本符号（如 `©`、`❤`）仍优先使用字体。
+
+无法覆盖的 Emoji 候选序列显示统一问号占位符，并通过 `X-Render-Warnings: EMOJI_UNAVAILABLE`
+返回警告（每次请求去重），不会中断整张图片。普通文字缺字仍返回 422 `MISSING_GLYPH`；
+此降级不代表支持全部 Unicode，也不吞掉资源目录缺失或权限等部署错误。
+
+Satori 0.55.1 的本地补丁仅将行内换行片段的 SVG ID 后缀改为 `-fragment-<index>`，
+避免与子图片的 mask ID 冲突；补丁随 pnpm 安装应用，SVG 与 PNG 使用相同结果。
+升级 Satori 时需复测多行行内 Emoji，确认上游修复后再移除补丁。
+
+[emoji/source.json](../emoji/source.json) 固定官方资源版本、下载来源及归档/完整 SVG 集合的 SHA-256。
+`pnpm emoji:fetch` 下载并校验资源，`pnpm emoji:verify` 离线校验；`dev` 和 `build` 自动准备资源，
+运行时不联网。SVG 下载到 `emoji/svg/`，不提交 Git。更新资源时同步清单、
+[文本呈现元数据](../emoji/presentation.json) 及测试；元数据记录 Unicode 17 数据来源和哈希，
+`textDefault` 来自单码点 unqualified 条目，`textVariants` 来自标准 FE0E 变体条目。
+字体及 Emoji 的版权和署名要求见 [第三方声明](../THIRD_PARTY_NOTICES.md)。
 
 ## 字体准备与自定义
 

@@ -7,13 +7,15 @@ settings:
 overrides:
   satori@0.55.1>fflate: 0.7.5
 
+patchedDependencies:
+  satori@0.55.1:
+    hash: fa71d358a9562be40ffebc40f3dcd10511d33e106c5a007c2b7f2335a9f90714
+    path: patches/satori@0.55.1.patch
+
 importers:
 
   .:
     dependencies:
-      '@twemoji/svg':
-        specifier: 15.0.0
-        version: 15.0.0
       '@xmldom/xmldom':
         specifier: 0.9.12
         version: 0.9.12
@@ -40,7 +42,7 @@ importers:
         version: 19.3.0(react@19.3.0)
       satori:
         specifier: 0.55.1
-        version: 0.55.1
+        version: 0.55.1(patch_hash=fa71d358a9562be40ffebc40f3dcd10511d33e106c5a007c2b7f2335a9f90714)
       sharp:
         specifier: 0.35.5
         version: 0.35.5(@types/node@24.19.2)
@@ -641,9 +643,6 @@ packages:
     resolution: {integrity: sha512-qLmlrca+VRR+JZAmN0TYCmztVabi3YWKAbxXD9HLHcUP5HKOk2wh+y/9nMqJsJLQyQqItBeNjnLHLfsDS65RnQ==}
     cpu: [x64]
     os: [win32]
-
-  '@twemoji/svg@15.0.0':
-    resolution: {integrity: sha512-ZSPef2B6nBaYnfgdTbAy4jgW95o7pi2xPGwGCU+WMTxo7J6B1lMPTWwSq/wTuiMq+N0khQ90CcvYp1wFoQpo/w==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -1610,8 +1609,6 @@ snapshots:
   '@skia-canvas/win32-x64@4.0.0':
     optional: true
 
-  '@twemoji/svg@15.0.0': {}
-
   '@types/chai@5.2.3':
     dependencies:
       '@types/deep-eql': 4.0.2
@@ -1952,7 +1949,7 @@ snapshots:
 
   rou3@1.0.0: {}
 
-  satori@0.55.1:
+  satori@0.55.1(patch_hash=fa71d358a9562be40ffebc40f3dcd10511d33e106c5a007c2b7f2335a9f90714):
     dependencies:
       '@shuding/opentype.js': 1.4.0-beta.0
       css-background-parser: 0.1.0

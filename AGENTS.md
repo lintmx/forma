@@ -23,11 +23,12 @@ Forma 将 JSON 数据通过 TypeScript / TSX 模板渲染为 PNG 或 SVG，提�
 | `pnpm exec vitest run tests/<name>.test.ts` | 运行受影响的测试文件 |
 | `pnpm test` | 完整 Vitest 测试集 |
 | `pnpm test:e2e` | API 与生产模板的 HTTP 图片生成测试，不含浏览器交互 |
-| `pnpm build` | 准备字体、检查并构建服务、worker 与 Playground |
+| `pnpm build` | 准备字体和 Emoji、检查并构建服务、worker 与 Playground |
 | `pnpm preview:typography` | 输出排版样张到 `artifacts/typography/` |
 
-首次单独运行渲染测试前执行 `pnpm fonts:fetch`；`dev` 和 `build` 已包含此步骤。
-下载需要网络，已有字体可用 `pnpm fonts:verify` 离线校验。格式以 `biome.json` 为准，Markdown 不由 Biome 检查。
+首次单独运行渲染测试前执行 `pnpm fonts:fetch` 和 `pnpm emoji:fetch`；`dev` 和 `build` 已包含这两步。
+下载需要网络，已有资源可用 `pnpm fonts:verify` 和 `pnpm emoji:verify` 离线校验。
+格式以 `biome.json` 为准，Markdown 不由 Biome 检查。
 
 ## 模板与渲染边界
 

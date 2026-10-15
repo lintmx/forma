@@ -28,6 +28,35 @@ afterAll(async () => {
 });
 
 describe('production template catalog', () => {
+  it('returns emoji placeholders and warnings through the real worker while ordinary missing text still fails', async () => {
+    const app = createApp(config, pool);
+    for (const format of ['svg', 'png']) {
+      const response = await app.fetch(
+        new Request('http://localhost/v1/render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ template: 'example', format, data: { text: '中文 💕︎ 🫸🏽 🧑🏽‍🩰 🫪 😀‍🚀 😀‍🚀' } }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Render-Warnings')).toBe('EMOJI_UNAVAILABLE');
+      const body = Buffer.from(await response.arrayBuffer());
+      if (format === 'svg') expect(body.toString().match(/<image\b/g)).toHaveLength(6);
+      else expect(body.subarray(1, 4).toString()).toBe('PNG');
+    }
+    const missing = await app.fetch(
+      new Request('http://localhost/v1/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: 'example', data: { text: '😀‍🚀\u{10ffff}' }, format: 'svg' }),
+      }),
+    );
+    expect(missing.status).toBe(422);
+    expect((await missing.json()).error.code).toBe('MISSING_GLYPH');
+    const clean = await pool.render({ template: 'example', data: { text: '💕︎ 🫪' }, format: 'svg' });
+    expect(clean.warnings).toEqual([]);
+  });
+
   it('starts real workers and serves example as the default template', async () => {
     expect(registry.list().map(template => template.id)).toEqual(['example', 'social_post', 'comparison', 'article']);
     const app = createApp(config, pool);

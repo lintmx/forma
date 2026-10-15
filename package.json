@@ -9,8 +9,8 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "pnpm fonts:fetch && tsx scripts/dev.ts",
-    "build": "pnpm fonts:fetch && pnpm check && tsx scripts/build.ts && vite build",
+    "dev": "pnpm fonts:fetch && pnpm emoji:fetch && tsx scripts/dev.ts",
+    "build": "pnpm fonts:fetch && pnpm emoji:fetch && pnpm check && tsx scripts/build.ts && vite build",
     "start": "node --env-file-if-exists=.env dist/server.js",
     "check": "biome check . && tsc --noEmit",
     "lint": "biome lint .",
@@ -20,10 +20,11 @@
     "test:e2e": "vitest run tests/api.test.ts tests/templates.test.ts",
     "preview:typography": "tsx scripts/render-typography.ts",
     "fonts:verify": "tsx scripts/verify-fonts.ts",
-    "fonts:fetch": "tsx scripts/fetch-fonts.ts"
+    "fonts:fetch": "tsx scripts/fetch-fonts.ts",
+    "emoji:fetch": "tsx scripts/fetch-emoji.ts",
+    "emoji:verify": "tsx scripts/verify-emoji.ts"
   },
   "dependencies": {
-    "@twemoji/svg": "15.0.0",
     "@xmldom/xmldom": "0.9.12",
     "diff": "9.0.0",
     "entities": "8.1.0",

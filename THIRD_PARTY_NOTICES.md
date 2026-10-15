@@ -64,10 +64,19 @@ hieroglyphs at weight 400 and does not guarantee a monospace grid.
 Emoji graphics are by Twitter, Inc. and other contributors to
 [Twemoji](https://github.com/jdecked/twemoji), licensed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-The locally bundled, optimized SVG distribution is `@twemoji/svg@15.0.0`
-by Samuel Kopp (package wrapper under MIT; license included in node_modules).
-Original artwork is used without further modification; SVG serialization may
-be optimized by that distribution. When sharing images containing Twemoji,
-retain suitable attribution in accompanying documentation or credits.
+The unmodified SVG artwork comes from the official
+[Twemoji v17.0.3 source archive](https://github.com/jdecked/twemoji/releases/tag/v17.0.3).
+[emoji/source.json](emoji/source.json) pins the archive and extracted SVG checksums;
+the build downloads the assets for offline runtime use. See
+[emoji/LICENSE-GRAPHICS](emoji/LICENSE-GRAPHICS). When sharing images containing
+Twemoji, retain suitable attribution in accompanying documentation or credits.
+
+## Unicode Emoji presentation data
+
+[emoji/presentation.json](emoji/presentation.json) derives text presentation
+defaults and variation sequences from Unicode 17.0 `emoji-test.txt` and
+`emoji-variation-sequences.txt`; source URLs and checksums are recorded there.
+Copyright © 1991–2025 Unicode, Inc. Distributed under the Unicode License V3;
+see [emoji/LICENSE-UNICODE](emoji/LICENSE-UNICODE).
 
 Runtime and build dependency licenses remain with their respective packages.

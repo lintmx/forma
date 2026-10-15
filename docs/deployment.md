@@ -12,12 +12,13 @@ pnpm build
 NODE_ENV=production pnpm start
 ```
 
-`pnpm build` 准备字体、运行静态检查，并构建服务、worker 和 Playground。
+`pnpm build` 准备字体及 Emoji、运行静态检查，并构建服务、worker 和 Playground。
 `pnpm dev` 和 `pnpm start` 自动读取根目录 `.env`，已设置的 shell 环境变量优先；修改后需重启。
 生产模式默认关闭 `/dev/`，需要时设置 `PLAYGROUND_ENABLED=true`。
 
-启动会等待 worker 字体加载和 Satori 预热完成。`pnpm start` 不下载字体；离线运行前应准备好
-`dist/`、生产依赖、字体配置及字体文件，或使用预先构建的镜像。
+启动会等待 worker 字体加载和 Satori 预热完成。`pnpm start` 不下载字体或 Emoji；离线运行前应准备好
+`dist/`、生产依赖、字体配置及字体文件、`emoji/svg/`，或使用预先构建的镜像。
+可用 `pnpm fonts:verify` 和 `pnpm emoji:verify` 离线检查资源完整性。
 
 ## Docker Compose
 
@@ -28,7 +29,7 @@ docker compose logs -f forma
 docker compose down
 ```
 
-镜像基于 Node.js 24 / Debian bookworm，采用多阶段构建，内置字体和许可，以非 root 用户运行并提供健康检查。
+镜像基于 Node.js 24 / Debian bookworm，采用多阶段构建，内置字体、Emoji 和许可，以非 root 用户运行并提供健康检查。
 默认发布到 `127.0.0.1:3000`；通过 `FORMA_BIND`、`FORMA_PORT` 修改宿主机绑定地址和端口。
 Compose 的 `.env` 用于变量替换，仅 [compose.yaml](../compose.yaml) 中的 `environment` 条目传入容器；
 其他服务变量需自行补充到该配置。

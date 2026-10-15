@@ -2,7 +2,7 @@ import satori, { type SatoriOptions } from 'satori';
 import type { Config } from '../config.js';
 import { registry } from '../templates/index.js';
 import { CardFrame, cardOptionsSchema } from './card.js';
-import { additionalAsset } from './emoji.js';
+import { additionalAsset, prepareEmoji } from './emoji.js';
 import { FormaError } from './errors.js';
 import type { LoadedFonts } from './fonts.js';
 import { ImageStore } from './images.js';
@@ -28,6 +28,9 @@ export class Renderer {
     const template = registry.get(request.template);
     const data = registry.validate(request.template, request.data);
     const warnings: string[] = [];
+    const missingEmoji = () => {
+      if (!warnings.includes('EMOJI_UNAVAILABLE')) warnings.push('EMOJI_UNAVAILABLE');
+    };
     let assets: TemplateContext['assets'] = {};
     if (template.assets) {
       try {
@@ -45,7 +48,7 @@ export class Renderer {
     const base: Omit<SatoriOptions, 'width' | 'height'> = {
       fonts: this.fonts.fonts,
       embedFont: true,
-      loadAdditionalAsset: additionalAsset,
+      loadAdditionalAsset: (language, segment) => additionalAsset(language, segment, missingEmoji),
       onStyleError: error => {
         throw error;
       },
@@ -57,7 +60,12 @@ export class Renderer {
           monospaceFontFamily: context.monospaceFontFamily,
         })
       : undefined;
-    const dimensions = await layoutOptions(template.sizing, measure, base, this.config);
+    const dimensions = await layoutOptions(
+      template.sizing,
+      await prepareEmoji(measure, missingEmoji),
+      base,
+      this.config,
+    );
     const card = CardFrame({
       children: template.render(data, context),
       fontFamily: context.fontFamily,
@@ -65,7 +73,7 @@ export class Renderer {
       watermark,
       autoWidth: template.sizing.mode === 'auto-width',
     });
-    const svg = await satori(card, { ...base, ...dimensions });
+    const svg = await satori(await prepareEmoji(card, missingEmoji), { ...base, ...dimensions });
     const { width: layoutWidth, height: layoutHeight } = svgDimensions(svg);
     const width = layoutWidth * scale;
     const height = layoutHeight * scale;

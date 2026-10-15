@@ -49,7 +49,7 @@ PNG 固定输出 2×，SVG 保留原始布局尺寸。
 | `X-Image-Width` / `X-Image-Height` | 实际输出宽高 |
 | `X-Layout-Width` / `X-Layout-Height` | 原始布局宽高 |
 | `X-Render-Scale` | PNG 为 2，SVG 为 1，仅用于说明结果 |
-| `X-Render-Warnings` | 图片资源不可用时包含 `IMAGE_UNAVAILABLE`，正常时为空 |
+| `X-Render-Warnings` | 逗号分隔且去重：图片不可用为 `IMAGE_UNAVAILABLE`，Emoji 使用占位符为 `EMOJI_UNAVAILABLE`；正常时为空 |
 
 资源加载失败时，模板可显示占位或替代文字，仍返回成功图片。调用方应检查警告头。
 图片和错误响应均使用 `Cache-Control: no-store`。
@@ -77,7 +77,7 @@ PNG 固定输出 2×，SVG 保留原始布局尺寸。
 | 404 | 模板或路由不存在 |
 | 413 | 请求体超过上限 |
 | 415 | 请求不是 `application/json` |
-| 422 | 尺寸、像素或输出字节超限，或字体缺字（`MISSING_GLYPH`） |
+| 422 | 尺寸、像素或输出字节超限，或普通文字缺字（`MISSING_GLYPH`）；缺失 Emoji 使用占位符并返回 200 与警告头 |
 | 500 | 内部渲染错误（`INTERNAL_ERROR`） |
 | 503 | 队列已满或渲染服务不可用 |
 | 504 | 请求超时 |
