@@ -1,14 +1,15 @@
-# forma
+# Forma
 
-独立的 Schema / TSX 卡片渲染服务。JSON → Zod → Satori SVG → Skia Canvas CPU 栅格像素 → Sharp PNG。
-运行时无需浏览器、MagiBot、数据库、Redis 或外部字体服务。
+基于 TypeScript 和 TSX 模板的卡片渲染服务，将 JSON 数据转换为 PNG 或 SVG，适用于消息卡片、内容分享和数据展示。
 
-提供 `example` 纯文本示例和 `social_post` 社交动态，Playground 启动后自动选中 `example` 并预览。
-`src/templates/index.ts` 是统一注册入口；新增业务模板按文末说明注册。
+- **Schema 驱动**：通过 Zod 校验数据，模板 API 提供字段定义和示例。
+- **无需浏览器**：使用 Satori、Skia Canvas 和 Sharp 渲染，支持本地字体与 Emoji。
+- **即时预览**：内置 Playground，预览与下载使用同一渲染 API。
+- **独立部署**：支持 Node.js 和 Docker，无需数据库或 Redis。
 
-## 快速启动
+## 快速开始
 
-需要 Node.js 22.12+（建议 Node.js 24 LTS）、pnpm 10.32.1。
+需要 Node.js 22.12+ 和 pnpm 10.32.1。在仓库根目录运行：
 
 ```sh
 corepack enable
@@ -16,500 +17,48 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-打开 http://localhost:3000/dev/。API 与 Vite Playground 共用端口，模板及服务代码修改会自动重启服务，前端支持 HMR。
-`pnpm dev` 自动读取项目根目录的 `.env`（可从 `.env.example` 复制），例如 `PORT=3100` 会监听 3100 端口。
-已设置的 shell 环境变量优先；没有 `.env` 时使用默认配置。修改 `.env` 后重启 `pnpm dev` 生效。
-`pnpm dev` 启动前会下载缺失或校验不通过的默认字体，首次准备需要访问上游 GitHub；
-本地字体 SHA-256 校验通过后不再下载。字体首次解析完成后才开始监听端口。Playground 编辑 JSON 后自动调用真实的
-`POST /v1/render`，显示返回的 PNG、尺寸、错误和图片降级提示；下载也调用同一 API。
-输入错误时，旧图片明确标记为上一次成功预览，下载按钮禁用。
-PNG 固定为 2× 输出；预览按原始布局大小显示，下载保留完整像素分辨率。
+打开 [Playground](http://localhost:3000/dev/)，选择模板、编辑 JSON 并下载图片。
+首次启动会从上游 GitHub 下载并校验字体；后续启动复用本地文件。
+可参考 [.env.example](.env.example) 创建 `.env`，调整端口等配置。
+
+## 渲染图片
 
 ```sh
-pnpm format           # Biome 统一格式
-pnpm format:check     # 仅检查格式
-pnpm lint             # Biome lint
-pnpm check            # Biome 格式、lint、import 排序 + TypeScript
-pnpm fonts:fetch      # 下载固定版本字体；已校验的本地文件直接复用
-pnpm test             # 单元测试 + 本地 HTTP/worker/图片端到端测试
-pnpm test:e2e         # 生产模板目录 + HTTP 图片生成测试
-pnpm fonts:verify     # 仅校验本地字体 SHA-256，不联网
-pnpm build            # 生产服务、worker、Playground
-NODE_ENV=production pnpm start
-```
-
-代码风格由根目录 `biome.json` 统一管理：两空格缩进、LF 换行、120 列，JS/TS 使用单引号和分号。
-覆盖 JS/TS/JSX/TSX、JSON/JSONC、CSS 和 HTML；HTML 格式化使用 Biome 的实验性支持。
-依赖、构建目录和渲染产物不参与检查，Markdown、YAML 等 Biome 尚不支持的文件不做格式化。
-保留现有非空断言和字符串拼接写法，类型正确性由 TypeScript 检查。
-Satori TSX 仅用于一次性图片渲染，因此仅在图片模板范围关闭 DOM 无障碍和动态列表 key 规则；
-Playground 仍检查这些规则。
-`pnpm check` 同时检查格式、lint、import 排序和 TypeScript，`pnpm build` 会先运行该检查。
-需要应用安全的 lint 修复和 import 排序时运行 `pnpm exec biome check --write .`。
-
-VS Code 打开项目后安装推荐的 [Biome 扩展](https://marketplace.visualstudio.com/items?itemName=biomejs.biome)，
-工作区设置会使用项目内的 Biome，保存时自动格式化、应用安全修复并整理 import。
-编辑器与命令行共用 `biome.json`；扩展配置参见 [Biome VS Code 文档](https://biomejs.dev/reference/vscode/)。
-
-生产模式默认关闭 `/dev`；需要时设置 `PLAYGROUND_ENABLED=true`。
-`pnpm start` 同样自动读取项目根目录的 `.env`，已设置的 shell 环境变量优先；
-没有 `.env` 时使用默认配置。修改 `.env` 后重启服务生效。
-
-## Docker
-
-```sh
-docker compose up --build -d
-curl http://localhost:3000/healthz
-docker compose logs -f forma
-docker compose down
-```
-
-多阶段构建；最终镜像只包含生产依赖、编译代码、Playground 静态文件和字体，
-以非 root 用户运行，包含健康检查。无需挂载字体或访问外部字体 CDN。
-Compose 默认发布到本机 127.0.0.1:3000；通过 `FORMA_PORT`、`FORMA_BIND` 修改。
-服务本身不含鉴权，公开部署时在反向代理层控制访问与流量。
-
-## API
-
-可先通过 `GET /healthz` 和 `GET /v1/templates` 检查就绪状态及已注册模板。
-`example` 接受 `text` 字段（1–4000 字符），保留空白和换行，不解析 Markdown 或 HTML。
-可选 `monospace: true` 使用 Maple Mono CN 等宽字体；省略或设为 false 使用正文字体。
-画布固定 620px 宽，高度由文本换行自动决定：
-
-```sh
-curl http://localhost:3000/v1/render \
+curl --fail-with-body http://localhost:3000/v1/render \
   -H 'Content-Type: application/json' \
-  --data '{"template":"example","data":{"text":"你好，世界。\nThis is a plain text example."},"format":"png"}' \
+  --data '{"template":"example","data":{"text":"你好，世界。\nHello, Forma."},"format":"png"}' \
   --output example.png
 ```
 
-将 `format` 改为 `svg` 得到 SVG；省略时默认 PNG。返回图片二进制，尺寸在
-`X-Image-Width`、`X-Image-Height` 响应头中。模板图片加载失败时返回
-`X-Render-Warnings: IMAGE_UNAVAILABLE`，模板通过空的 assets 显示降级内容。
-没有 base64 JSON 包装，客户端无需执行 React 或 JavaScript。
+接口直接返回图片二进制。PNG 固定为 2× 输出；将 `format` 改为 `svg` 可获取原始布局尺寸的矢量图。
+可选的 `watermark` 放在请求顶层，`data` 只包含模板业务数据。
 
-PNG 将 Skia Canvas 的预乘 RGBA 栅格像素直接交给 Sharp 编码，省去中间 PNG 的编码与解码。
-PNG 固定输出 2x：内部以 4x 渲染，再用 Lanczos3 缩小到 2x。Playground 不再提供清晰度选择，
-API 请求不再接受 `scale` 字段（旧客户端需删除该字段）。
-PNG 使用调色板减色：`quality: 95`、`effort: 1`、`dither: 0.2`、`compressionLevel: 5`，
-关闭自适应行过滤，在文字边缘、体积和编码耗时之间折中。
-SVG 保留原始布局尺寸。`X-Image-Width/Height` 返回实际输出尺寸，
-`X-Layout-Width/Height` 返回布局尺寸，`X-Render-Scale` 为 PNG 2 / SVG 1，仅用于结果说明。
-默认允许 3200 万输出像素、1.28 亿中间像素和 64 MiB 输出；异常大请求在分配前拒绝，返回 422。
-已有部署显式设置的旧环境变量仍会生效，可参照 `.env.example` 调整。
+通过 `GET /v1/templates` 查看可用模板、Schema 和示例；具体字段也可在 Playground 中查看。
+完整请求、响应和错误说明见 [API 文档](docs/api.md)。
 
-| 路由 | 返回 |
+## 部署
+
+```sh
+docker compose up --build -d
+curl --fail http://localhost:3000/healthz
+```
+
+Compose 默认绑定 `127.0.0.1:3000`，生产模式默认关闭 Playground。
+服务不内置鉴权，对外提供访问时需在反向代理层配置访问控制和限流。
+Node.js 部署、环境变量和资源预算见 [部署指南](docs/deployment.md)。
+
+## 开发与贡献
+
+新增模板从 [模板开发指南](docs/development.md) 开始。提交变更前运行 `pnpm check` 和相关测试；
+涉及排版时，使用 Playground 检查真实输出。问题反馈请附最小请求、运行环境和预期结果。
+
+## 文档
+
+| 文档 | 内容 |
 | --- | --- |
-| POST /v1/render | PNG / SVG |
-| GET /v1/templates | 模板列表，含 Schema、尺寸策略、Mock Data |
-| GET /v1/templates/:template | 单个模板元数据 |
-| GET /healthz | 就绪状态、可用 worker、执行中及排队数量 |
+| [API](docs/api.md) | 请求格式、模板发现、响应头、错误处理 |
+| [部署指南](docs/deployment.md) | Node.js、Docker、环境变量与并发配置 |
+| [开发指南](docs/development.md) | 项目结构、模板注册、尺寸策略与验证 |
+| [渲染与资源](docs/rendering.md) | 渲染边界、排版、字体、Emoji 与图片加载 |
 
-具体字段及长度上限以各模板 Schema 和 API 文档为准。
-未知字段被拒绝；不接受任意 JSX、HTML、CSS 或可执行代码。
-
-所有已注册模板均自动支持请求顶层可选的 `watermark`，与 `template`、`format` 并列：
-在白色卡片下方显示浅灰色居中的水印。Playground 提供独立的「底部水印」输入框，
-JSON DATA 只填写模板业务内容。旧的 `data.watermark` 写法返回 400，需移到请求顶层。
-最多 160 字符，去除首尾空白；省略或空字符串时不显示，也不预留额外空间。
-长文字按卡片宽度换行，画布高度由 Satori 自动计算；PNG 和 SVG 均包含水印。
-
-```json
-{
-  "template": "example",
-  "data": {
-    "text": "你好，世界"
-  },
-  "format": "png",
-  "watermark": "Generated by Forma"
-}
-```
-
-错误格式统一：
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Template data is invalid",
-    "details": [{ "path": ["text"], "message": "Invalid input" }]
-  }
-}
-```
-
-常见状态：400 JSON/Schema 错误、404 未知模板、413 请求过大、415 非 JSON、
-422 尺寸/输出上限或缺字、503 队列满/服务不可用、504 超时。队列满时可按
-`Retry-After` 重试。内部错误不返回堆栈、文件路径或远程资源凭据。
-
-### social_post 社交动态
-
-沿用 `forma_old` 的业务字段与主要排版：作者和认证标记、正文、译文、媒体、回复链、引用、转发和底部来源。
-模板内部使用蓝色链接与话题、灰色译文框和圆角媒体区；背景、外框及水印仍由当前统一外框管理。
-正文、译文、回复及引用的 hashtag 和 @提及与文章共用 Twitter 识别规则，包括 15 字符用户名限制。
-HTTP(S) 链接也经同一解析器识别，末尾标点不纳入高亮；邮箱、纯数字话题和 URL 内片段不会被误识别为提及或话题。
-文章与社交动态的文字高亮共用 `#1d9bf0`，包括 hashtag、@提及、正文链接、Markdown 链接及社交动态的翻译元信息。
-宽度按可见文本在 400–700px 之间调整，高度由实际布局计算，图片不撑大卡片宽度。
-
-```json
-{
-  "template": "social_post",
-  "data": {
-    "author": { "name": "News", "handle": "news", "verified": true },
-    "content": "记录今天的灵感。\n#日常 @forma",
-    "translation": {
-      "text": "今日のインスピレーションを記録。\n#日常 @forma",
-      "sourceLanguage": "中文",
-      "model": "GPT"
-    },
-    "source": "Twitter",
-    "url": "https://example.com/post/1",
-    "publishedAt": "2026-09-04 12:30"
-  },
-  "format": "png",
-  "watermark": "Generated by Forma"
-}
-```
-
-`data` 仅包含业务内容；旧版 `schemaVersion`、`type`、`options` 不传入，水印放在请求顶层。
-所有顶层字段可选，未知字段及嵌套对象中的未知字段会被拒绝。
-
-| 字段 | 展示与限制 |
-| --- | --- |
-| author | name、handle 最多 160 字符；handle 自动添加一个 @；avatarUrl 为公开 HTTP(S) 图片；verified 显示认证标记。 |
-| content / translation | 正文和 translation.text 最多 4000 字符，保留换行，共用链接、话题和提及着色；译文可带 sourceLanguage（80）和 model（160）。 |
-| media | 最多 12 项；url 必填，可选 type（image/video/gif/audio）、previewUrl、alt（400）。地址最多 2048 字符，优先使用 previewUrl。 |
-| mediaLayout | 默认 vertical，按原比例竖排；grid 为单图、双图左右、三图一大两小、四图 2×2、更多三列裁切；collage 横向等宽完整排列，无间隙。 |
-| postKind | 默认 post；reply 展示 replyChain 最近九条；quote 展示 quotedPost；reshare 展示转发人。 |
-| replyChain / quotedPost | 快照支持 author、content、translation、media、publishedAt，使用当前 mediaLayout；回复链最多接收 100 条，隐藏条目不加载图片。 |
-| reshare | by.name 必填，支持可选 publishedAt；仅 postKind=reshare 展示。 |
-| publishedAt / source / url | 时间按输入文本展示（160）；底部来源标签（160）与普通文本原文地址（2048）；无内容时隐藏底部，超长文本截断。 |
-
-媒体只展示静态 PNG/JPEG/WebP 预览；视频和 GIF 显示相应标记，原文件不是支持的图片格式时需提供 `previewUrl`。
-音频无预览图时显示占位，不下载音频文件。单张图片失败会显示占位并返回 `IMAGE_UNAVAILABLE`，其他成功加载的图片保留。
-完整 Schema、Mock Data 和字段说明可在 Playground 或 `GET /v1/templates/social_post` 查看。
-默认示例填写所有业务字段，包含作者头像、译文及四类媒体预览，使用 `postKind=reply`、`mediaLayout=grid`。
-示例也填好了 `quotedPost` 和 `reshare`：在 JSON 中将 `postKind` 改为 `quote` 或 `reshare` 即可查看对应关系；
-将 `mediaLayout` 改为 `vertical` 或 `collage` 可查看另外两种布局。
-
-### article 文章
-
-仅 `content`（正文）必填，非空白，最多 20000 字符。画布宽 700px，高度随内容自适应；
-PNG 输出宽 1400px。可选字段为空时不显示，也不预留空间。
-
-```json
-{
-  "template": "article",
-  "format": "png",
-  "data": {
-    "content": "## 正文小标题\n\n支持 **Markdown**，也支持普通文本。",
-    "title": "文章标题",
-    "author": "作者",
-    "authorAvatarUrl": "https://example.com/avatar.png",
-    "publishedAt": "2026-10-15 10:30",
-    "contentFormat": "markdown",
-    "translation": {
-      "title": "Article title",
-      "text": "Supports **Markdown** and plain text.",
-      "format": "markdown",
-      "model": "GPT",
-      "sourceLanguage": "中文"
-    },
-    "source": "来源名称",
-    "url": "https://example.com/article"
-  }
-}
-```
-
-最小请求为 `{"template":"article","data":{"content":"正文"}}`。
-
-| 字段 | 说明 |
-| --- | --- |
-| content / contentFormat | 正文；格式为 `markdown`（默认）或 `text`。纯文本模式保留所有符号、缩进和换行。 |
-| title / author / publishedAt | 可选标题（400）、作者名称（160）与时间文本（160）；均按普通文本显示。 |
-| authorAvatarUrl | 可选作者头像（2048），公开 HTTP(S) PNG/JPEG/WebP 地址；作者与时间左侧显示 36px 圆形头像，也可单独提供。省略或空字符串时隐藏；加载失败显示作者名称前两个字符（无名称则为 `?`），并返回 `IMAGE_UNAVAILABLE`。 |
-| translation | 标题译文 `title`（400）、正文译文 `text`（20000）、正文格式 `format`、翻译模型 `model`（160）、原文语言 `sourceLanguage`（80），全部可选，可仅传标题译文。译文格式独立选择，默认 `markdown`。 |
-| source / url | 底部来源（160）与链接（2048），与社交动态统一使用来源标签、圆点分隔和灰色链接；链接按普通文本单行显示，超长时省略。 |
-
-原文与正文译文共用 Markdown 排版，使用 [Marked](https://marked.js.org/using_pro) 解析为 token 后渲染为 Satori 节点。
-支持段落、换行、六级标题、粗体、斜体、删除线、行内代码、代码块、有序/无序及嵌套列表、
-任务列表、引用、分隔线、链接、GFM 表格和图片；代码块不做语法高亮，链接只展示文字。
-HTML 标签/块被忽略，不执行 HTML；数学公式和脚注扩展不在支持范围内。
-Markdown 图片独占一行、按可用宽度等比缩小，仅通过统一资源管理器加载公开 HTTP(S) PNG/JPEG/WebP；
-相对路径、其他协议或加载失败时显示替代文字占位，并返回 `IMAGE_UNAVAILABLE`。
-原文与正文译文在两种格式下均自动以推特蓝高亮 hashtag 和 @提及。
-识别使用 [Twitter 官方 twitter-text](https://github.com/twitter/twitter-text) 的 Unicode、边界与 URL 重叠规则；
-用户名额外遵循 [X 当前规则](https://help.x.com/en/managing-your-account/change-x-handle)，仅允许英文字母、数字、下划线，最长 15 字符。
-支持中文等多语言话题及全角 `＃` / `＠`；纯数字话题、邮箱地址、URL 内的片段不会被误识别为话题或提及（Markdown 邮箱仍保留原有链接样式）。
-Markdown 的粗体、斜体、列表、引用和表格保留原有格式；代码、转义字符与已有链接不再叠加话题/提及高亮。
-文字高亮颜色与社交动态统一为 `#1d9bf0`，Markdown 链接同样使用此颜色。
-高亮仅改变文字颜色，不创建可点击链接；文章标题、标题译文和来源链接继续按原有规则显示。
-纯文本模式不解析 Markdown，也不加载其中的图片语法，但会高亮 hashtag 和 @提及。所有输入仍受请求体、输出尺寸和超时上限约束。
-完整示例和字段 Schema 可在 Playground 或 `GET /v1/templates/article` 查看，水印沿用请求顶层 `watermark`。
-
-## 尺寸与 Satori 限制
-
-固定版本 `satori@0.55.1`、`skia-canvas@4.0.0`。参见
-[Satori 文档](https://github.com/vercel/satori)及实际类型、
-[Skia Canvas API](https://skia-canvas.org/api/canvas)。
-
-| 策略 | 实现与边界 |
-| --- | --- |
-| content | 模板提供不换行的测量树；Satori 测量真实字形/布局宽度，再限于 minWidth/maxWidth，按选定宽度重新布局得到高度。 |
-| auto-height | 只传 width，不传 height；Satori 计算换行和列表布局。 |
-| fixed | 向 Satori 传入固定 width/height；模板作者负责内容在固定画布内适配。 |
-| auto-width | 只传 height；适用于具有自然宽度的单行或横向模板，需避免百分比宽度与依赖无限换行的布局。 |
-
-不按字符串长度、预估行数计算高度，不承诺任意布局的双向自适应。
-content 的测量树只描述内部内容及其 `data-measure` 节点，不重复外框边距。
-渲染器对测量树和最终内容使用同一个外框，并统一注入字体；新增复杂布局时
-需同步内容自身的字体、间距和测量节点。测量树不能依赖远程资源。
-最终宽、高、像素总数在 PNG 分配前检查；超过上限明确返回错误，不静默裁切。
-Schema 内容长度上限、请求体上限、worker 并发限制与超时共同限制 SVG 布局阶段的开销。
-
-卡片显式使用 Flex、`boxSizing: border-box` 和受支持的文本换行样式。
-当前注册模板不使用 SVG filter。PNG 适配器仅支持已验证的路径、图形、图片、渐变、pattern、clipPath 和 mask；
-`boxShadow` 等产生 filter 的新模板需要先扩充兼容验证，当前会明确拒绝。SVG 输出仍保持 Satori 原始结果。
-不把完整浏览器 CSS 作为模板契约；不支持的样式直接使渲染失败，避免静默失效。
-
-## 通用排版
-
-所有模板使用 `src/core/typography.ts` 的语义样式；字号均为逻辑像素，PNG 2× 输出不改变布局。
-正文、社交内容和纯文本示例为 16px/400，文章正文行高 1.65，普通正文行高 1.6；
-对比栏、表格和次级内容为 14px/1.5；时间、来源等元信息为 12px/1.45。
-主标题为 28px/700，区块标题为 20–24px/700。字体只有已加载的 400/700 字重，
-不以不存在的 500/600 字重代替。默认字距为 0；测量树和最终布局必须引用相同文字角色。
-
-正文、URL、时间、用户名使用正文字体；代码和需要等宽对齐的数值使用 Maple Mono CN。
-Inter 提供真实 Italic/Bold Italic；CJK 和等宽字体没有独立斜体文件，由当前 Satori 合成倾斜。
-当前仍以 SC 地区汉字为默认，不做自动语言识别或日文字形切换。现有模板均为浅色，
-深色模板引入时需单独验证文字颜色，不能直接反转颜色或继承浅色链接色。
-
-文章 Markdown 保留 `gfm: true, breaks: true`，单个源换行继续产生可见换行。
-H1–H6 为 28/24/20/18/16/16px、700 字重；段落间距 12px，标题前后约 24/12px。
-普通/加粗/斜体/粗斜体、删除线与链接下划线保留组合语义；行内代码为当前字号的 90%。
-代码块为 14px/1.55，保留空行和缩进，Tab 展示为 4 个空格；长行视觉折行，
-行号只在原始行首出现。引用继承可读的正文颜色，以边线、浅背景和缩进区分。
-列表保留起始编号、任务状态和嵌套层级，续行对齐文字。
-
-Markdown 表格最多四列时按可见内容需求分配列宽，长字符串允许折行；
-超过四列转换为带列名的逐条记录，保留每一个值，不缩小字号或横向裁切。
-普通英文按单词断行，超长词和 URL 可字符级折行；中日文断行由 Satori 处理。
-原始 HTML 不进入渲染树。图片保持比例，加载失败保留替代文本。
-
-运行 `pnpm preview:typography` 可生成所有模板与 Markdown 边界样张到 `artifacts/typography/`。
-该命令使用生产 Renderer（Satori → Skia → PNG），同时生成原始 2× PNG、逻辑尺寸预览和
-390px 宽预览。验收应查看原图及缩放图的可读性、缺字、代码折行、表格溢出和 Emoji；
-聊天缩略图不保证无需放大即可阅读完整长文。
-
-## 字体、Emoji 与图片
-
-默认使用十份上游原始静态 TTF/OTF（下载后合计约 71 MiB）。Git 仅保存字体配置、
-下载清单和许可证，字体二进制不入库；正文和等宽分别选择字体：
-
-| 用途 | 字体顺序 | 字重 |
-| --- | --- | --- |
-| 正文 | Inter → Noto Sans CJK SC → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs | 前两套 400/700；Inter 含真实斜体与粗斜体；符号 400 |
-| 等宽 | Maple Mono CN → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs | Maple 400/700，符号 400 |
-
-Maple Mono CN 包含中日英文字，其 ASCII 和所覆盖的全宽 CJK 字符采用 0.6em / 1.2em 字宽；
-不含现代韩文音节和汉字扩展 A。这些字符可能由 Satori 回退到已加载的正文字体，
-不保证等宽对齐。补充符号和 Emoji 也不承诺等宽单元格。
-字体覆盖以各上游字体原有字表为准，接受缺字；所有已加载字体均不覆盖时返回 `MISSING_GLYPH`。
-汉字沿用 SC 或 Maple CN 的字形，未自动切换地区字形。
-Noto Sans Egyptian Hieroglyphs v2.002 作为最后一级 fallback 补充埃及象形文字，只有 400 字重，
-不保证等宽对齐；单字与混排有渲染测试，复杂组合和格式控制符的排版不在验证范围内。
-
-`fonts/sources.json` 固定上游 commit / release 下载地址，以及下载资源和最终字体文件的
-SHA-256。`pnpm fonts:fetch` 复用校验通过的本地字体，缺失或损坏时重新下载；ZIP 只提取
-清单指定的字体，下载与文件校验通过后才替换本地文件，失败则中止，不使用未经验证的内容。
-更新字体时同步更新清单中的版本、SHA-256 和相关许可说明。
-
-`pnpm dev` 和 `pnpm build` 自动执行下载准备；单独运行测试前先执行 `pnpm fonts:fetch`。
-`pnpm fonts:verify` 仅校验十份本地字体，不联网。Docker 在复制业务源码前独立下载字体，
-复用构建层缓存；本机字体不进入 Docker 构建上下文，最终镜像仍内置完整字体和许可证。
-`pnpm start` 和渲染 worker 只读取本地字体，不下载资源；离线部署使用预先构建好的镜像，
-直接运行 Node 时需先准备好 `fonts/`。这些准备命令只管理默认字体，自定义 `FONT_CONFIG`
-引用的文件由部署方自行提供。
-
-真实 Satori / Skia 测试另行检查多语言样例 SVG/PNG，以及 Maple 自身覆盖字符的等宽测量。
-
-每个持久 worker 在启动时读取并缓存字体，Satori 预热后才对外服务；
-并发数越高，字体及解析结果内存开销越大。默认两个 worker。
-文字在 Satori SVG 中转路径，PNG 适配器不接受 text 节点，调用方无需安装系统字体。
-
-`FONT_CONFIG` 可指向 JSON 数组（路径相对于配置文件）：
-
-```json
-[
-  { "name": "My Body", "path": "Body-Regular.otf", "weight": 400, "usage": "body" },
-  { "name": "My Body", "path": "Body-Bold.otf", "weight": 700, "usage": "body" },
-  { "name": "My Mono", "path": "Mono-Regular.ttf", "weight": 400, "usage": "monospace" },
-  { "name": "My Symbols", "path": "Symbols.ttf", "weight": 400, "usage": "fallback" }
-]
-```
-
-配置最多 12 份字体，必须分别包含正文和等宽字体；`usage` 为 body、monospace 或 fallback，
-省略时按 body 处理。各用途内部按配置顺序选择，fallback 字体追加到两个列表末尾；
-`style` 默认 normal，可设为 italic。模板通过 `context.fontFamily` 取得正文字体，
-通过 `context.monospaceFontFamily` 取得等宽字体，仅在代码或需要等宽对齐的数值中显式使用；
-测量树与渲染树必须使用相同字体。正文继承正文字体；外部装饰水印单独使用等宽字体。
-
-使用静态 TTF/OTF/WOFF；不要假定 WOFF2、变量字体或所有 OpenType
-特性都受支持。自定义字体需自行确认覆盖范围和许可。
-彩色 Emoji 来自本地 `@twemoji/svg@15.0.0`，按需读取并缓存，不联网取 Emoji。
-不覆盖所有 Unicode 新版本；找不到字形或 Emoji 时返回 `MISSING_GLYPH`，
-调用方可调整文本或字体。版权及许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
-
-远程图片仅接受公开 HTTP(S) PNG/JPEG/WebP。统一检查超时、下载字节数、
-解码后的像素数，校验并固定 DNS 地址，每一跳重定向重复验证。
-拒绝私网、回环、链路本地、保留地址、URL 凭据和远程 SVG。
-缓存为每 worker 独立的有界 LRU，最多 128 项，支持 TTL 和重复下载合并；
-两个 worker 可能分别下载同一 URL。缓存不持久化，过期内容在访问/淘汰时移除。
-模板仅从资源管理器取到 data URI，不让 Satori 自行访问用户 URL。
-WebP 在输入尺寸及字节数校验后通过 `sharp` 转为 PNG，供 PNG 栅格化，迁移期间保留此输入归一化行为；
-转换结果也受图片字节数限制，缓存的是转换后的图片。PNG/JPEG 保持原始编码。
-
-## 并发与配置
-
-持久 worker 处理 Satori / Skia Canvas，HTTP 主线程保持响应。默认 2 个 worker、
-最多 16 个等待请求。请求总截止时间包含正文读取、排队、下载与渲染。
-超时立即返回 504，worker 被终止且等其退出后才补建，避免后台工作无限累积；
-原生 Skia 调用不能保证在任意指令处立即中断，因此还必须限制输出像素。
-客户端断开时取消等待任务或回收对应 worker。退出时停止接收请求并关闭 worker。
-
-| 变量 | 默认值 | 含义 |
-| --- | --- | --- |
-| PORT / HOST | 3000 / 0.0.0.0 | 监听地址 |
-| LOG_LEVEL | info | silent/error/info/debug |
-| PLAYGROUND_ENABLED | 非生产 true | 开启 /dev |
-| RENDER_CONCURRENCY / RENDER_QUEUE_LIMIT | 2 / 16 | worker / 等待队列上限 |
-| RENDER_TIMEOUT_MS | 30000 | 请求截止时间 |
-| BODY_LIMIT_BYTES | 65536 | 请求 JSON 字节上限 |
-| MAX_WIDTH / MAX_HEIGHT | 8192 / 32768 | 最终画布尺寸上限 |
-| MAX_PIXELS | 32000000 | 最终输出像素总数上限 |
-| MAX_RASTER_PIXELS | 128000000 | 中间栅格像素上限（最大可配置 256000000），分配前校验，超限返回 422 |
-| MAX_OUTPUT_BYTES | 67108864 | SVG/PNG 输出字节上限 |
-| IMAGE_TIMEOUT_MS | 4000 | 单张图片下载总超时 |
-| IMAGE_MAX_BYTES / IMAGE_MAX_PIXELS | 5242880 / 16000000 | 下载字节数 / 解码像素上限 |
-| IMAGE_CACHE_BYTES / IMAGE_CACHE_TTL_MS | 33554432 / 300000 | 每 worker 缓存字节预算 / 有效期 |
-| FONT_CONFIG | fonts/fonts.json | 字体配置路径 |
-
-Compose 文件列出了常用变量；其余可通过添加 environment 条目传入。
-
-## 项目结构与新增模板
-
-```text
-src/api/           H3 路由、输入校验和统一错误
-src/core/          card 统一外框、registry、renderer、sizing、fonts、emoji、images、worker/pool
-src/templates/
-  index.ts         统一注册入口
-  example/
-    index.tsx      纯文本示例
-  article/
-    index.tsx      文章与译文展示
-    schema.ts      业务 Schema 与类型
-    body.tsx       Markdown / 纯文本正文与图片资源
-    mock.ts        完整字段示例
-  social_post/
-    index.tsx      社交动态入口与展示
-    schema.ts      业务 Schema 与类型
-    media.tsx      图片资源与媒体布局
-    mock.ts        完整字段示例
-src/server.ts      HTTP 启动与退出
-playground/        React + Vite，调用真实渲染 API
-fonts/             字体配置、固定下载清单、OFL 许可及本地下载字体（不入库）
-scripts/           构建、开发重启、字体校验
-tests/             布局/像素、资源、并发超时、真实 HTTP 输出测试
-tests/fixtures/    仅用于测试的最小内容模板和 worker 入口
-```
-
-外观由 `src/core/card.tsx` 统一管理：背景、内外边距、圆角、边框、阴影和水印。
-渲染器自动包裹模板内容；模板不导入外框，也不声明或渲染 `watermark`。
-模板元数据的 Schema 和 Mock Data 只包含业务内容；公共水印参数由请求层校验，使用说明见本文 API 部分。
-`watermark` 是请求顶层的保留字段，模板不能在业务 Schema 中重新定义；实际请求省略时仍不显示水印。
-
-1. 在 `src/templates/<id>/` 新建模板独立目录，以 `index.tsx` 为入口，实现 `Template<T>`：id、name、
-   description、Zod 对象 schema、sizing、render、mock。
-   schema 只定义业务字段，render 只返回卡片内部内容；正文字体和文字颜色默认继承外框。
-   等宽文本显式设置 `fontFamily: context.monospaceFontFamily`，measure 中保持同样的字体选择。
-   模板专属的 Schema、展示组件和示例数据均放在本模板目录内，按复杂度拆分文件；字段说明通过 Schema 的 describe 定义。
-2. sizing 的宽高指完整画布（包含外框和水印）。content 模板额外实现 measure，
-   只测量内部无换行文本；其他尺寸模式无需 measure。优先使用 auto-height 或 content。
-3. 如需图片，实现 assets，调用传入的 ImageStore，不在组件中 fetch。
-4. 在 `src/templates/index.ts` 导入并 register；模板 ID 必须唯一。
-5. 通过 Playground 检查短文、长文、多语言及缺图情况，加入相关布局/输出测试。
-   生产环境重新 build / 构建镜像。无需修改 API 或 Playground 以登记新模板。
-
-最小实现参考 [src/templates/example/index.tsx](src/templates/example/index.tsx)：只声明文本 Schema、尺寸、示例数据和内容渲染。
-可复制为实际业务模板并调整字段和布局；统一外框由渲染器自动添加。需要改变整个服务的外观时，只修改 `card.tsx`。
-测试模板只在测试进程及测试 worker 中注册，不会出现在生产 API 或 Playground 中。
-
-第一版不提供模板上传、运行时第三方代码、任意双向自适应、远程 SVG、
-动画图片、多帧输出、所有 Unicode 字符全集或多语言地区字形自动切换。
-没有引入第二套渲染引擎或浏览器截图。
-
-## Skia PNG 兼容范围与迁移验证
-
-SVG 请求直接返回 Satori 结果。PNG 专用适配只接受自包含 SVG；PNG/JPEG/WebP
-仍经现有图片资源管理器。内嵌 SVG 支持 base64/百分号编码、独立 ID、显式 viewBox
-及 image 的 meet/slice/none。坐标与 clip/mask 保持各自作用层级，不增加隐式嵌套 viewport 裁剪。
-内嵌 SVG 内再次嵌套 image、CSS、text、filter、use、外部资源、DTD、循环引用、
-objectBoundingBox clipPath/maskContentUnits 和隐式 overflow 裁剪不在当前支持范围内；
-错误仍通过现有 INTERNAL_ERROR 返回。
-
-适配器是内部模板兼容层，不是对外 SVG 上传 API。新增 SVG 特性需增加针对性测试。
-Canvas 固定 CPU，raw 明确为 RGBA/premultiplied；Canvas 和 Image 在成功及错误路径显式释放。
-raw 在 Worker 内同步导出，避开 Skia 4.0.0 异步 Promise 与 Worker 强制终止之间的原生崩溃。
-sharp 的 PNG 编码参数与 2x 超采样策略见上文 PNG 输出说明。
-
-本机生命周期验证：
-
-```bash
-pnpm build
-pnpm exec tsx scripts/verify-skia-workers.ts artifacts/skia-migration/workers.json
-```
-
-脚本使用编译后的真实 Worker，覆盖并发 1/2/4、连续渲染、取消、超时和重建，采样整个进程 RSS。
-旧渲染依赖与日常对照脚本已移除；适配器回归测试使用冻结的原始 SVG/PNG 基线。
-本机历史对照报告及脚本保留在 `artifacts/skia-migration/`，归档脚本需要独立恢复旧依赖及源码环境才能重跑。
-Linux 容器已验证 arm64（原生指令）和 amd64（Apple Silicon 上的指令转译）：Node 24 / Debian bookworm，
-amd64 使用 8 GiB 内存、4 CPU 限额，覆盖实际 HTTP 渲染和并发 1/2/4 的 Worker 生命周期。
-构建阶段与生产依赖阶段共用 pnpm 缓存时必须使用 `sharing=locked`，防止并发写入原生包。
-本机及两种 Linux 架构的测试均为 145/145 通过。镜像安装标准 `fontconfig-config`（含系统依赖字体），
-解决 slim 镜像缺少 `/etc/fonts` 的警告；Satori 仍使用项目显式配置的字体。
-这不等于真实 x86_64 主机验收：生产运行时、CPU 配额、网络和长时间负载仍需在部署环境确认。
-回滚需恢复迁移前源码和 lockfile 并重新构建/恢复旧镜像，不提供多后端运行时开关。
-
-## 数据对比模板
-
-`comparison` 从旧版数据对比卡片迁移，600px 固定画布宽度、高度随内容增长。
-支持 `metric`（自动计算数值增减）、`text`（左右对照）、`diff`（逐行及词级高亮）、
-`image`（左右图片）和 `entity`（实体动作列表）。模块可选 `name`，按 `modules` 顺序展示。
-图片沿用服务的 HTTP(S) 资源加载限制；空 URL 显示「暂无图片」，加载失败显示占位并返回警告。
-
-```json
-{
-  "template": "comparison",
-  "format": "png",
-  "watermark": "Generated by Forma",
-  "data": {
-    "title": "账号数据更新",
-    "subtitle": "关注与粉丝变化",
-    "time": "2026-10-15 10:30",
-    "modules": [
-      { "type": "metric", "name": "核心指标", "items": [{ "label": "粉丝数", "before": "12,580", "after": "13,024" }] },
-      { "type": "text", "before": "旧简介", "after": "新简介" },
-      { "type": "diff", "before": "状态：内测", "after": "状态：发布" },
-      { "type": "image", "before": { "url": "", "label": "原封面" }, "after": { "url": "", "label": "新封面" } },
-      { "type": "entity", "items": [{ "name": "Forma", "handle": "@forma", "bio": "开源工具", "action": "+ 新增关注", "color": "green" }] }
-    ]
-  }
-}
-```
-
-旧版 `title/subtitle/time/modules` 放入请求的 `data`；不传旧版 `schemaVersion/type/options`，
-水印使用顶层 `watermark`。完整 Schema 与示例由 `GET /v1/templates/comparison` 提供，Playground 自动列出此模板。
-
-2x 超采样的中间宽高上限为输出宽高限制的两倍，像素数另受 `MAX_RASTER_PIXELS` 约束。
-不自动降低采样倍率；超过中间限制返回 `SIZE_LIMIT`。默认 1.28 亿像素上限对应的 RGBA 缓冲约 488 MiB，
-另有 Canvas、缩放与编码内存开销；部署时需结合 Worker 并发量设置内存预算。
+字体和 Emoji 的版权、许可及署名要求见 [第三方声明](THIRD_PARTY_NOTICES.md)。
