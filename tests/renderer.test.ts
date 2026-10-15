@@ -5,7 +5,6 @@ import sharp from 'sharp';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { loadConfig } from '../src/config.js';
-import { additionalAsset } from '../src/core/emoji.js';
 import { type LoadedFonts, loadFonts } from '../src/core/fonts.js';
 import { rasterize } from '../src/core/rasterize.js';
 import { Renderer } from '../src/core/renderer.js';
@@ -218,7 +217,7 @@ describe('real Satori + Skia rendering', () => {
     const after = await renderer.render(request);
     expect(after.body).toEqual(before.body);
     const egyptian = { ...request, data: { text: '中文 Hello 𓀀 𓂀 𓆣 𓋹', monospace } };
-    await expect(previous.render(egyptian)).rejects.toMatchObject({ code: 'MISSING_GLYPH' });
+    expect((await previous.render(egyptian)).warnings).toEqual(['MISSING_GLYPH']);
     const svg = await renderer.render(egyptian);
     const source = Buffer.from(svg.body).toString();
     expect(source).toContain('<path');
@@ -230,13 +229,19 @@ describe('real Satori + Skia rendering', () => {
     expect(image.data.some(byte => byte < 100)).toBe(true);
   });
 
-  it('reports missing glyphs rather than silently returning tofu', async () => {
-    await expect(render({ title: '\u{10ffff}' })).rejects.toMatchObject({
-      code: 'MISSING_GLYPH',
-    });
-    await expect(additionalAsset('emoji', '\u{10ffff}')).rejects.toMatchObject({
-      code: 'MISSING_GLYPH',
-    });
+  it.each([false, true])('renders missing glyphs during measurement in monospace=%s', async monospace => {
+    const request = {
+      template: 'test-typography',
+      data: { text: '中文 A\u{10ffff}B\u{10fffe}C', monospace },
+      watermark: 'Missing \u{10ffff}',
+    };
+    const svg = await renderer.render({ ...request, format: 'svg' });
+    const png = await renderer.render({ ...request, format: 'png' });
+    expect(svg.warnings).toEqual(['MISSING_GLYPH']);
+    expect(png.warnings).toEqual(svg.warnings);
+    expect([png.width, png.height]).toEqual([svg.width * 2, svg.height * 2]);
+    expect(Buffer.from(svg.body).toString()).toContain('<path');
+    expect(PNG.sync.read(Buffer.from(png.body)).width).toBe(png.width);
   });
   it('keeps the flat rounded card inside the PNG canvas', async () => {
     const result = await render({ title: '扁平卡片', body: '卡片外围保留紧凑留白。' }, 'png');

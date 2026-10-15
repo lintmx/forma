@@ -31,6 +31,9 @@ export class Renderer {
     const missingEmoji = () => {
       if (!warnings.includes('EMOJI_UNAVAILABLE')) warnings.push('EMOJI_UNAVAILABLE');
     };
+    const missingGlyph = () => {
+      if (!warnings.includes('MISSING_GLYPH')) warnings.push('MISSING_GLYPH');
+    };
     let assets: TemplateContext['assets'] = {};
     if (template.assets) {
       try {
@@ -48,7 +51,7 @@ export class Renderer {
     const base: Omit<SatoriOptions, 'width' | 'height'> = {
       fonts: this.fonts.fonts,
       embedFont: true,
-      loadAdditionalAsset: (language, segment) => additionalAsset(language, segment, missingEmoji),
+      loadAdditionalAsset: (language, segment) => additionalAsset(language, segment, missingEmoji, missingGlyph),
       onStyleError: error => {
         throw error;
       },

@@ -113,22 +113,27 @@ describe('emoji sequences and missing glyph policy', () => {
     expect(clean.warnings).toEqual([]);
   });
 
-  it('keeps ordinary missing text strict even beside an unsupported emoji', async () => {
-    await expect(render('😀‍🚀\u{10FFFF}')).rejects.toMatchObject({ code: 'MISSING_GLYPH' });
-    await expect(additionalAsset('unknown', '\u{10FFFF}')).rejects.toMatchObject({ code: 'MISSING_GLYPH' });
-    await expect(additionalAsset('emoji', '\u{10FFFF}')).rejects.toMatchObject({ code: 'MISSING_GLYPH' });
+  it.each(['svg', 'png'] as const)('renders missing text beside unsupported emoji in %s', async format => {
+    const result = await render('中文 A😀‍🚀B\u{10FFFF}C\u{10FFFE}D\u{10FFFF}', format);
+    expect(result.warnings).toEqual(['EMOJI_UNAVAILABLE', 'MISSING_GLYPH']);
+    expect(result.body.byteLength).toBeGreaterThan(0);
+    const warn = vi.fn();
+    await expect(additionalAsset('unknown', '\u{10FFFF}\u{10FFFE}', undefined, warn)).resolves.toEqual([]);
+    await expect(additionalAsset('emoji', '\u{10FFFF}', undefined, warn)).resolves.toEqual([]);
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect((await render('中文 正常 💕︎', format)).warnings).toEqual([]);
   });
 
   it('shares sequence handling with intrinsic measurement, nested content and watermark', async () => {
     const request = {
       template: 'social_post',
-      data: { author: { name: '作者 💕︎' }, content: '中文 🫸🏽 🏳️‍🌈 🧑🏽‍🩰\n' + '長い文章 💕︎ '.repeat(30) },
-      watermark: 'Generated 🫪 😀‍🚀',
+      data: { author: { name: '作者 💕︎' }, content: '中文 \u{10FFFF} 🫸🏽 🏳️‍🌈 🧑🏽‍🩰\n' + '長い文章 💕︎ '.repeat(30) },
+      watermark: 'Generated 🫪 😀‍🚀 \u{10FFFE}',
     };
     const svg = await renderer.render({ ...request, format: 'svg' });
     const png = await renderer.render({ ...request, format: 'png' });
     expect([png.width, png.height]).toEqual([svg.width * 2, svg.height * 2]);
-    expect(svg.warnings).toEqual(['EMOJI_UNAVAILABLE']);
+    expect(svg.warnings.toSorted()).toEqual(['EMOJI_UNAVAILABLE', 'MISSING_GLYPH']);
     expect(png.warnings).toEqual(svg.warnings);
     expect(svg.width).toBeLessThanOrEqual(700);
   });

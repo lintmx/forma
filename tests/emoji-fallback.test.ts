@@ -74,7 +74,8 @@ describe('Noto SVG fallback', () => {
     const first = await additionalAsset('emoji', '😀‍🚀', warn);
     expect(await additionalAsset('emoji', '😀‍🚀', warn)).toBe(first);
     expect(warn).toHaveBeenCalledTimes(2);
-    expect(Buffer.from(first.split(',')[1]!, 'base64').toString()).toContain('#f3f4f6');
+    expect(typeof first).toBe('string');
+    expect(Buffer.from((first as string).split(',')[1]!, 'base64').toString()).toContain('<rect');
   });
 
   it.each(['ENOENT', 'EACCES'])('does not hide a fallback directory failure: %s', async code => {

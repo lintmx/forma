@@ -1,8 +1,8 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { cloneElement, createElement, isValidElement, type ReactNode } from 'react';
+import type { Font } from 'satori';
 import presentation from '../../emoji/presentation.json' with { type: 'json' };
-import { FormaError } from './errors.js';
 
 const emojiDirectories = [resolve('emoji/svg'), resolve('emoji/noto-svg')];
 const cache = new Map<string, string>();
@@ -24,7 +24,7 @@ const canonical = (text: string) => code(text.replace(/[\uFE0E\uFE0F]/g, ''));
 const placeholder =
   'data:image/svg+xml;base64,' +
   Buffer.from(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="3" y="3" width="30" height="30" rx="6" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/><path d="M13 13a5 5 0 0 1 10 0c0 4-5 4-5 8" fill="none" stroke="#6b7280" stroke-width="3" stroke-linecap="round"/><circle cx="18" cy="27" r="1.7" fill="#6b7280"/></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="6" y="6" width="24" height="24" fill="none" stroke="#6b7280" stroke-width="2"/></svg>',
   ).toString('base64');
 
 async function emojiImage(segment: string, onMissing: () => void): Promise<string> {
@@ -71,10 +71,18 @@ async function emojiImage(segment: string, onMissing: () => void): Promise<strin
   return placeholder;
 }
 
-export async function additionalAsset(language: string, segment: string, onMissing = () => {}): Promise<string> {
+export async function additionalAsset(
+  language: string,
+  segment: string,
+  onMissingEmoji = () => {},
+  onMissingGlyph = () => {},
+): Promise<string | Font[]> {
   if (language === 'emoji' && [...segment.matchAll(candidates)].some(match => match[0] === segment))
-    return emojiImage(segment, onMissing);
-  throw new FormaError('MISSING_GLYPH', 'Configured fonts or bundled emoji do not cover this text', 422, { segment });
+    return emojiImage(segment, onMissingEmoji);
+  onMissingGlyph();
+  // Let Satori use the configured font's .notdef glyph for each missing character.
+  // Non-emoji segments can contain multiple graphemes, so a single image is unsuitable.
+  return [];
 }
 
 // Resolve the same pure function components Satori supports, then replace text
