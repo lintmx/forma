@@ -35,6 +35,21 @@ Compose 的 `.env` 用于变量替换，仅 [compose.yaml](../compose.yaml) 中�
 
 服务不内置鉴权。公开部署时应由反向代理负责访问控制、TLS 和限流。
 
+## GHCR 自动构建
+
+[GitHub Actions workflow](../.github/workflows/docker-publish.yml) 在每次推送 `master` 时使用根目录
+`Dockerfile` 构建 `linux/amd64` 镜像，并发布到 `ghcr.io/<仓库所有者>/<仓库名>:latest`（路径转为小写）。
+当前仓库的镜像为 `ghcr.io/lintmx/forma:latest`。
+
+发布使用 GitHub 自动提供的 `GITHUB_TOKEN`，workflow 已声明 `contents: read` 和 `packages: write`，
+无需额外配置登录 Secret。构建使用 GitHub Actions 缓存；同一分支的新推送会取消尚未完成的旧构建。
+镜像的公开或私有可见性由 GHCR 包设置控制。
+
+```sh
+docker pull ghcr.io/lintmx/forma:latest
+docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/lintmx/forma:latest
+```
+
 ## 环境变量
 
 可从 [.env.example](../.env.example) 创建本地配置。以下为服务默认值；完整校验范围见
