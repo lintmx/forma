@@ -2,17 +2,12 @@ import type { CSSProperties } from 'react';
 import type { Template, TemplateContext } from '../../core/types.js';
 import { colors, textStyle, typography } from '../../core/typography.js';
 import { highlightTextRuns } from '../shared/highlight.js';
+import { MediaList } from '../shared/media.js';
+import type { MediaLayout } from '../shared/media-schema.js';
 import { SourceFooter } from '../shared/source-footer.js';
-import { loadAssets, MediaList } from './media.js';
+import { loadAssets } from './media.js';
 import { socialPostMock } from './mock.js';
-import {
-  type MediaLayout,
-  type PostSnapshot,
-  postEntries,
-  type SocialPostData,
-  socialPostSchema,
-  visibleReplies,
-} from './schema.js';
+import { type PostSnapshot, postEntries, type SocialPostData, socialPostSchema, visibleReplies } from './schema.js';
 
 const secondary = colors.muted;
 const column: CSSProperties = {

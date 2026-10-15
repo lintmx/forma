@@ -15,6 +15,13 @@ export const articleMock: ArticleData = {
     model: 'GPT',
     sourceLanguage: '中文',
   },
+  media: [
+    {
+      url: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1200&q=82',
+      alt: '记录日常观察与写作的桌面',
+    },
+  ],
+  mediaLayout: 'vertical',
   source: 'Forma Journal',
   url: 'https://example.com/articles/everyday-observations',
 };

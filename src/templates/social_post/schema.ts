@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { mediaLayoutSchema, mediaSchema } from '../shared/media-schema.js';
 
 const imageUrl = z.url({ protocol: /^(https?|file)$/ }).max(2048);
 const author = z
@@ -16,24 +17,12 @@ const translation = z
     model: z.string().max(160).optional().describe('翻译模型名称'),
   })
   .strict();
-const media = z
-  .array(
-    z
-      .object({
-        type: z.enum(['image', 'video', 'gif', 'audio']).optional().describe('媒体类型，省略为 image'),
-        url: imageUrl.describe('原始媒体地址；图片可直接加载，其他类型建议提供 previewUrl'),
-        previewUrl: imageUrl.optional().describe('HTTP(S) 或 file:// PNG/JPEG/WebP 预览图地址'),
-        alt: z.string().max(400).optional().describe('媒体描述'),
-      })
-      .strict(),
-  )
-  .max(12);
 const snapshot = z
   .object({
     author: author.optional(),
     content: z.string().max(4000).optional().describe('正文，允许为空以展示纯媒体内容'),
     translation: translation.optional(),
-    media: media.optional(),
+    media: mediaSchema.optional(),
     publishedAt: z.string().max(160).optional().describe('发布时间，按输入文本展示'),
   })
   .strict();
@@ -43,7 +32,7 @@ export const socialPostSchema = snapshot
     source: z.string().max(160).optional().describe('底部来源名称'),
     url: z.string().max(2048).optional().describe('底部原文地址，按普通文本展示'),
     postKind: z.enum(['post', 'reply', 'quote', 'reshare']).optional().describe('内容关系，省略为 post'),
-    mediaLayout: z.enum(['vertical', 'grid', 'collage']).optional().describe('媒体布局，省略为 vertical'),
+    mediaLayout: mediaLayoutSchema.optional().describe('媒体布局，省略为 vertical'),
     replyChain: z.array(snapshot).max(100).optional().describe('仅 reply 展示最近九条，按输入顺序排列'),
     quotedPost: snapshot.optional().describe('仅 quote 展示的引用内容'),
     reshare: z
@@ -59,8 +48,6 @@ export const socialPostSchema = snapshot
 
 export type SocialPostData = z.infer<typeof socialPostSchema>;
 export type PostSnapshot = z.infer<typeof snapshot>;
-export type Media = NonNullable<PostSnapshot['media']>[number];
-export type MediaLayout = NonNullable<SocialPostData['mediaLayout']>;
 
 export function visibleReplies(data: SocialPostData) {
   return data.postKind === 'reply' ? (data.replyChain ?? []).slice(-9) : [];

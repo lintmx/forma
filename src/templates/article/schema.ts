@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { mediaLayoutSchema, mediaSchema } from '../shared/media-schema.js';
 
 const format = z.enum(['markdown', 'text']).optional().describe('正文格式，省略为 markdown；text 按原样保留符号和换行');
 
@@ -32,6 +33,12 @@ export const articleSchema = z
       })
       .strict()
       .optional(),
+    media: z
+      .array(mediaSchema.element.extend({ type: z.literal('image').optional().describe('图片类型，可省略') }))
+      .max(12)
+      .optional()
+      .describe('译文下方的图片列表；无译文时位于正文下方，最多 12 张'),
+    mediaLayout: mediaLayoutSchema.optional().describe('图片布局，省略为 vertical；与社交动态一致'),
     source: z.string().max(160).optional().describe('底部来源名称'),
     url: z.string().max(2048).optional().describe('底部原文链接，按普通文本展示'),
   })

@@ -1,5 +1,6 @@
 import type { Template } from '../../core/types.js';
 import { colors, textStyle, typography } from '../../core/typography.js';
+import { MediaList } from '../shared/media.js';
 import { SourceFooter } from '../shared/source-footer.js';
 import { ArticleBody, column, loadArticleImages } from './body.js';
 import { articleMock } from './mock.js';
@@ -8,7 +9,7 @@ import { type ArticleData, articleSchema } from './schema.js';
 export const article: Template<ArticleData> = {
   id: 'article',
   name: '文章',
-  description: '正文必填，支持 Markdown 与纯文本；可选标题、作者及头像、时间、译文、来源和原文链接。',
+  description: '正文必填，支持 Markdown 与纯文本；可选标题、作者及头像、时间、译文、图片、来源和原文链接。',
   schema: articleSchema,
   sizing: { mode: 'auto-height', width: 700 },
   mock: articleMock,
@@ -86,8 +87,9 @@ export const article: Template<ArticleData> = {
               )}
             </div>
           )}
+          <MediaList media={data.media} layout={data.mediaLayout} assets={context.assets} prefix="article" />
         </div>
-        <SourceFooter source={data.source} url={data.url} />
+        <SourceFooter source={data.source} url={data.url} marginTop={data.media?.length ? 0 : 12} />
       </div>
     );
   },

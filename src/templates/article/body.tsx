@@ -26,6 +26,7 @@ const lexer = (text: string) => marked.lexer(text, { gfm: true, breaks: true });
 export async function loadArticleImages(data: ArticleData, images: ImageStore) {
   const urls = new Set<string>();
   if (data.authorAvatarUrl) urls.add(data.authorAvatarUrl);
+  for (const item of data.media ?? []) urls.add(item.previewUrl ?? item.url);
   for (const [text, format] of [
     [data.content, data.contentFormat],
     [data.translation?.text, data.translation?.format],
@@ -38,6 +39,9 @@ export async function loadArticleImages(data: ArticleData, images: ImageStore) {
   const assets: TemplateContext['assets'] = Object.create(null);
   // Load through the existing bounded image store, never from Satori.
   for (const url of urls) assets[url] = await images.get(url).catch(() => undefined);
+  data.media?.forEach((item, index) => {
+    assets['article-media-' + index] = assets[item.previewUrl ?? item.url];
+  });
   return assets;
 }
 
