@@ -54,6 +54,38 @@ afterAll(async () => {
 });
 
 describe('HTTP end-to-end', () => {
+  it('serves the homepage even when the Playground is disabled', async () => {
+    const response = await fetch(origin + '/');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+    const html = await response.text();
+    expect(html).toContain('href="/dev"');
+    expect(html).toContain('当前实例未开放 Playground');
+  });
+  it.each(['/missing', '/dev/', '/dev/missing'])('serves a browser 404 at %s', async path => {
+    const response = await fetch(origin + path, { headers: { Accept: 'text/html' } });
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+    expect(response.headers.get('Vary')).toBe('Accept');
+    expect(await response.text()).toContain('href="/"');
+    const head = await fetch(origin + path, { method: 'HEAD', headers: { Accept: 'text/html' } });
+    expect(head.status).toBe(404);
+    expect(await head.text()).toBe('');
+  });
+  it('keeps API, non-browser and non-GET errors in JSON', async () => {
+    for (const [path, method, accept] of [
+      ['/v1/missing', 'GET', 'text/html'],
+      ['/v1/templates/missing', 'GET', 'text/html'],
+      ['/missing', 'GET', 'application/json'],
+      ['/missing', 'GET', '*/*'],
+      ['/missing', 'POST', 'text/html'],
+    ]) {
+      const response = await fetch(origin + path, { method, headers: { Accept: accept! } });
+      expect(response.status).toBe(404);
+      expect(response.headers.get('Content-Type')).toContain('application/json');
+      expect((await response.json()).error.code).toMatch(/NOT_FOUND/);
+    }
+  });
   it('redirects /dev once and serves /dev/ when the production Playground is enabled', async () => {
     const directory = await mkdtemp(resolve(tmpdir(), 'forma-playground-'));
     const html = '<!doctype html><html><body>Playground</body></html>';
@@ -66,6 +98,14 @@ describe('HTTP end-to-end', () => {
       const response = await app.fetch(new Request('http://localhost/dev/'));
       expect(response.status).toBe(200);
       expect(await response.text()).toBe(html);
+      const homepage = await app.fetch(new Request('http://localhost/'));
+      expect(await homepage.text()).not.toContain('当前实例未开放 Playground');
+      for (const path of ['/dev/missing', '/dev/assets/missing.js']) {
+        const missing = await app.fetch(new Request('http://localhost' + path, { headers: { Accept: 'text/html' } }));
+        expect(missing.status).toBe(404);
+        expect(missing.headers.get('Content-Type')).toContain('text/html');
+        expect(await missing.text()).toContain('href="/dev"');
+      }
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

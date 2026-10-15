@@ -8,6 +8,7 @@ import { cardOptionsSchema } from '../core/card.js';
 import { FormaError, publicError } from '../core/errors.js';
 import type { RenderPool } from '../core/pool.js';
 import { registry } from '../templates/index.js';
+import { pageResponse } from './pages.js';
 
 const requestSchema = z
   .object({
@@ -56,14 +57,28 @@ export async function readJson(request: Request, maxBytes: number, signal: Abort
 }
 
 export function createApp(config: Config, pool: RenderPool, playgroundDirectory = resolve('dist/playground')) {
-  function errorResponse(error: unknown) {
+  function errorResponse(error: unknown, event?: H3Event) {
     const e = publicError(error);
+    if (
+      e.status === 404 &&
+      event &&
+      ['GET', 'HEAD'].includes(event.req.method) &&
+      event.url.pathname !== '/v1' &&
+      !event.url.pathname.startsWith('/v1/') &&
+      event.req.headers.get('accept')?.includes('text/html')
+    ) {
+      return pageResponse('not-found', config.playground);
+    }
     if (e.status === 500) log(config, 'error', 'Request failed', { error: String(error) });
     return Response.json(
       { error: { code: e.code, message: e.message, ...(e.details ? { details: e.details } : {}) } },
       {
         status: e.status,
-        headers: { 'Cache-Control': 'no-store', ...(e.status === 503 ? { 'Retry-After': '1' } : {}) },
+        headers: {
+          'Cache-Control': 'no-store',
+          ...(e.status === 404 ? { Vary: 'Accept' } : {}),
+          ...(e.status === 503 ? { 'Retry-After': '1' } : {}),
+        },
       },
     );
   }
@@ -71,10 +86,11 @@ export function createApp(config: Config, pool: RenderPool, playgroundDirectory 
     try {
       return await handler(event);
     } catch (error) {
-      return errorResponse(error);
+      return errorResponse(error, event);
     }
   };
-  const app = new H3({ onError: error => errorResponse(error), silent: true });
+  const app = new H3({ onError: (error, event) => errorResponse(error, event), silent: true });
+  app.get('/', () => pageResponse('home', config.playground));
   app.get('/healthz', () =>
     Response.json({ status: pool.healthy ? 'ok' : 'unavailable', ...pool.stats }, { status: pool.healthy ? 200 : 503 }),
   );

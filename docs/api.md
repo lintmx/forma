@@ -6,6 +6,8 @@
 
 | 方法与路径 | 返回 |
 | --- | --- |
+| `GET /` | 项目首页，含功能介绍与 Playground 入口 |
+| `GET /dev` | 跳转至 `/dev/` Playground（需启用） |
 | `POST /v1/render` | PNG 或 SVG 图片二进制 |
 | `GET /v1/templates` | `{ "templates": [...] }`，列出所有已注册模板 |
 | `GET /v1/templates/:template` | 单个模板元数据 |
@@ -53,6 +55,9 @@ PNG 固定输出 2×，SVG 保留原始布局尺寸。
 图片和错误响应均使用 `Cache-Control: no-store`。
 
 ## 错误处理
+
+浏览器访问不存在的页面时（`GET` / `HEAD` 且 `Accept` 包含 `text/html`），返回 HTML 404 页面及 404 状态码。
+`/v1`、`/v1/**` API 和其他请求仍返回以下 JSON 错误结构。首页始终可访问；Playground 是否开放由部署配置控制。
 
 ```json
 {
