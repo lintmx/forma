@@ -1,5 +1,5 @@
-import { colors, textStyle } from '../../core/card.js';
 import type { Template } from '../../core/types.js';
+import { colors, textStyle, typography } from '../../core/typography.js';
 import { SourceFooter } from '../shared/source-footer.js';
 import { ArticleBody, column, loadArticleImages } from './body.js';
 import { articleMock } from './mock.js';
@@ -21,11 +21,9 @@ export const article: Template<ArticleData> = {
     const byline = [data.author?.trim(), data.publishedAt?.trim()].filter(Boolean).join(' · ');
     const avatar = data.authorAvatarUrl ? context.assets[data.authorAvatarUrl] : undefined;
     return (
-      <div style={{ ...column, fontSize: 16, ...textStyle }}>
+      <div style={{ ...column, ...typography.prose, ...textStyle }}>
         <div style={{ ...column, gap: 18 }}>
-          {Boolean(data.title?.trim()) && (
-            <div style={{ display: 'block', fontSize: 28, fontWeight: 700, lineHeight: 1.35 }}>{data.title}</div>
-          )}
+          {Boolean(data.title?.trim()) && <div style={{ display: 'block', ...typography.title }}>{data.title}</div>}
           {Boolean(byline || data.authorAvatarUrl) && (
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 10 }}>
               {Boolean(data.authorAvatarUrl) && (
@@ -41,7 +39,7 @@ export const article: Template<ArticleData> = {
                     overflow: 'hidden',
                     backgroundColor: '#eef2f6',
                     color: colors.muted,
-                    fontSize: 13,
+                    ...typography.meta,
                     fontWeight: 700,
                   }}
                 >
@@ -58,7 +56,7 @@ export const article: Template<ArticleData> = {
                 </div>
               )}
               {Boolean(byline) && (
-                <div style={{ display: 'block', minWidth: 0, flex: 1, fontSize: 13, color: colors.muted }}>
+                <div style={{ display: 'block', minWidth: 0, flex: 1, ...typography.meta, color: colors.muted }}>
                   {byline}
                 </div>
               )}
@@ -76,14 +74,12 @@ export const article: Template<ArticleData> = {
                 backgroundColor: '#f8fafb',
               }}
             >
-              <div style={{ display: 'block', color: colors.muted, fontSize: 12 }}>
+              <div style={{ display: 'block', color: colors.muted, ...typography.meta }}>
                 {(translation.model?.trim() ? '使用 ' + translation.model.trim() + ' · ' : '') +
                   (translation.sourceLanguage?.trim() ? '翻译自 ' + translation.sourceLanguage.trim() : '翻译')}
               </div>
               {Boolean(translation.title?.trim()) && (
-                <div style={{ display: 'block', fontWeight: 700, fontSize: 23, lineHeight: 1.4 }}>
-                  {translation.title}
-                </div>
+                <div style={{ display: 'block', ...typography.heading }}>{translation.title}</div>
               )}
               {Boolean(translation.text?.trim()) && (
                 <ArticleBody text={translation.text!} format={translation.format} context={context} />

@@ -1,6 +1,8 @@
 [
   { "name": "Inter", "path": "Inter-Regular.ttf", "weight": 400, "usage": "body" },
   { "name": "Inter", "path": "Inter-Bold.ttf", "weight": 700, "usage": "body" },
+  { "name": "Inter", "path": "Inter-Italic.ttf", "weight": 400, "style": "italic", "usage": "body" },
+  { "name": "Inter", "path": "Inter-BoldItalic.ttf", "weight": 700, "style": "italic", "usage": "body" },
   { "name": "Noto Sans CJK SC", "path": "NotoSansCJKsc-Regular.otf", "weight": 400, "usage": "body" },
   { "name": "Noto Sans CJK SC", "path": "NotoSansCJKsc-Bold.otf", "weight": 700, "usage": "body" },
   { "name": "Maple Mono CN", "path": "MapleMono-CN-Regular.ttf", "weight": 400, "usage": "monospace" },

@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
-import { textStyle } from '../../core/card.js';
 import type { Template, TemplateContext } from '../../core/types.js';
+import { colors, textStyle, typography } from '../../core/typography.js';
 import { highlightTextRuns, textHighlightColor } from '../shared/highlight.js';
 import { SourceFooter } from '../shared/source-footer.js';
 import { loadAssets, MediaList } from './media.js';
@@ -14,7 +14,7 @@ import {
   visibleReplies,
 } from './schema.js';
 
-const secondary = '#6b7280';
+const secondary = colors.muted;
 const column: CSSProperties = {
   display: 'flex',
   boxSizing: 'border-box',
@@ -26,7 +26,7 @@ function InlineText({ text }: { text: string }) {
   return <span>{highlightTextRuns([{ text }], { urls: true })}</span>;
 }
 
-function TextBlock({ text, size = 15, style }: { text: string; size?: number; style?: CSSProperties }) {
+function TextBlock({ text, compact = false, style }: { text: string; compact?: boolean; style?: CSSProperties }) {
   return (
     <div
       style={{
@@ -34,10 +34,8 @@ function TextBlock({ text, size = 15, style }: { text: string; size?: number; st
         boxSizing: 'border-box',
         width: '100%',
         minWidth: 0,
-        fontSize: size,
+        ...(compact ? typography.compact : typography.body),
         ...textStyle,
-        lineHeight: 1.375,
-        letterSpacing: '0.01em',
         ...style,
       }}
     >
@@ -93,7 +91,7 @@ function Header({
             overflow: 'hidden',
             backgroundImage: 'linear-gradient(135deg, #dbeafe, #e0f2fe)',
             color: '#0e7490',
-            fontSize: 14,
+            ...typography.compact,
             fontWeight: 700,
             ...(reply ? { position: 'absolute', left: 0, top: 12 } : {}),
           }}
@@ -119,9 +117,9 @@ function Header({
                   display: 'flex',
                   minWidth: 0,
                   flexShrink: 1,
-                  fontSize: compact ? 14 : reply ? 16 : 17,
+                  ...(compact ? typography.compact : typography.large),
                   fontWeight: 700,
-                  lineHeight: 1.25,
+                  lineHeight: 1.35,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -146,8 +144,7 @@ function Header({
               display: 'flex',
               width: '100%',
               color: secondary,
-              fontSize: compact ? 13 : 14,
-              lineHeight: 1.2,
+              ...typography.meta,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -188,13 +185,7 @@ function PostBody({
   return (
     <div style={column}>
       <Header post={post} assets={assets} prefix={prefix} compact={compact} reply={reply} />
-      {post.content && (
-        <TextBlock
-          text={post.content}
-          size={compact || reply ? 14 : 15}
-          style={{ marginBottom: 12, lineHeight: compact ? 1.4 : 1.375 }}
-        />
-      )}
+      {post.content && <TextBlock text={post.content} compact={compact || reply} style={{ marginBottom: 12 }} />}
       {translation?.text && (
         <div style={{ ...column, marginBottom: 12 }}>
           <div
@@ -202,10 +193,9 @@ function PostBody({
               display: 'block',
               width: '100%',
               color: secondary,
-              fontSize: 12,
+              ...typography.meta,
               marginBottom: 8,
               ...textStyle,
-              lineHeight: 1.4,
             }}
           >
             {translation.model && (
@@ -226,7 +216,7 @@ function PostBody({
           </div>
           <TextBlock
             text={translation.text}
-            size={compact || reply ? 13 : 15}
+            compact={compact || reply}
             style={{
               padding: compact ? '10px 12px' : '8px 12px',
               border: '1px solid #e5e7eb',
@@ -254,7 +244,7 @@ function SocialPost({ data, assets }: { data: SocialPostData; assets: TemplateCo
             gap: 10,
             padding: '8px 12px',
             color: secondary,
-            fontSize: 13,
+            ...typography.meta,
             marginBottom: 12,
           }}
         >
@@ -272,7 +262,7 @@ function SocialPost({ data, assets }: { data: SocialPostData; assets: TemplateCo
       {replies.length > 0 && (
         <div style={{ ...column, marginBottom: 12 }}>
           {(data.replyChain?.length ?? 0) > 9 && (
-            <div style={{ display: 'flex', color: textHighlightColor, fontSize: 13, marginBottom: 12 }}>
+            <div style={{ display: 'flex', color: textHighlightColor, ...typography.meta, marginBottom: 12 }}>
               显示更多回复
             </div>
           )}
@@ -334,19 +324,24 @@ function Measure({ data }: { data: SocialPostData }) {
           <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
             {line(
               post.author?.name,
-              compact ? 14 : reply ? 16 : 17,
+              compact ? typography.compact.fontSize : typography.large.fontSize,
               700,
               headerInset + (post.author?.verified ? 25 : 0),
             )}
-            {line(handleLine(post), compact ? 13 : 14, 400, headerInset)}
+            {line(handleLine(post), typography.meta.fontSize, 400, headerInset)}
             {post.author?.avatarUrl && (
               <div data-measure style={{ display: 'flex', width: compact ? 32 : 48, height: 1, marginLeft: inset }} />
             )}
-            {line(post.content, compact || reply ? 14 : 15, 400, inset)}
+            {line(post.content, compact || reply ? typography.compact.fontSize : typography.body.fontSize, 400, inset)}
             {post.translation?.text && (
               <>
-                {line(translationLabel(post), 12, 400, inset)}
-                {line(post.translation.text, compact || reply ? 13 : 15, 400, inset + 13)}
+                {line(translationLabel(post), typography.meta.fontSize, 400, inset)}
+                {line(
+                  post.translation.text,
+                  compact || reply ? typography.compact.fontSize : typography.body.fontSize,
+                  400,
+                  inset + 13,
+                )}
               </>
             )}
           </div>
@@ -356,11 +351,11 @@ function Measure({ data }: { data: SocialPostData }) {
         data.reshare &&
         line(
           data.reshare.by.name + ' 转发了' + (data.reshare.publishedAt ? ' · ' + data.reshare.publishedAt : ''),
-          13,
+          typography.meta.fontSize,
           400,
           25,
         )}
-      {line([data.source?.trim(), data.url?.trim()].filter(Boolean).join(' · '), 12)}
+      {line([data.source?.trim(), data.url?.trim()].filter(Boolean).join(' · '), typography.meta.fontSize)}
     </div>
   );
 }

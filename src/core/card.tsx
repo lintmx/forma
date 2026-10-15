@@ -1,8 +1,8 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { z } from 'zod';
+import { colors, textStyle, typography } from './typography.js';
 
-export const textStyle: CSSProperties = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.6 };
-export const colors = { ink: '#182333', muted: '#697586', accent: '#397c68', border: '#e3e8ee' };
+export { colors, textStyle } from './typography.js';
 
 export const cardOptionsSchema = z.object({
   watermark: z.string().trim().max(160).optional().describe('卡片外底部水印，最多 160 字符；省略或留空时隐藏'),
@@ -30,6 +30,9 @@ export function CardFrame({
         backgroundColor: 'rgb(245, 245, 245)',
         fontFamily,
         color: colors.ink,
+        ...typography.body,
+        fontWeight: 400,
+        letterSpacing: 0,
       }}
     >
       <div
@@ -55,7 +58,7 @@ export function CardFrame({
             marginTop: 8,
             color: '#b7bac0',
             fontFamily: monospaceFontFamily,
-            fontSize: 12,
+            ...typography.meta,
             fontWeight: 400,
             letterSpacing: 1,
             textAlign: 'center',

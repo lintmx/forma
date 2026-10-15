@@ -83,7 +83,7 @@ it('renders a circular avatar, supports avatar-only metadata and survives image 
 
 function highlights(text: string, format: 'markdown' | 'text' = 'text') {
   const html = renderToStaticMarkup(createElement(ArticleBody, { text, format, context }));
-  return [...html.matchAll(/<span style="[^"]*color:#1d9bf0[^"]*">([^<]*)<\/span>/g)].map(match =>
+  return [...html.matchAll(/<span style="[^"]*color:#0969da[^"]*">([^<]*)<\/span>/g)].map(match =>
     decodeHTML(match[1]!),
   );
 }
@@ -142,16 +142,16 @@ it.each(['markdown', 'text'] as const)('renders highlights in both original and 
     },
   };
   const html = renderToStaticMarkup(article.render(data, context));
-  expect([...html.matchAll(/color:#1d9bf0/g)]).toHaveLength(6);
+  expect([...html.matchAll(/color:#0969da/g)]).toHaveLength(6);
   const pngResult = await renderer.render({ template: 'article', format: 'png', data });
   expect(pngResult.warnings).toEqual([]);
   const png = PNG.sync.read(Buffer.from(pngResult.body));
   let bluePixels = 0;
   for (let i = 0; i < png.data.length; i += 4) {
     if (
-      Math.abs(png.data[i]! - 29) < 10 &&
-      Math.abs(png.data[i + 1]! - 155) < 10 &&
-      Math.abs(png.data[i + 2]! - 240) < 10
+      Math.abs(png.data[i]! - 9) < 10 &&
+      Math.abs(png.data[i + 1]! - 105) < 10 &&
+      Math.abs(png.data[i + 2]! - 218) < 10
     )
       bluePixels++;
   }
@@ -159,7 +159,7 @@ it.each(['markdown', 'text'] as const)('renders highlights in both original and 
   await mkdir('artifacts/article', { recursive: true });
   await writeFile('artifacts/article/highlights-' + format + '.png', pngResult.body);
   const svg = await renderer.render({ template: 'article', format: 'svg', data });
-  expect(Buffer.from(svg.body).toString()).toContain('#1d9bf0');
+  expect(Buffer.from(svg.body).toString()).toContain('#0969da');
 });
 
 it('requires only nonblank content and allows each translation field independently', () => {
@@ -304,4 +304,60 @@ it('loads only Markdown images, leaves plain text and HTML inert, and keeps fail
   });
   expect(failed.warnings).toEqual(['IMAGE_UNAVAILABLE']);
   expect(failed.width).toBe(1400);
+});
+
+it('preserves soft breaks, hard breaks and paragraph spacing after typography changes', async () => {
+  const render = async (content: string, contentFormat: 'markdown' | 'text' = 'markdown') =>
+    renderer.render({ template: 'article', data: { content, contentFormat }, format: 'png' });
+  const single = await render('alpha beta');
+  const soft = await render('alpha\nbeta');
+  const hard = await render('alpha  \nbeta');
+  const paragraph = await render('alpha\n\nbeta');
+  const plain = await render('alpha\nbeta', 'text');
+  expect(soft.height).toBeGreaterThan(single.height);
+  expect(hard.height).toBe(soft.height);
+  expect(plain.height).toBe(soft.height);
+  expect(paragraph.height).toBeGreaterThan(soft.height);
+});
+
+it('preserves combined emphasis and link decoration, with relative inline code sizing', async () => {
+  const text = '普通 *Italic 中文* **Bold** ***Both*** [~~removed~~](https://example.com) `inline()`';
+  const html = renderToStaticMarkup(createElement(ArticleBody, { text, context }));
+  expect(html).toMatch(/font-style:italic[^>]*>Italic 中文/);
+  expect(html).toMatch(/font-weight:700[^>]*>Bold/);
+  expect(html).toMatch(/font-style:italic;font-weight:700[^>]*>Both/);
+  expect(html).toContain('text-decoration:underline line-through');
+  expect(html).toContain('font-size:0.9em');
+  const result = await renderer.render({ template: 'article', data: { content: text }, format: 'png' });
+  expect(result.warnings).toEqual([]);
+  const normal = await renderer.render({ template: 'article', data: { content: 'Emphasis' }, format: 'png' });
+  const italic = await renderer.render({ template: 'article', data: { content: '*Emphasis*' }, format: 'png' });
+  expect(Buffer.from(italic.body).equals(Buffer.from(normal.body))).toBe(false);
+});
+
+it('keeps code lines and every wide-table value readable without widening the image', async () => {
+  const code = '```ts\nconst long = "' + 'identifier'.repeat(25) + '";\n\n    return long;\n```';
+  const table =
+    '| Name | Description | Count | State | Notes |\n| --- | --- | ---: | --- | --- |\n' +
+    '| A | 多列内容 | 123 | **Ready** | 最后一列不能丢失 |\n| B | second row | 456 | *Waiting* | 第二条记录 |';
+  const text = code + '\n\n' + table;
+  const html = renderToStaticMarkup(createElement(ArticleBody, { text, context }));
+  expect(html).toContain('记录 1');
+  expect(html).toContain('记录 2');
+  expect(html).toContain('最后一列不能丢失');
+  expect(html).toContain('第二条记录');
+  expect(html).toContain('>3</div>'); // Blank source line still occupies line 2.
+  expect(html).toContain('    return long;');
+  const result = await renderer.render({ template: 'article', data: { content: text }, format: 'png' });
+  expect(result.width).toBe(1400);
+  expect(result.warnings).toEqual([]);
+  await mkdir('artifacts/article', { recursive: true });
+  await writeFile('artifacts/article/wide-table-code.png', result.body);
+  const headerOnly = await renderer.render({
+    template: 'article',
+    data: { content: table.split('\n').slice(0, 2).join('\n') },
+    format: 'png',
+  });
+  expect(headerOnly.width).toBe(1400);
+  expect(headerOnly.warnings).toEqual([]);
 });

@@ -32,6 +32,16 @@
         "path": "Inter-Bold.ttf",
         "archivePath": "extras/ttf/Inter-Bold.ttf",
         "sha256": "288316099b1e0a47a4716d159098005eef7c0066921f34e3200393dbdb01947f"
+      },
+      {
+        "path": "Inter-Italic.ttf",
+        "archivePath": "extras/ttf/Inter-Italic.ttf",
+        "sha256": "bbc051dd204b5019a1aa0bc0ae2aa8a05ab13e7a3f979fa357631dc7feb6833a"
+      },
+      {
+        "path": "Inter-BoldItalic.ttf",
+        "archivePath": "extras/ttf/Inter-BoldItalic.ttf",
+        "sha256": "948405a16cdc62701da5f4005ed068ca5f4d27061d98f7974ccfc37831d9581d"
       }
     ]
   },

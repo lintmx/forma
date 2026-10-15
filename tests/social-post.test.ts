@@ -6,11 +6,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import sharp from 'sharp';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
-import { textStyle } from '../src/core/card.js';
 import { loadFonts } from '../src/core/fonts.js';
 import { ImageStore, imageDataUri } from '../src/core/images.js';
 import { rasterize } from '../src/core/rasterize.js';
 import { Renderer } from '../src/core/renderer.js';
+import { textStyle, typography } from '../src/core/typography.js';
 import { registry } from '../src/templates/index.js';
 import { socialPost } from '../src/templates/social_post/index.js';
 import { socialPostSchema } from '../src/templates/social_post/schema.js';
@@ -51,10 +51,8 @@ beforeAll(async () => {
             boxSizing: 'border-box',
             width: '100%',
             minWidth: 0,
-            fontSize: 15,
+            ...typography.body,
             ...textStyle,
-            lineHeight: 1.375,
-            letterSpacing: '0.01em',
             marginBottom: 12,
           },
         },
@@ -146,13 +144,13 @@ describe('social_post real Satori and Skia output', () => {
       const html = renderToStaticMarkup(
         socialPost.render(data, { assets: {}, fontFamily: 'sans-serif', monospaceFontFamily: 'monospace' }),
       );
-      const highlighted = [...html.matchAll(/<span style="[^"]*color:#1d9bf0[^"]*">([^<]*)<\/span>/g)].map(match =>
+      const highlighted = [...html.matchAll(/<span style="[^"]*color:#0969da[^"]*">([^<]*)<\/span>/g)].map(match =>
         decodeHTML(match[1]!),
       );
       expect(highlighted).toEqual([...expected, ...expected]);
       expect(html).not.toContain('#2563eb');
       const svg = await render(data, 'svg');
-      expect(Buffer.from(svg.body).toString()).toContain('fill="#1d9bf0"');
+      expect(Buffer.from(svg.body).toString()).toContain('fill="#0969da"');
     }
     const result = await render(snapshot);
     expect(result.warnings).toEqual([]);
@@ -172,7 +170,7 @@ describe('social_post real Satori and Skia output', () => {
   });
   it('uses the same safe inline token styling in the main post, translation, reply and quote', async () => {
     const plain = await render({ content: '#123 #456' }, 'svg');
-    expect(Buffer.from(plain.body).toString()).not.toContain('fill="' + '#1d9bf0' + '"');
+    expect(Buffer.from(plain.body).toString()).not.toContain('fill="' + '#0969da' + '"');
     for (const data of [
       { content: '正文 #中文 @forma https://example.com' },
       { translation: { text: '译文 #日本語 @forma https://example.com' } },
@@ -181,7 +179,7 @@ describe('social_post real Satori and Skia output', () => {
     ]) {
       const result = await render(data, 'svg');
       const svg = Buffer.from(result.body).toString();
-      expect(svg).toContain('fill="#1d9bf0"');
+      expect(svg).toContain('fill="#0969da"');
       expect(svg).not.toMatch(/(?:href|src)="https?:/);
       expect(svg).not.toContain('<text');
       expect(svg).not.toContain('<a ');

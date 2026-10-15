@@ -20,7 +20,8 @@ glyphs; the default Han character forms are Simplified Chinese.
 Copyright © 2016 The Inter Project Authors. Distributed under the SIL Open Font
 License 1.1; see [fonts/Inter-OFL.txt](fonts/Inter-OFL.txt).
 
-The unmodified `Inter-Regular.ttf` and `Inter-Bold.ttf` files are from `extras/ttf`
+The unmodified `Inter-Regular.ttf`, `Inter-Bold.ttf`, `Inter-Italic.ttf` and
+`Inter-BoldItalic.ttf` files are from `extras/ttf`
 in the official [Inter 4.1 release](https://github.com/rsms/inter/releases/tag/v4.1),
 archive `Inter-4.1.zip`. They are used for body Latin text and numbers.
 

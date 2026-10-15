@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { textStyle } from '../../core/card.js';
 import type { Template } from '../../core/types.js';
+import { textStyle, typography } from '../../core/typography.js';
 
 const schema = z
   .object({
@@ -23,7 +23,7 @@ export const example: Template<z.infer<typeof schema>> = {
     <div
       style={{
         display: 'flex',
-        fontSize: 20,
+        ...typography.body,
         fontFamily: data.monospace ? context.monospaceFontFamily : context.fontFamily,
         ...textStyle,
       }}

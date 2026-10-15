@@ -1,9 +1,9 @@
 import { decodeHTML } from 'entities';
-import { type MarkedToken, marked, type Token } from 'marked';
+import { type MarkedToken, marked, type Token, type Tokens } from 'marked';
 import type { CSSProperties, ReactNode } from 'react';
-import { colors, textStyle } from '../../core/card.js';
 import type { ImageStore } from '../../core/images.js';
 import type { TemplateContext } from '../../core/types.js';
+import { colors, markdownHeading, proseSpacing, textStyle, typography } from '../../core/typography.js';
 import { highlightTextRuns, type TextRun, textHighlightColor } from '../shared/highlight.js';
 import type { ArticleData } from './schema.js';
 
@@ -58,14 +58,28 @@ function inlineParts(
       case 'em':
         return inlineParts(token.tokens, context, { ...style, fontStyle: 'italic' }, highlight);
       case 'del':
-        return inlineParts(token.tokens, context, { ...style, textDecoration: 'line-through' }, highlight);
+        return inlineParts(
+          token.tokens,
+          context,
+          { ...style, textDecoration: [style.textDecoration, 'line-through'].filter(Boolean).join(' ') },
+          highlight,
+        );
       case 'link':
-        return inlineParts(token.tokens, context, { ...style, color: textHighlightColor }, false);
+        return inlineParts(
+          token.tokens,
+          context,
+          {
+            ...style,
+            color: textHighlightColor,
+            textDecoration: [style.textDecoration, 'underline'].filter(Boolean).join(' '),
+          },
+          false,
+        );
       case 'codespan':
         return [
           {
             text: token.text,
-            style: { ...style, fontFamily: context.monospaceFontFamily, backgroundColor: '#f1f3f5' },
+            style: { ...style, fontFamily: context.monospaceFontFamily, fontSize: '0.9em', backgroundColor: '#f1f3f5' },
             highlight: false,
           },
         ];
@@ -123,9 +137,121 @@ function Inline({ tokens, context }: { tokens: Token[]; context: TemplateContext
   return <div style={column}>{blocks}</div>;
 }
 
-function Blocks({ tokens, context }: { tokens: Token[]; context: TemplateContext }) {
+function CodeBlock({ text, context }: { text: string; context: TemplateContext }) {
+  const lines = text.split('\n');
   return (
-    <div style={{ ...column, gap: 12 }}>
+    <div
+      style={{
+        ...column,
+        padding: 12,
+        borderRadius: 6,
+        backgroundColor: colors.surface,
+        ...typography.code,
+        fontFamily: context.monospaceFontFamily,
+      }}
+    >
+      {lines.map((line, index) => (
+        <div key={index} style={{ display: 'flex', width: '100%', minWidth: 0, alignItems: 'baseline', gap: 12 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              flexShrink: 0,
+              width: Math.max(2, String(lines.length).length) * typography.code.fontSize * 0.6,
+              color: colors.muted,
+            }}
+          >
+            {index + 1}
+          </div>
+          <div style={{ ...paragraph, flex: 1, width: undefined }}>{line.replace(/\t/g, '    ') || '\u00a0'}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Use visible text demand only to distribute the available table width. Actual
+// glyph layout/wrapping remains Satori's job; a long URL cannot monopolize it.
+function cellDemand(cell: Tokens.TableCell, context: TemplateContext) {
+  const text = inlineParts(cell.tokens, context)
+    .map(part => ('text' in part ? part.text : part.alt))
+    .join('');
+  const length = Array.from(text).reduce((sum, char) => sum + (char.codePointAt(0)! > 255 ? 2 : 1), 0);
+  return Math.max(8, Math.min(32, length));
+}
+
+function MarkdownTable({ token, context }: { token: Tokens.Table; context: TemplateContext }) {
+  // More than four columns becomes labeled records instead of unreadably narrow
+  // cells. All values and their column headings remain present in the image.
+  if (token.header.length > 4) {
+    return (
+      <div style={{ ...column, ...typography.compact, gap: 12 }}>
+        {(token.rows.length ? token.rows : [[]]).map((row, r) => (
+          <div key={r} style={{ ...column, border: '1px solid ' + colors.border, borderRadius: 6 }}>
+            <div
+              style={{
+                ...column,
+                ...typography.meta,
+                padding: 8,
+                color: colors.muted,
+                backgroundColor: colors.surface,
+              }}
+            >
+              {token.rows.length ? '记录 ' + (r + 1) : '表头'}
+            </div>
+            {token.header.map((header, c) => (
+              <div key={c} style={{ ...column, gap: 4, padding: 10, borderTop: '1px solid ' + colors.border }}>
+                <div style={{ ...column, fontWeight: 700 }}>
+                  <Inline tokens={header.tokens} context={context} />
+                </div>
+                <Inline tokens={row[c]?.tokens ?? []} context={context} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  const demands = token.header.map((cell, c) =>
+    Math.max(cellDemand(cell, context), ...token.rows.map(row => (row[c] ? cellDemand(row[c]!, context) : 8))),
+  );
+  const total = demands.reduce((sum, value) => sum + value, 0);
+  return (
+    <div style={{ ...column, border: '1px solid ' + colors.border, ...typography.compact }}>
+      {[token.header, ...token.rows].map((row, r) => (
+        <div
+          key={r}
+          style={{
+            display: 'flex',
+            width: '100%',
+            backgroundColor: r === 0 ? colors.surface : undefined,
+            fontWeight: r === 0 ? 700 : 400,
+            borderTop: r ? '1px solid ' + colors.border : undefined,
+          }}
+        >
+          {row.map((cell, c) => (
+            <div
+              key={c}
+              style={{
+                ...column,
+                width: (100 * demands[c]!) / total + '%',
+                padding: 8,
+                borderLeft: c ? '1px solid ' + colors.border : undefined,
+                textAlign: cell.align ?? 'left',
+              }}
+            >
+              <Inline tokens={cell.tokens} context={context} />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Blocks({ tokens, context, tight = false }: { tokens: Token[]; context: TemplateContext; tight?: boolean }) {
+  return (
+    <div style={{ ...column, gap: tight ? 4 : proseSpacing.paragraph }}>
       {tokens.map((raw, index) => {
         const token = raw as MarkedToken;
         switch (token.type) {
@@ -142,9 +268,8 @@ function Blocks({ tokens, context }: { tokens: Token[]; context: TemplateContext
                 key={index}
                 style={{
                   ...column,
-                  fontWeight: 700,
-                  fontSize: [28, 24, 21, 19, 17, 16][token.depth - 1],
-                  marginTop: 4,
+                  ...markdownHeading(token.depth),
+                  marginTop: index === 0 ? 0 : proseSpacing.headingBefore - proseSpacing.paragraph,
                 }}
               >
                 <Inline tokens={token.tokens} context={context} />
@@ -156,74 +281,36 @@ function Blocks({ tokens, context }: { tokens: Token[]; context: TemplateContext
             return (
               <div
                 key={index}
-                style={{ ...column, borderLeft: '3px solid #cbd5e1', padding: '4px 14px', color: colors.muted }}
+                style={{
+                  ...column,
+                  borderLeft: '3px solid #cbd5e1',
+                  padding: '4px 16px',
+                  color: colors.ink,
+                  backgroundColor: colors.surface,
+                }}
               >
                 <Blocks tokens={token.tokens} context={context} />
               </div>
             );
           case 'code':
-            return (
-              <div
-                key={index}
-                style={{
-                  ...column,
-                  padding: 12,
-                  backgroundColor: '#f6f8fa',
-                  borderRadius: 6,
-                  fontFamily: context.monospaceFontFamily,
-                  fontSize: 14,
-                }}
-              >
-                <div style={paragraph}>{token.text}</div>
-              </div>
-            );
+            return <CodeBlock key={index} text={token.text} context={context} />;
           case 'list':
             return (
-              <div key={index} style={{ ...column, gap: 8 }}>
+              <div key={index} style={{ ...column, gap: proseSpacing.listItem }}>
                 {token.items.map((item, i) => (
                   <div key={i} style={{ display: 'flex', width: '100%', gap: 8 }}>
-                    <div style={{ ...textStyle, flexShrink: 0, minWidth: 24 }}>
+                    <div style={{ ...textStyle, flexShrink: 0, minWidth: proseSpacing.indent, textAlign: 'right' }}>
                       {item.task ? (item.checked ? '[x]' : '[ ]') : token.ordered ? Number(token.start) + i + '.' : '•'}
                     </div>
                     <div style={{ ...column, flex: 1 }}>
-                      <Blocks tokens={item.tokens} context={context} />
+                      <Blocks tokens={item.tokens} context={context} tight={!token.loose} />
                     </div>
                   </div>
                 ))}
               </div>
             );
           case 'table':
-            return (
-              <div key={index} style={{ ...column, border: '1px solid ' + colors.border, fontSize: 14 }}>
-                {[token.header, ...token.rows].map((row, r) => (
-                  <div
-                    key={r}
-                    style={{
-                      display: 'flex',
-                      width: '100%',
-                      backgroundColor: r === 0 ? '#f6f8fa' : undefined,
-                      fontWeight: r === 0 ? 700 : 400,
-                      borderTop: r ? '1px solid ' + colors.border : undefined,
-                    }}
-                  >
-                    {row.map((cell, c) => (
-                      <div
-                        key={c}
-                        style={{
-                          ...column,
-                          width: 100 / row.length + '%',
-                          padding: 8,
-                          borderLeft: c ? '1px solid ' + colors.border : undefined,
-                          textAlign: cell.align ?? 'left',
-                        }}
-                      >
-                        <Inline tokens={cell.tokens} context={context} />
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            );
+            return <MarkdownTable key={index} token={token} context={context} />;
           default:
             return null;
         }

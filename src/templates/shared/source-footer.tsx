@@ -1,3 +1,5 @@
+import { colors, typography } from '../../core/typography.js';
+
 export function SourceFooter({ source, url }: { source?: string; url?: string }) {
   const label = source?.trim();
   const address = url?.trim();
@@ -12,9 +14,8 @@ export function SourceFooter({ source, url }: { source?: string; url?: string })
         borderTop: '1px solid #eef0f3',
         marginTop: 12,
         paddingTop: 10,
-        color: '#9ca3af',
-        fontSize: 12,
-        lineHeight: 1.5,
+        color: colors.muted,
+        ...typography.meta,
       }}
     >
       {label && (
@@ -28,7 +29,7 @@ export function SourceFooter({ source, url }: { source?: string; url?: string })
             borderRadius: 4,
             backgroundColor: '#f6f7f8',
             color: '#6b7280',
-            fontSize: 11,
+            ...typography.meta,
             fontWeight: 700,
             whiteSpace: 'nowrap',
             overflow: 'hidden',

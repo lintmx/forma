@@ -1,7 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 import twitterText from 'twitter-text';
+import { colors } from '../../core/typography.js';
 
-export const textHighlightColor = '#1d9bf0';
+export const textHighlightColor = colors.link;
 
 export interface TextRun {
   text: string;

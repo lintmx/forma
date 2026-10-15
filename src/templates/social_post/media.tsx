@@ -2,6 +2,7 @@ import { imageSize } from 'image-size';
 import type { CSSProperties, ReactNode } from 'react';
 import type { ImageStore } from '../../core/images.js';
 import type { TemplateContext } from '../../core/types.js';
+import { colors, typography } from '../../core/typography.js';
 import { type Media, type MediaLayout, postEntries, type SocialPostData } from './schema.js';
 
 export async function loadAssets(data: SocialPostData, images: ImageStore) {
@@ -79,8 +80,8 @@ function MediaItem({
             justifyContent: 'center',
             width: '100%',
             height: cropped ? '100%' : 120,
-            color: audio ? '#6b7280' : '#9ca3af',
-            fontSize: 13,
+            color: colors.muted,
+            ...typography.compact,
             ...(audio ? { backgroundImage: 'linear-gradient(135deg, #f6f7f8, #e5e7eb)' } : {}),
           }}
         >
@@ -114,7 +115,7 @@ function MediaItem({
             borderRadius: 5,
             backgroundColor: 'rgba(17,24,39,0.78)',
             color: '#fff',
-            fontSize: 11,
+            ...typography.meta,
             fontWeight: 700,
           }}
         >

@@ -1,7 +1,7 @@
 import { diffWords } from 'diff';
 import type { CSSProperties, ReactNode } from 'react';
-import { colors, textStyle } from '../../core/card.js';
 import type { Template, TemplateContext } from '../../core/types.js';
+import { colors, textStyle, typography } from '../../core/typography.js';
 import { calculateMetricDelta, type DiffLine, diffLines, displayValue } from './comparison.js';
 import { comparisonMock } from './mock.js';
 import { type ComparisonData, type ComparisonModule, comparisonSchema } from './schema.js';
@@ -85,13 +85,13 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
                       {displayValue(item.before)}
                     </Text>
                     <span style={{ color: colors.muted }}>→</span>
-                    <Text style={{ fontSize: 14, fontWeight: 700 }}>{displayValue(item.after)}</Text>
+                    <Text style={{ ...typography.body, fontWeight: 700 }}>{displayValue(item.after)}</Text>
                     {delta.label && (
                       <Text
                         style={{
                           padding: '2px 6px',
                           borderRadius: 4,
-                          fontSize: 11,
+                          ...typography.meta,
                           ...tones[delta.trend === 'up' ? 'green' : delta.trend === 'down' ? 'red' : 'gray'],
                         }}
                       >
@@ -112,10 +112,10 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
         <div style={{ display: 'flex', padding: 12, gap: 10 }}>
           {(['before', 'after'] as const).map(side => (
             <div key={side} style={{ ...column, width: '50%', padding: '10px 12px', border, borderRadius: 8, gap: 6 }}>
-              <Text style={{ fontSize: 11, color: side === 'after' ? '#2563eb' : colors.muted }}>
+              <Text style={{ ...typography.meta, color: side === 'after' ? '#2563eb' : colors.muted }}>
                 {side === 'after' ? '更新后 · AFTER' : '更新前 · BEFORE'}
               </Text>
-              <Text style={{ fontSize: 13 }}>{module[side] || '—'}</Text>
+              <Text style={{ ...typography.compact }}>{module[side] || '—'}</Text>
             </div>
           ))}
         </div>
@@ -123,7 +123,7 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
     case 'diff': {
       const lines = diffLines(module.before, module.after);
       return (
-        <div style={{ ...column, fontSize: 13 }}>
+        <div style={{ ...column, ...typography.compact }}>
           {lines.length ? (
             lines.map((line, i) => (
               <div
@@ -155,7 +155,7 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
             const source = context.assets[index + '-' + side];
             return (
               <div key={side} style={{ ...column, width: '50%', gap: 6 }}>
-                <Text style={{ fontSize: 11, color: side === 'after' ? '#2563eb' : colors.muted }}>
+                <Text style={{ ...typography.meta, color: side === 'after' ? '#2563eb' : colors.muted }}>
                   {module[side].label?.trim() || (side === 'after' ? '更新后' : '更新前')}
                 </Text>
                 <div
@@ -193,10 +193,8 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
                   <div
                     style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', flex: 1, gap: 8, minWidth: 0 }}
                   >
-                    <Text style={{ fontSize: 15, fontWeight: 700 }}>{entity.name.trim() || '未命名实体'}</Text>
-                    {entity.handle?.trim() && (
-                      <Text style={{ color: colors.muted, fontFamily: mono }}>{entity.handle.trim()}</Text>
-                    )}
+                    <Text style={{ ...typography.section }}>{entity.name.trim() || '未命名实体'}</Text>
+                    {entity.handle?.trim() && <Text style={{ color: colors.muted }}>{entity.handle.trim()}</Text>}
                   </div>
                   <Text
                     style={{ maxWidth: '45%', padding: '6px 10px', borderRadius: 18, ...tones[entity.color ?? 'gray'] }}
@@ -205,7 +203,7 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
                   </Text>
                 </div>
                 {entity.bio?.trim() && (
-                  <Text style={{ padding: '10px 12px', border, borderRadius: 8, fontSize: 13 }}>
+                  <Text style={{ padding: '10px 12px', border, borderRadius: 8, ...typography.compact }}>
                     {entity.bio.trim()}
                   </Text>
                 )}
@@ -240,7 +238,7 @@ export const comparison: Template<ComparisonData> = {
     return Object.fromEntries(entries);
   },
   render: (data, context) => (
-    <div style={{ ...column, fontSize: 12 }}>
+    <div style={{ ...column, ...typography.compact }}>
       <div
         style={{
           display: 'flex',
@@ -252,18 +250,18 @@ export const comparison: Template<ComparisonData> = {
         }}
       >
         <div style={{ ...column, flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: 700 }}>{data.title.trim() || '数据对比'}</Text>
+          <Text style={{ ...typography.title }}>{data.title.trim() || '数据对比'}</Text>
           {data.subtitle?.trim() && <Text style={{ marginTop: 4, color: colors.muted }}>{data.subtitle.trim()}</Text>}
         </div>
         {data.time?.trim() && (
           <Text
             style={{
               maxWidth: '42%',
+              ...typography.meta,
               padding: '4px 8px',
               border,
               borderRadius: 6,
               ...tones.gray,
-              fontFamily: context.monospaceFontFamily,
             }}
           >
             {data.time.trim()}
@@ -277,8 +275,7 @@ export const comparison: Template<ComparisonData> = {
               <Text
                 style={{
                   padding: '8px 12px',
-                  fontSize: 13,
-                  fontWeight: 700,
+                  ...typography.section,
                   backgroundColor: '#f6f8fa',
                   borderBottom: border,
                 }}

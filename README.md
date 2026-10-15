@@ -271,14 +271,44 @@ Schema 内容长度上限、请求体上限、worker 并发限制与超时共同
 `boxShadow` 等产生 filter 的新模板需要先扩充兼容验证，当前会明确拒绝。SVG 输出仍保持 Satori 原始结果。
 不把完整浏览器 CSS 作为模板契约；不支持的样式直接使渲染失败，避免静默失效。
 
+## 通用排版
+
+所有模板使用 `src/core/typography.ts` 的语义样式；字号均为逻辑像素，PNG 2× 输出不改变布局。
+正文、社交内容和纯文本示例为 16px/400，文章正文行高 1.65，普通正文行高 1.6；
+对比栏、表格和次级内容为 14px/1.5；时间、来源等元信息为 12px/1.45。
+主标题为 28px/700，区块标题为 20–24px/700。字体只有已加载的 400/700 字重，
+不以不存在的 500/600 字重代替。默认字距为 0；测量树和最终布局必须引用相同文字角色。
+
+正文、URL、时间、用户名使用正文字体；代码和需要等宽对齐的数值使用 Maple Mono CN。
+Inter 提供真实 Italic/Bold Italic；CJK 和等宽字体没有独立斜体文件，由当前 Satori 合成倾斜。
+当前仍以 SC 地区汉字为默认，不做自动语言识别或日文字形切换。现有模板均为浅色，
+深色模板引入时需单独验证文字颜色，不能直接反转颜色或继承浅色链接色。
+
+文章 Markdown 保留 `gfm: true, breaks: true`，单个源换行继续产生可见换行。
+H1–H6 为 28/24/20/18/16/16px、700 字重；段落间距 12px，标题前后约 24/12px。
+普通/加粗/斜体/粗斜体、删除线与链接下划线保留组合语义；行内代码为当前字号的 90%。
+代码块为 14px/1.55，保留空行和缩进，Tab 展示为 4 个空格；长行视觉折行，
+行号只在原始行首出现。引用继承可读的正文颜色，以边线、浅背景和缩进区分。
+列表保留起始编号、任务状态和嵌套层级，续行对齐文字。
+
+Markdown 表格最多四列时按可见内容需求分配列宽，长字符串允许折行；
+超过四列转换为带列名的逐条记录，保留每一个值，不缩小字号或横向裁切。
+普通英文按单词断行，超长词和 URL 可字符级折行；中日文断行由 Satori 处理。
+原始 HTML 不进入渲染树。图片保持比例，加载失败保留替代文本。
+
+运行 `pnpm preview:typography` 可生成所有模板与 Markdown 边界样张到 `artifacts/typography/`。
+该命令使用生产 Renderer（Satori → Skia → PNG），同时生成原始 2× PNG、逻辑尺寸预览和
+390px 宽预览。验收应查看原图及缩放图的可读性、缺字、代码折行、表格溢出和 Emoji；
+聊天缩略图不保证无需放大即可阅读完整长文。
+
 ## 字体、Emoji 与图片
 
-默认使用八份上游原始静态 TTF/OTF（下载后合计约 70 MiB）。Git 仅保存字体配置、
+默认使用十份上游原始静态 TTF/OTF（下载后合计约 71 MiB）。Git 仅保存字体配置、
 下载清单和许可证，字体二进制不入库；正文和等宽分别选择字体：
 
 | 用途 | 字体顺序 | 字重 |
 | --- | --- | --- |
-| 正文 | Inter → Noto Sans CJK SC → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs | 前两套 400/700，符号 400 |
+| 正文 | Inter → Noto Sans CJK SC → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs | 前两套 400/700；Inter 含真实斜体与粗斜体；符号 400 |
 | 等宽 | Maple Mono CN → Noto Sans Symbols 2 → Noto Sans Egyptian Hieroglyphs | Maple 400/700，符号 400 |
 
 Maple Mono CN 包含中日英文字，其 ASCII 和所覆盖的全宽 CJK 字符采用 0.6em / 1.2em 字宽；
@@ -295,7 +325,7 @@ SHA-256。`pnpm fonts:fetch` 复用校验通过的本地字体，缺失或损坏
 更新字体时同步更新清单中的版本、SHA-256 和相关许可说明。
 
 `pnpm dev` 和 `pnpm build` 自动执行下载准备；单独运行测试前先执行 `pnpm fonts:fetch`。
-`pnpm fonts:verify` 仅校验八份本地字体，不联网。Docker 在复制业务源码前独立下载字体，
+`pnpm fonts:verify` 仅校验十份本地字体，不联网。Docker 在复制业务源码前独立下载字体，
 复用构建层缓存；本机字体不进入 Docker 构建上下文，最终镜像仍内置完整字体和许可证。
 `pnpm start` 和渲染 worker 只读取本地字体，不下载资源；离线部署使用预先构建好的镜像，
 直接运行 Node 时需先准备好 `fonts/`。这些准备命令只管理默认字体，自定义 `FONT_CONFIG`
@@ -321,8 +351,8 @@ SHA-256。`pnpm fonts:fetch` 复用校验通过的本地字体，缺失或损坏
 配置最多 12 份字体，必须分别包含正文和等宽字体；`usage` 为 body、monospace 或 fallback，
 省略时按 body 处理。各用途内部按配置顺序选择，fallback 字体追加到两个列表末尾；
 `style` 默认 normal，可设为 italic。模板通过 `context.fontFamily` 取得正文字体，
-通过 `context.monospaceFontFamily` 取得等宽字体，在代码或表格文本的 style 中显式使用；
-测量树与渲染树必须使用相同字体。正文及水印默认继承正文字体。
+通过 `context.monospaceFontFamily` 取得等宽字体，仅在代码或需要等宽对齐的数值中显式使用；
+测量树与渲染树必须使用相同字体。正文继承正文字体；外部装饰水印单独使用等宽字体。
 
 使用静态 TTF/OTF/WOFF；不要假定 WOFF2、变量字体或所有 OpenType
 特性都受支持。自定义字体需自行确认覆盖范围和许可。
