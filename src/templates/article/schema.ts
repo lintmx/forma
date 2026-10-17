@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assetUrlSchema } from '../../core/asset-url.js';
 import { mediaLayoutSchema, mediaSchema } from '../shared/media-schema.js';
 
 const format = z.enum(['markdown', 'text']).optional().describe('正文格式，省略为 markdown；text 按原样保留符号和换行');
@@ -15,9 +16,9 @@ export const articleSchema = z
     title: z.string().max(400).optional().describe('文章标题，按普通文本展示'),
     author: z.string().max(160).optional().describe('作者名称'),
     authorAvatarUrl: z
-      .union([z.literal(''), z.url({ protocol: /^(https?|file)$/ }).max(2048)])
+      .union([z.literal(''), assetUrlSchema])
       .optional()
-      .describe('可选作者头像，HTTP(S) 或 file:// PNG/JPEG/WebP 地址；省略或空字符串时隐藏'),
+      .describe('可选作者头像，HTTP(S)、file:// 或相对路径的 PNG/JPEG/WebP 地址；省略或空字符串时隐藏'),
     publishedAt: z.string().max(160).optional().describe('发布时间，按输入文本展示'),
     translation: z
       .object({

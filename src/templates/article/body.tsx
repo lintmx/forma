@@ -1,7 +1,7 @@
 import { decodeHTML } from 'entities';
 import { type MarkedToken, marked, type Token, type Tokens } from 'marked';
 import type { CSSProperties, ReactNode } from 'react';
-import type { ImageStore } from '../../core/images.js';
+import type { ImageLoader } from '../../core/images.js';
 import type { TemplateContext } from '../../core/types.js';
 import { colors, markdownHeading, proseSpacing, textStyle, typography } from '../../core/typography.js';
 import { highlightTextRuns, type TextRun } from '../shared/highlight.js';
@@ -23,7 +23,7 @@ const paragraph: CSSProperties = {
 };
 const lexer = (text: string) => marked.lexer(text, { gfm: true, breaks: true });
 
-export async function loadArticleImages(data: ArticleData, images: ImageStore) {
+export async function loadArticleImages(data: ArticleData, images: ImageLoader) {
   const urls = new Set<string>();
   if (data.authorAvatarUrl) urls.add(data.authorAvatarUrl);
   for (const item of data.media ?? []) urls.add(item.previewUrl ?? item.url);

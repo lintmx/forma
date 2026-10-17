@@ -17,7 +17,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "vitest run",
-    "test:e2e": "vitest run tests/api.test.ts tests/templates.test.ts",
+    "test:e2e": "vitest run tests/api.test.ts tests/templates.test.ts tests/asset-prefix.test.ts",
     "preview:typography": "tsx scripts/render-typography.ts",
     "fonts:verify": "tsx scripts/verify-fonts.ts",
     "fonts:fetch": "tsx scripts/fetch-fonts.ts",

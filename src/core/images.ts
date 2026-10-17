@@ -4,6 +4,7 @@ import { request as httpsRequest } from 'node:https';
 import { imageSize } from 'image-size';
 import sharp from 'sharp';
 import type { Config } from '../config.js';
+import { resolveAssetUrl } from './asset-url.js';
 import { FormaError } from './errors.js';
 
 // HTTP(S) and local files share resource limits; Satori only receives embedded data.
@@ -87,6 +88,8 @@ export function imageDataUri(buffer: Buffer, config: Config) {
   return 'data:image/' + (size.type === 'jpg' ? 'jpeg' : size.type) + ';base64,' + buffer.toString('base64');
 }
 
+export type ImageLoader = Pick<ImageStore, 'get'>;
+
 export class ImageStore {
   private cache = new Map<string, { data: string; expires: number; bytes: number }>();
   private inflight = new Map<string, Promise<string>>();
@@ -95,6 +98,10 @@ export class ImageStore {
     private config: Config,
     private download = downloadImage,
   ) {}
+
+  withPrefix(prefix?: string): ImageLoader {
+    return { get: async input => this.get(resolveAssetUrl(input, prefix)) };
+  }
 
   async get(url: string): Promise<string> {
     const entry = this.cache.get(url);

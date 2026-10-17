@@ -83,8 +83,9 @@ TypeScript 开启 `noUnusedLocals` / `noUnusedParameters`，后续未使用的�
    `id`、`name`、`description`、Zod 对象 `schema`、`sizing`、`mock` 和 `render`。
 2. Schema 只定义业务数据，通过 `.describe()` 说明字段。Schema、组件与示例按复杂度拆分到模板自己的目录。
 3. `render` 只返回内部内容。渲染器统一添加 [CardFrame](../src/core/card.tsx)，负责背景、边距、边框、圆角和水印；
-   模板不重复包裹外框，也不定义保留字段 `watermark`。
-4. 如需远程图片，实现 `assets`，通过传入的 `ImageStore` 获取资源，再从 `context.assets` 读取。
+   模板不重复包裹外框，也不定义保留字段 `watermark`、`assetUrlPrefix`。
+4. 如需远程图片，实现 `assets`，通过传入的 `ImageLoader.get` 获取资源，再从 `context.assets` 读取。
+   资源字段复用 `src/core/asset-url.ts` 的 `assetUrlSchema`，请求级加载器自动应用 `assetUrlPrefix`。
    为失败资源提供占位或替代文本，不在组件中直接 `fetch`。
 5. 在 [src/templates/index.ts](../src/templates/index.ts) 导入并调用 `.register()`。
    ID 须唯一、以小写字母开头，仅含小写字母、数字、下划线或连字符。

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
-import type { ImageStore } from './images.js';
+import type { ImageLoader } from './images.js';
 
 export type SizeStrategy =
   | { mode: 'fixed'; width: number; height: number }
@@ -24,7 +24,7 @@ export interface Template<T extends Record<string, unknown> = Record<string, unk
   mock: T;
   // Content-only intrinsic-width probe. The renderer supplies the frame and font.
   measure?: (data: T, context: TemplateContext) => ReactNode;
-  assets?: (data: T, images: ImageStore) => Promise<Record<string, string | undefined>>;
+  assets?: (data: T, images: ImageLoader) => Promise<Record<string, string | undefined>>;
   // Return only the card's inner content. The renderer always adds the shared frame.
   render: (data: T, context: TemplateContext) => ReactNode;
 }

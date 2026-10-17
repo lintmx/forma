@@ -1,13 +1,13 @@
 import { z } from 'zod';
+import { assetUrlSchema } from '../../core/asset-url.js';
 
-const imageUrl = z.url({ protocol: /^(https?|file)$/ }).max(2048);
 export const mediaSchema = z
   .array(
     z
       .object({
         type: z.enum(['image', 'video', 'gif', 'audio']).optional().describe('媒体类型，省略为 image'),
-        url: imageUrl.describe('原始媒体地址；图片可直接加载，其他类型建议提供 previewUrl'),
-        previewUrl: imageUrl.optional().describe('HTTP(S) 或 file:// PNG/JPEG/WebP 预览图地址'),
+        url: assetUrlSchema.describe('原始媒体 URL 或相对路径；图片可直接加载，其他类型建议提供 previewUrl'),
+        previewUrl: assetUrlSchema.optional().describe('HTTP(S)、file:// 或相对路径的 PNG/JPEG/WebP 预览图地址'),
         alt: z.string().max(400).optional().describe('媒体描述'),
       })
       .strict(),

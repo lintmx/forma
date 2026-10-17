@@ -8,7 +8,7 @@ import { ImageStore } from './images.js';
 import { encodePng } from './png.js';
 import { rasterize } from './rasterize.js';
 import type { TemplateRegistry } from './registry.js';
-import { cardOptionsSchema, type RenderRequest } from './request.js';
+import { type RenderRequest, renderOptionsSchema } from './request.js';
 import { assertDimensions, layoutOptions, svgDimensions } from './sizing.js';
 import type { RenderResult, TemplateContext } from './types.js';
 
@@ -22,9 +22,9 @@ export class Renderer {
     this.images = new ImageStore(config);
   }
   async render(request: RenderRequest): Promise<RenderResult> {
-    const options = cardOptionsSchema.safeParse(request);
+    const options = renderOptionsSchema.safeParse(request);
     if (!options.success) throw new FormaError('VALIDATION_ERROR', 'Invalid render options', 400, options.error.issues);
-    const { watermark } = options.data;
+    const { watermark, assetUrlPrefix } = options.data;
     // SVG stays vector-based at its logical size; only PNG is supersampled.
     const scale = request.format === 'png' ? 2 : 1;
     const template = this.registry.get(request.template);
@@ -39,7 +39,7 @@ export class Renderer {
     let assets: TemplateContext['assets'] = {};
     if (template.assets) {
       try {
-        assets = await template.assets(data, this.images);
+        assets = await template.assets(data, this.images.withPrefix(assetUrlPrefix));
         if (Object.values(assets).some(asset => asset === undefined)) warnings.push('IMAGE_UNAVAILABLE');
       } catch {
         warnings.push('IMAGE_UNAVAILABLE');

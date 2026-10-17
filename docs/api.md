@@ -35,10 +35,53 @@
 | `data` | 必填，符合模板 Schema 的业务数据 |
 | `format` | 可选，`png`（默认）或 `svg` |
 | `watermark` | 可选，卡片外底部水印；去除首尾空白后最多 160 字符，省略或留空时隐藏且不预留空间 |
+| `assetUrlPrefix` | 可选，本次请求所有资源的 HTTP(S) 目录前缀，最多 2048 字符（含自动补齐的末尾 `/`）；去除首尾空白，省略或留空时不补全路径 |
 
 请求顶层及模板业务对象拒绝未知字段；嵌套字段按对应 Schema 校验。
-`watermark` 不属于 `data`。接口不接受 `scale`、任意 JSX、HTML、CSS 或可执行代码。
+`watermark`、`assetUrlPrefix` 不属于 `data`。接口不接受 `scale`、任意 JSX、HTML、CSS 或可执行代码。
 PNG 固定输出 2×，SVG 保留原始布局尺寸。
+
+### 资源 URL 前缀
+
+`assetUrlPrefix` 对头像、图片、媒体 URL、预览图和文章正文／译文中的 Markdown 图片生效，
+不改写来源链接、普通网页链接或文本。相对路径与前缀按目录拼接：
+
+```json
+{
+  "template": "social_post",
+  "assetUrlPrefix": "http://localhost:8000/static/",
+  "data": {
+    "author": { "name": "作者", "avatarUrl": "avatars/author.png" },
+    "content": "视频预览",
+    "media": [
+      { "type": "video", "url": "videos/demo.mp4", "previewUrl": "/images/cover.jpg" }
+    ]
+  }
+}
+```
+
+以上头像和封面分别加载 `http://localhost:8000/static/avatars/author.png` 和
+`http://localhost:8000/static/images/cover.jpg`。视频仍仅展示预览图及播放标识，不解码视频或自动提取封面；
+`article` 的媒体列表仍只接受图片。
+
+以前缀 `http://localhost:8000/static/` 为例：
+
+| 资源值 | 解析结果 |
+| --- | --- |
+| `images/a.png`、`/images/a.png` | `http://localhost:8000/static/images/a.png` |
+| `images/a.png?v=2` | `http://localhost:8000/static/images/a.png?v=2` |
+| `https://cdn.example.com/a.png` | 保持原样 |
+| `file:///tmp/a.png` | 保持原样 |
+| `//cdn.example.com/a.png` | `http://cdn.example.com/a.png`（继承前缀协议） |
+
+前缀必须是完整 HTTP(S) URL，可带目录，不接受查询参数或片段；末尾 `/` 自动补齐。
+资源路径中的 `.`、`..` 按 URL 规则解析，`..` 可回到上级目录；空格需写为 `%20`。
+有协议的资源地址不添加前缀，支持的协议仍为 HTTP、HTTPS 和 `file`。
+资源空值沿用各字段原有约定，不替换成前缀地址。未设置前缀的相对路径、资源不存在或加载失败，
+均使用模板降级内容并返回 `IMAGE_UNAVAILABLE`；非法前缀返回 400 `VALIDATION_ERROR`。
+
+Playground 的“资源 URL 前缀”用于同一次编辑的预览及 PNG / SVG 下载，修改后会重新生成预览。
+资源请求由 Forma 服务／worker 发起，`localhost` 指向其所在主机或容器。
 
 ## 成功响应
 

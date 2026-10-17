@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { FormaError } from './errors.js';
-import { cardOptionsSchema } from './request.js';
+import { renderOptionsSchema } from './request.js';
 import type { Template } from './types.js';
 
 export class TemplateRegistry {
@@ -10,7 +10,7 @@ export class TemplateRegistry {
       throw new Error('Invalid or duplicate template: ' + template.id);
     if (!(template.schema instanceof z.ZodObject))
       throw new Error('Template schema must be a Zod object: ' + template.id);
-    for (const key of Object.keys(cardOptionsSchema.shape)) {
+    for (const key of Object.keys(renderOptionsSchema.shape)) {
       if (Object.hasOwn(template.schema.shape, key))
         throw new Error('Template field is reserved for a top-level render option: ' + key);
     }

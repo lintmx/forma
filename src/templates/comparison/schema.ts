@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assetUrlSchema } from '../../core/asset-url.js';
 
 const name = z.string().max(160).optional().describe('模块标题，省略或留空时隐藏');
 const value = z.union([z.string().max(160), z.number()]);
@@ -6,8 +7,8 @@ const text = z.string().max(8000);
 const image = z
   .object({
     url: z
-      .union([z.literal(''), z.url({ protocol: /^(https?|file)$/ }).max(2048)])
-      .describe('HTTP(S) 或 file:// 图片地址；空字符串显示暂无图片'),
+      .union([z.literal(''), assetUrlSchema])
+      .describe('HTTP(S)、file:// 或相对路径的图片地址；空字符串显示暂无图片'),
     label: z.string().max(160).optional().describe('图片标签，默认更新前或更新后'),
   })
   .strict();

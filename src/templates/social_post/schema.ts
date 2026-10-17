@@ -1,12 +1,12 @@
 import { z } from 'zod';
+import { assetUrlSchema } from '../../core/asset-url.js';
 import { mediaLayoutSchema, mediaSchema } from '../shared/media-schema.js';
 
-const imageUrl = z.url({ protocol: /^(https?|file)$/ }).max(2048);
 const author = z
   .object({
     name: z.string().max(160).optional().describe('作者显示名称'),
     handle: z.string().max(160).optional().describe('账号，允许带或不带 @'),
-    avatarUrl: imageUrl.optional().describe('HTTP(S) 或 file:// 头像地址'),
+    avatarUrl: assetUrlSchema.optional().describe('HTTP(S)、file:// 或相对路径的头像地址'),
     verified: z.boolean().optional().describe('显示认证标记'),
   })
   .strict();

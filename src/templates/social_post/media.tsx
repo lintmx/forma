@@ -1,7 +1,7 @@
-import type { ImageStore } from '../../core/images.js';
+import type { ImageLoader } from '../../core/images.js';
 import { postEntries, type SocialPostData } from './schema.js';
 
-export async function loadAssets(data: SocialPostData, images: ImageStore) {
+export async function loadAssets(data: SocialPostData, images: ImageLoader) {
   const sources: [string, string][] = [];
   for (const { post, key } of postEntries(data)) {
     if (post.author?.avatarUrl) sources.push([key + '-avatar', post.author.avatarUrl]);
