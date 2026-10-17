@@ -1,3 +1,4 @@
+import './prepare-satori.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import sharp from 'sharp';

@@ -1,0 +1,417 @@
+--- a/src/font.ts
++++ b/src/font.ts
+@@ -10,6 +10,7 @@
+   type ShapedGlyph,
+ } from './harfbuzz.js'
+ import { segment } from './utils.js'
++import { getBidiClass, hasRTL, reorderLine, resolveLevels, splitByDirection } from './text/bidi.js'
+ 
+ const MAX_SHAPED_RUN_CACHE_ENTRIES = 256
+ 
+@@ -222,6 +223,7 @@
+       letterSpacing: number
+       wordSpacing?: number
+       fontFeatureSettings?: string
++      direction?: TextDirection
+     }
+   ) => number
+   getSVG: (
+@@ -725,11 +727,13 @@
+       fontFamily = 'sans-serif',
+       fontWeight = 400,
+       fontStyle = 'normal',
++      direction: baseDirection = 'ltr',
+       ...synthesisStyle
+     }: {
+       fontFamily?: string | string[]
+       fontWeight?: FontWeight
+       fontStyle?: FontStyle
++      direction?: TextDirection
+       fontSynthesis?: unknown
+       fontSynthesisWeight?: unknown
+       fontSynthesisStyle?: unknown
+@@ -816,7 +820,7 @@
+       }
+     }
+ 
+-    const cachedFontResolver = new Map<number, opentype.Font | undefined>()
++    const cachedFontResolver = new Map<string, opentype.Font | undefined>()
+     const resolveFont = (word: string, fallback = true) => {
+       const _fonts = [
+         ...fonts,
+@@ -832,15 +836,18 @@
+         return undefined
+       }
+ 
+-      const code = word.charCodeAt(0)
++      // A base and its marks must use one font; do not reuse the base-only result.
++      const code = `${fallback}:${word}`
+       if (cachedFontResolver.has(code)) return cachedFontResolver.get(code)
+ 
+-      const font = _fonts.find((_font, index) => {
+-        return (
+-          !!_font.charToGlyphIndex(word) ||
+-          (fallback && index === _fonts.length - 1)
+-        )
+-      })
++      const characters = Array.from(word).filter(
++        (char) => !/\p{Default_Ignorable_Code_Point}/u.test(char)
++      )
++      const font = _fonts.find((_font) =>
++        characters.every((char) => !!_font.charToGlyphIndex(char))
++      ) || (fallback
++        ? _fonts.find((_font) => !!_font.charToGlyphIndex(characters[0] || word)) || _fonts[_fonts.length - 1]
++        : undefined)
+ 
+       if (font) {
+         cachedFontResolver.set(code, font)
+@@ -916,7 +923,7 @@
+     const shapedRunCache = this.shapedRunCache
+     const engineKey = `${fontFamily.join(',')}|${fontWeight}|${fontStyle}|${
+       locale || ''
+-    }`
++    }|${baseDirection}`
+     const getShapedRuns: GetShapedRuns = (
+       content,
+       fontFeatureSettings,
+@@ -936,13 +943,41 @@
+       const features = fontFeatureSettings
+         ? parseFontFeatureSettings(fontFeatureSettings)
+         : {}
+-      const shapedRuns = splitByFont(content, resolveFont).map(
+-        ([text, font]): ShapedRun => [
+-          text,
+-          font,
+-          shapeText(font, text, { features, direction }),
+-        ]
+-      )
++      const shape = (text: string, resolvedDirection: TextDirection) =>
++        splitByFont(text, resolveFont).map(
++          ([part, font]): ShapedRun => [
++            part,
++            font,
++            shapeText(font, part, { features, direction: resolvedDirection }),
++          ]
++        )
++      let shapedRuns: ShapedRun[]
++      if (direction) {
++        // The block text layout has already resolved and positioned this run.
++        shapedRuns = shape(content, direction)
++      } else if (baseDirection !== 'rtl' && !hasRTL(content)) {
++        shapedRuns = shape(content, 'ltr')
++      } else {
++        // Inline text and measurement also resolve bidi BEFORE splitting fonts.
++        // HarfBuzz's per-font script guess must not reverse neutral kaomoji.
++        const parts = segment(content, 'word').flatMap(splitByDirection)
++        const levels = resolveLevels(parts.map(getBidiClass), baseDirection === 'rtl' ? 1 : 0)
++        const runs: { text: string; level: number }[] = []
++        parts.forEach((text, i) => {
++          const last = runs[runs.length - 1]
++          if (last && last.level === levels[i]) last.text += text
++          else runs.push({ text, level: levels[i] })
++        })
++        const positions = reorderLine(
++          runs.map((_, x) => ({ x, width: 1 })), runs.map((run) => run.level), runs.length
++        )
++        shapedRuns = runs.map((run, i) => ({ ...run, x: positions[i] }))
++          .sort((a, b) => a.x - b.x)
++          .flatMap(({ text, level }) => {
++            const shaped = shape(text, level % 2 ? 'rtl' : 'ltr')
++            return level % 2 ? shaped.reverse() : shaped
++          })
++      }
+ 
+       if (shapedRunCache.size >= MAX_SHAPED_RUN_CACHE_ENTRIES) {
+         const oldestKey = shapedRunCache.keys().next().value
+@@ -955,20 +990,11 @@
+     const engine = {
+       has: (s: string) => {
+         if (s === '\n') return true
+-        const font = resolve(s)
+-        if (!font) return false
+-        // Use charToGlyphIndex directly instead of stringToGlyphs to avoid
+-        // triggering opentype.js GSUB processing which can emit warnings for
+-        // unsupported lookup types (e.g., "lookupType: 5 - substFormat: 3").
+-        // We only need to check if basic glyphs exist for the characters.
+-        for (const char of segment(s, 'grapheme')) {
+-          if (!font.charToGlyphIndex(char)) return false
+-        }
+-        return true
++        return segment(s, 'grapheme').every((grapheme) => !!resolve(grapheme))
+       },
+       baseline: (
+         s?: string,
+-        resolvedFont = typeof s === 'undefined' ? fonts[0] : resolveFont(s)
++        resolvedFont = typeof s === 'undefined' ? fonts[0] : resolveFont(segment(s, 'grapheme')[0])
+       ) => {
+         // Like in Chrome, the ascent and descent are rounded to pixels, and
+         // half of the leading is floored.
+@@ -978,14 +1004,14 @@
+       },
+       height: (
+         s?: string,
+-        resolvedFont = typeof s === 'undefined' ? fonts[0] : resolveFont(s)
++        resolvedFont = typeof s === 'undefined' ? fonts[0] : resolveFont(segment(s, 'grapheme')[0])
+       ) => {
+         return height(resolvedFont)
+       },
+       ascent: (s?: string) =>
+-        ascender(typeof s === 'undefined' ? fonts[0] : resolveFont(s)),
++        ascender(typeof s === 'undefined' ? fonts[0] : resolveFont(segment(s, 'grapheme')[0])),
+       descent: (s?: string) =>
+-        -descender(typeof s === 'undefined' ? fonts[0] : resolveFont(s)),
++        -descender(typeof s === 'undefined' ? fonts[0] : resolveFont(segment(s, 'grapheme')[0])),
+       measure: (
+         s: string,
+         style: {
+@@ -1079,15 +1105,17 @@
+       letterSpacing = 0,
+       wordSpacing,
+       fontFeatureSettings,
++      direction,
+     }: {
+       fontSize: number
+       letterSpacing: number
+       wordSpacing?: number
+       fontFeatureSettings?: string
++      direction?: TextDirection
+     },
+     getShapedRuns: GetShapedRuns
+   ) {
+-    const shapedRuns = getShapedRuns(content, fontFeatureSettings)
++    const shapedRuns = getShapedRuns(content, fontFeatureSettings, direction)
+ 
+     let totalWidth = 0
+     let clusterCount = 0
+@@ -1180,7 +1208,7 @@
+         if (glyph && glyph.path) {
+           // Calculate glyph position
+           const gX = cursorX + shapedGlyph.dx * scale
+-          const gY = cursorY + shapedGlyph.dy * scale
++          const gY = cursorY - shapedGlyph.dy * scale
+ 
+           // Like `glyph.getPath()`, scaled by the units per em of the path.
+           const data = glyphPathData(
+--- a/src/text/index.ts
++++ b/src/text/index.ts
+@@ -408,6 +408,7 @@
+       let x = currentWidth - w
+ 
+       if (w === 0) {
++        texts.push(word)
+         wordPositionInLayout.push({
+           y: height,
+           x,
+--- a/src/text/inline.ts
++++ b/src/text/inline.ts
+@@ -37,6 +37,7 @@
+ } from '../builder/text-decoration.js'
+ import { buildDropShadow } from '../builder/shadow.js'
+ import { genMeasurer } from './measurer.js'
++import { getBidiClass, resolveLevels, reorderLine, splitByDirection } from './bidi.js'
+ import {
+   canBreakWords,
+   getTabAdvance,
+@@ -131,6 +132,7 @@
+   | { kind: 'break' }
+ 
+ interface Segment {
++  level?: number
+   item: Item
+   /** The text of a text segment, without forced line breaks. */
+   text?: string
+@@ -365,7 +367,7 @@
+   /** The pieces of each run, set by `finalize()`. */
+   private pieces = new Map<
+     TextRun,
+-    { text: string; x: number; width: number; line: number; baseline: number }[]
++    { text: string; x: number; width: number; line: number; baseline: number; direction: 'ltr' | 'rtl' }[]
+   >()
+   /** Set when the paragraph is only text of the container. */
+   simple?: {
+@@ -601,6 +603,21 @@
+         trailing: 0,
+       }
+     })
++    // Resolve each hard-break paragraph before wrapping or font fallback.
++    let paragraph: Segment[] = []
++    const resolveParagraph = () => {
++      const levels = resolveLevels(paragraph.map(s => getBidiClass(s.text || '')), this.style.direction === 'rtl' ? 1 : 0)
++      paragraph.forEach((s, i) => { s.level = levels[i] })
++      paragraph = []
++    }
++    for (const word of this.words) {
++      if (word.forceBreak) resolveParagraph()
++      word.segments = word.segments.flatMap(s => s.text
++        ? segmentText(s.text, 'word').flatMap(splitByDirection).map(text => ({ ...s, text }))
++        : [s])
++      paragraph.push(...word.segments)
++    }
++    resolveParagraph()
+     return this.words
+   }
+ 
+@@ -774,7 +791,14 @@
+       for (const segment of word.segments) {
+         const { item } = segment
+         if (item.kind === 'text') {
+-          const { measureText } = this.runState(item.run)
++          const { engine, isImage } = this.runState(item.run)
++          const { measureText } = genMeasurer(engine, isImage, {
++            fontSize: item.run.style.fontSize as number,
++            letterSpacing: item.run.style.letterSpacing as number,
++            wordSpacing: item.run.style.wordSpacing as number,
++            fontFeatureSettings: getFontFeatureSettings(item.run.style),
++            direction: segment.level % 2 ? 'rtl' : 'ltr',
++          })
+           segment.width = measureText(segment.text)
+           const collapse = COLLAPSIBLE_WHITE_SPACE.includes(
+             item.run.style.whiteSpace as string
+@@ -1022,6 +1046,16 @@
+         }
+         if (wordIndex < current.words.length - 1) x += gap
+       })
++      const segments = current.words.flatMap(word => word.segments)
++      const levels = segments.map(s => s.level || 0)
++      // L1: trailing spaces and zero-width markers use the paragraph level.
++      for (let i = segments.length - 1; i >= 0; i--) {
++        if (segments[i].item.kind === 'atomic' || segments[i].text?.trim()) break
++        levels[i] = this.style.direction === 'rtl' ? 1 : 0
++      }
++      const origin = segments[0]?.x || 0
++      const positions = reorderLine(segments.map(s => ({ x: s.x - origin, width: s.width })), levels, lineWidth)
++      segments.forEach((s, i) => { s.x = origin + positions[i] })
+     })
+ 
+     this.lines = lines
+@@ -1107,6 +1141,7 @@
+     const open: InlineBox[] = []
+     const fragmentStart = new Map<InlineBox, { x: number; first: boolean }>()
+     const containerWidth = width
++    const visualBounds = new Map<InlineBox, { left: number; right: number }>()
+ 
+     const addFragment = (
+       box: InlineBox,
+@@ -1132,9 +1167,11 @@
+         ((style.borderBottomWidth as number) || 0)
+       box.fragments.push({
+         paragraph: this,
+-        left: start.x,
++        left: visualBounds.get(box)?.left ?? start.x,
+         top,
+-        width: Math.max(0, right - start.x),
++        width: visualBounds.has(box)
++          ? visualBounds.get(box).right - visualBounds.get(box).left
++          : Math.max(0, right - start.x),
+         height: bottom - top,
+         first: start.first,
+         last,
+@@ -1142,6 +1179,21 @@
+     }
+ 
+     for (const line of this.lines) {
++      visualBounds.clear()
++      if (line.words.some(w => w.segments.some(s => s.level % 2))) {
++        const boxes = open.slice()
++        for (const word of line.words) for (const s of word.segments) {
++          if (s.item.kind === 'open') boxes.push(s.item.box)
++          for (const box of boxes) {
++            const bounds = visualBounds.get(box)
++            visualBounds.set(box, {
++              left: Math.min(bounds?.left ?? Infinity, s.x),
++              right: Math.max(bounds?.right ?? -Infinity, s.x + s.width),
++            })
++          }
++          if (s.item.kind === 'close') boxes.splice(boxes.lastIndexOf(s.item.box), 1)
++        }
++      }
+       const lineStart = line.words[0]?.segments[0]?.x ?? 0
+       for (const box of open)
+         fragmentStart.set(box, { x: lineStart, first: false })
+@@ -1199,6 +1251,7 @@
+             const pieces = this.pieces.get(item.run) || []
+             pieces.push({
+               text: segment.text,
++              direction: segment.level % 2 ? 'rtl' : 'ltr',
+               x: segment.x,
+               width: segment.width,
+               line: this.lines.indexOf(line),
+@@ -1324,12 +1377,15 @@
+       const last = merged[merged.length - 1]
+       if (
+         last &&
+-        last.line === piece.line &&
+-        Math.abs(last.x + last.width - piece.x) < 1e-3
++        last.line === piece.line && last.direction === piece.direction &&
++        Math.abs(piece.direction === 'rtl'
++          ? piece.x + piece.width - last.x
++          : last.x + last.width - piece.x) < 1e-3
+       ) {
+         merged.push({
+           ...last,
+           text: last.text + piece.text,
++          x: Math.min(last.x, piece.x),
+           width: last.width + piece.width,
+         })
+         merged.splice(merged.length - 2, 1)
+@@ -1363,6 +1419,7 @@
+         }
+       }
+ 
++      if (piece.direction === 'rtl') parts.reverse()
+       for (const part of parts) {
+         const partWidth = isImage(part)
+           ? fontSize
+@@ -1371,6 +1428,7 @@
+               letterSpacing,
+               wordSpacing,
+               fontFeatureSettings,
++              direction: piece.direction,
+             })
+         if (isImage(part) || !embedFont) {
+           if (part.trim() || isImage(part)) {
+@@ -1403,6 +1461,7 @@
+               letterSpacing,
+               wordSpacing,
+               fontFeatureSettings,
++              direction: piece.direction,
+             },
+             band
+           )
+--- a/src/text/measurer.ts
++++ b/src/text/measurer.ts
+@@ -9,13 +9,14 @@
+     letterSpacing: number
+     wordSpacing?: number
+     fontFeatureSettings?: string
++    direction?: 'ltr' | 'rtl'
+   }
+ ): {
+   measureGrapheme: (grapheme: string) => number
+   measureGraphemeArray: (graphemes: string[]) => number
+   measureText: (text: string) => number
+ } {
+-  const { fontSize, letterSpacing, wordSpacing, fontFeatureSettings } = style
++  const { fontSize, letterSpacing, wordSpacing, fontFeatureSettings, direction } = style
+ 
+   const cache = new Map<string, number>()
+ 
+@@ -28,6 +29,7 @@
+         letterSpacing,
+         wordSpacing,
+         fontFeatureSettings,
++        direction,
+       })
+       cache.set(text, width)
+     }
+--- a/src/layout.ts
++++ b/src/layout.ts
+@@ -1108,7 +1108,7 @@
+       const fragmentDrawn = { shapes: true }
+       baseRenderResult += await rect(
+         {
+-          id: `${id}-${index}`,
++          id: `${id}-fragment-${index}`,
+           ...fragmentBox,
+           isInheritingTransform,
+           debug,

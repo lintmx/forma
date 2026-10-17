@@ -202,8 +202,12 @@ describe('real Satori + Skia rendering', () => {
   );
   it.each([false, true])('keeps the dedicated Egyptian fallback ahead of Ancient in monospace=%s', async monospace => {
     const family = 'Noto Sans Egyptian Hieroglyphs';
-    expect(fonts.fontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient')).toBe(true);
-    expect(fonts.monospaceFontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient')).toBe(true);
+    expect(fonts.fontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient, Go Noto Current')).toBe(
+      true,
+    );
+    expect(
+      fonts.monospaceFontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient, Go Noto Current'),
+    ).toBe(true);
     const previous = new Renderer(
       config,
       {
@@ -258,6 +262,45 @@ describe('real Satori + Skia rendering', () => {
     const image = PNG.sync.read(Buffer.from(png.body));
     expect([image.width, image.height]).toEqual([svg.width * 2, svg.height * 2]);
     expect(image.data.some(byte => byte < 100)).toBe(true);
+  });
+
+  it.each([false, true])('fills kaomoji gaps without changing existing glyphs in monospace=%s', async monospace => {
+    const previous = new Renderer(
+      config,
+      {
+        fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Current'),
+        fontFamily: fonts.fontFamily.replace(', Go Noto Current', ''),
+        monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Current', ''),
+      },
+      registry,
+    );
+    for (const weight of [400, 700]) {
+      const request = {
+        template: 'test-typography',
+        data: { text: '߹꒳\u200b߹ (๑•̀ㅂ•́)و✧ ٩(ˊᗜˋ*)و (ง •̀_•́)ง (っ ॑꒳ ॑c)', monospace, weight },
+        format: 'svg' as const,
+      };
+      const before = await previous.render(request);
+      expect(before.warnings).toEqual(['MISSING_GLYPH']);
+      const svg = await renderer.render(request);
+      const png = await renderer.render({ ...request, format: 'png' });
+      expect(svg.warnings).toEqual([]);
+      expect(png.warnings).toEqual([]);
+      expect(svg.body).not.toEqual(before.body);
+      const image = PNG.sync.read(Buffer.from(png.body));
+      expect([image.width, image.height]).toEqual([svg.width * 2, svg.height * 2]);
+    }
+    for (const format of ['png', 'svg'] as const) {
+      const request = {
+        template: 'example',
+        data: { text: '中文 日本語 한국어 Hello ⏻ 𓀀 𖤐 𒀀 🐶🧡 👩‍💻', monospace },
+        format,
+      };
+      const before = await previous.render(request);
+      const after = await renderer.render(request);
+      expect(after.warnings).toEqual([]);
+      expect(after.body).toEqual(before.body);
+    }
   });
 
   it.each([false, true])('renders missing glyphs during measurement in monospace=%s', async monospace => {

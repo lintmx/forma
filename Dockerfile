@@ -11,7 +11,6 @@ RUN npm install --global pnpm@10.32.1
 FROM base AS build
 # Build and production installs share this store; serialize writes to native packages.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
 RUN --mount=type=cache,id=forma-pnpm,target=/pnpm/store,sharing=locked pnpm install --frozen-lockfile --store-dir=/pnpm/store
 COPY fonts ./fonts
 COPY scripts/font-assets.ts scripts/fetch-fonts.ts ./scripts/
@@ -24,8 +23,11 @@ RUN pnpm build
 
 FROM base AS dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
 RUN --mount=type=cache,id=forma-pnpm,target=/pnpm/store,sharing=locked pnpm install --prod --frozen-lockfile --store-dir=/pnpm/store
+# Install the build-stage bundles without bringing build tools into production dependencies.
+COPY --from=build /app/artifacts/satori /tmp/satori
+COPY scripts/build-satori-patch.mjs ./scripts/
+RUN node scripts/build-satori-patch.mjs --install-from /tmp/satori
 
 FROM system AS runtime
 WORKDIR /app
@@ -34,6 +36,7 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/fonts ./fonts
 COPY --from=build /app/emoji ./emoji
+COPY --from=build /app/patches ./patches
 COPY --from=build /app/package.json /app/LICENSE /app/THIRD_PARTY_NOTICES.md ./
 USER node
 EXPOSE 3000

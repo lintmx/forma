@@ -44,26 +44,7 @@ PNG 固定输出 2×，SVG 保留原始布局尺寸。
 ### 资源 URL 前缀
 
 `assetUrlPrefix` 对头像、图片、媒体 URL、预览图和文章正文／译文中的 Markdown 图片生效，
-不改写来源链接、普通网页链接或文本。相对路径与前缀按目录拼接：
-
-```json
-{
-  "template": "social_post",
-  "assetUrlPrefix": "http://localhost:8000/static/",
-  "data": {
-    "author": { "name": "作者", "avatarUrl": "avatars/author.png" },
-    "content": "视频预览",
-    "media": [
-      { "type": "video", "url": "videos/demo.mp4", "previewUrl": "/images/cover.jpg" }
-    ]
-  }
-}
-```
-
-以上头像和封面分别加载 `http://localhost:8000/static/avatars/author.png` 和
-`http://localhost:8000/static/images/cover.jpg`。视频仍仅展示预览图及播放标识，不解码视频或自动提取封面；
-`article` 的媒体列表仍只接受图片。
-
+不改写来源链接、普通网页链接或文本。相对路径与前缀按目录拼接。
 以前缀 `http://localhost:8000/static/` 为例：
 
 | 资源值 | 解析结果 |

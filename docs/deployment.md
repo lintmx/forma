@@ -12,7 +12,7 @@ pnpm build
 NODE_ENV=production pnpm start
 ```
 
-`pnpm build` 准备字体及 Emoji、运行静态检查，并构建服务、worker 和 Playground。
+`pnpm build` 准备字体、Emoji 及带源码补丁的 Satori，运行静态检查，并构建服务、worker 和 Playground。
 `pnpm dev` 和 `pnpm start` 自动读取根目录 `.env`，已设置的 shell 环境变量优先；修改后需重启。
 生产模式默认关闭 `/dev/`，需要时设置 `PLAYGROUND_ENABLED=true`。
 
@@ -42,8 +42,7 @@ Compose 的 `.env` 用于变量替换，仅 [compose.yaml](../compose.yaml) 中�
 `Dockerfile` 构建 `linux/amd64` 镜像，并发布到 `ghcr.io/<仓库所有者>/<仓库名>:latest`（路径转为小写）。
 当前仓库的镜像为 `ghcr.io/lintmx/forma:latest`。
 
-发布使用 GitHub 自动提供的 `GITHUB_TOKEN`，workflow 已声明 `contents: read` 和 `packages: write`，
-无需额外配置登录 Secret。构建使用 GitHub Actions 缓存；同一分支的新推送会取消尚未完成的旧构建。
+发布使用 GitHub 自动提供的 `GITHUB_TOKEN`，无需额外配置登录 Secret。
 镜像的公开或私有可见性由 GHCR 包设置控制。
 
 ```sh
@@ -75,20 +74,9 @@ docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/lintmx/forma:latest
 
 ## 并发与资源预算
 
-持久 worker 负责布局与栅格化，HTTP 主线程处理请求。总截止时间覆盖正文读取、排队、资源下载和渲染。
-超时返回 504；正在工作的 worker 被终止，退出后补建。客户端断开时取消等待任务或回收对应 worker。
-服务退出时停止接收请求并关闭 worker。
+持久 worker 负责渲染，HTTP 主线程处理请求。请求截止时间覆盖读取、排队、资源下载和渲染；
+超时返回 504，必要时替换 worker。客户端断开或服务退出时回收对应任务。
 
-每个 worker 独立缓存字体和图片，提高并发会增加内存占用。PNG 先以 4× 布局尺寸栅格化，再缩小为 2× 输出；
-中间宽高限制是输出宽高限制的两倍，像素总数另受 `MAX_RASTER_PIXELS` 约束。
-默认中间像素上限对应的 RGBA 缓冲约 488 MiB，此外还有字体、Canvas、缩放及编码开销。
-超限请求会被拒绝，不会自动降低采样倍率。原生调用不能保证立即中断，部署时应同时限制像素数和并发量。
-
-按实际 CPU、内存和负载验证配置。需要检查 worker 生命周期时可运行：
-
-```sh
-pnpm build
-pnpm exec tsx scripts/verify-skia-workers.ts artifacts/skia-workers.json
-```
-
-该脚本使用编译后的 worker，检查并发、连续渲染、取消、超时和重建，并记录进程 RSS。
+每个 worker 独立缓存字体和图片，提高并发会增加内存占用。
+PNG 的中间栅格内存高于最终输出，需同时限制输出尺寸、`MAX_RASTER_PIXELS` 和并发量。
+超限请求会被拒绝，不会自动降低采样倍率；按实际 CPU、内存和负载调整配置。

@@ -68,11 +68,28 @@ see [fonts/GoNotoAncient-OFL.txt](fonts/GoNotoAncient-OFL.txt).
 
 The unmodified `GoNotoAncient.ttf` comes from the third-party
 [Go Noto Universal v7.0 release](https://github.com/satbyy/go-noto-universal/releases/tag/v7.0).
-It combines Noto fonts for historical scripts and is the final fallback for
+It combines Noto fonts for historical scripts and is a fallback for
 body and monospace text, after Noto Sans Egyptian Hieroglyphs. It provides
 Regular glyphs only and does not guarantee a monospace grid or full Unicode
 coverage. The upstream build scripts use the Unlicense, but the generated
 font is licensed under the SIL Open Font License, as stated in the
+[upstream license section](https://github.com/satbyy/go-noto-universal/tree/v7.0#license).
+
+## Go Noto Current
+
+Copyright 2022 The Noto Project Authors
+(https://github.com/notofonts/latin-greek-cyrillic), as recorded in the font's
+embedded copyright notice. Distributed under the SIL Open Font License 1.1;
+see [fonts/GoNotoCurrent-OFL.txt](fonts/GoNotoCurrent-OFL.txt).
+
+The unmodified `GoNotoCurrent-Regular.ttf` comes from the third-party
+[Go Noto Universal v7.0 release](https://github.com/satbyy/go-noto-universal/releases/tag/v7.0).
+It combines Noto fonts for contemporary scripts and follows Go Noto Ancient
+as the final fallback for body and monospace text, including N'Ko and Yi
+characters used in kaomoji. It provides Regular glyphs only and does not
+guarantee a monospace grid, full Unicode coverage, or complex text shaping.
+The upstream build scripts use the Unlicense; the generated font uses the
+SIL Open Font License, as stated in the
 [upstream license section](https://github.com/satbyy/go-noto-universal/tree/v7.0#license).
 
 ## Twemoji
@@ -96,3 +113,12 @@ Copyright © 1991–2025 Unicode, Inc. Distributed under the Unicode License V3;
 see [emoji/LICENSE-UNICODE](emoji/LICENSE-UNICODE).
 
 Runtime and build dependency licenses remain with their respective packages.
+
+## Satori local source patch
+
+Satori 0.62.0 is distributed under the Mozilla Public License 2.0; its license
+is included in the dependency package. Forma modifies its text layout and font
+shaping code and retains its inline SVG fragment ID fix. The readable changes
+are provided in [patches/satori-text-layout.source.patch](patches/satori-text-layout.source.patch),
+with reproducible bundle generation in
+[scripts/build-satori-patch.mjs](scripts/build-satori-patch.mjs).

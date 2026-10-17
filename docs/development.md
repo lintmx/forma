@@ -21,43 +21,14 @@ tests/fixtures/   仅供测试使用的模板和 worker 入口
 `pnpm dev` 让 API 和 Playground 共用端口；服务与模板代码变动会重启服务，前端支持 HMR。
 预览和下载都调用真实的 `POST /v1/render`，预览按布局尺寸展示，PNG 下载保留完整 2× 分辨率。
 
-## 模块职责与依赖
+## 模块边界
 
-| 模块 | 职责与协作方式 |
-| --- | --- |
-| `src/server.ts` / `src/worker.ts` | 组装生产模板、配置和执行环境；构建输出保持 `dist/server.js` / `dist/worker.js` |
-| `src/api/app.ts` | HTTP 校验、请求截止时间、响应与静态页面；显式接收模板目录及渲染执行器 |
-| `src/core/request.ts` | 请求 Schema、通用卡片选项与推导出的请求类型；不依赖 JSX 或业务模板 |
-| `src/core/registry.ts` | 模板注册、业务数据校验、示例和 JSON Schema；不导入生产模板 |
-| `src/core/pool.ts` / `worker.ts` | 有界队列、超时终止、worker 替换及消息处理；worker 启动时接收模板目录 |
-| `src/core/renderer.ts` | 资源加载、测量、外框、Emoji、Satori 与 PNG 编码的编排；显式接收模板目录 |
-| `src/templates/` | 业务 Schema、示例、内容树与资源声明；共享业务展示放在 `shared/` |
-| `playground/api.ts` | 浏览器渲染请求、错误与警告展示；请求和元数据类型通过 type-only import 与服务端保持一致 |
-| `scripts/build-options.ts` | 开发、生产和 HTTP 测试共用的 Node.js 构建参数 |
+生产入口通过 `createTemplateRegistry()` 注册模板，HTTP 和 worker 必须使用相同目录。
+核心模块负责请求校验、资源加载和渲染，不反向依赖生产模板；业务展示留在模板内。
+测试可创建独立注册器，测试模板和 worker 仅放在 `tests/fixtures/`。
 
-生产入口调用 `createTemplateRegistry()` 创建各自的目录，核心模块不反向依赖生产模板。
-测试可创建空的 `TemplateRegistry`，也可扩展自己的生产目录实例；不修改全局单例。
-同一部署的 HTTP 与 worker 必须注册相同模板；两处生产入口使用同一个工厂保证目录一致。
-HTTP 在入队前校验业务数据，但传递原始 `data`；worker 校验后再交给模板，
-避免将一次转换的结果再次作为 Schema 输入。Schema 的校验与转换应保持纯函数行为。
-
-当前体量下保留直接的函数和类组合，无需新增插件容器、通用模板基类或资源仓储层。
-渲染适配器、字体及 Emoji 降级属于公共渲染能力，不下放到业务模板。
-
-### 代码清理边界
-
-2026-10-15 检查生产入口的构建依赖图，运行时代码没有发现循环依赖或不可达源码；
-`core/types.ts` 仅含类型声明，构建时消除属于正常行为。
-清理了外框模块的排版转发导出、重复的链接颜色别名、比较模块的内部类型导出和重复构建参数。
-TypeScript 开启 `noUnusedLocals` / `noUnusedParameters`，后续未使用的局部声明会阻止 `pnpm check`。
-这两个选项不检测所有未使用的导出或动态路径，删除模块仍需核对入口、脚本和测试引用。
-
-`example` 是默认模板和开发参考，`tests/fixtures/` 是回归输入，
-`verify-font-fallback.ts` / `verify-skia-workers.ts` 是已在文档中引用的验证工具，均保留。
-忽略目录 `artifacts/`、字体和 Emoji 下载缓存不属于废弃源码，不在本次清理中删除。
-依赖核查还发现 `twitter-text@3.1.0` 引入已弃用的 `core-js@2.6.12`；
-它仍参与提及、标签与链接识别，不能直接当作无用依赖删除。
-替换这一依赖需要另行验证识别语义，本次不改动依赖版本。
+请求在入队前校验，worker 接收原始 `data` 后校验并渲染；Schema 的校验与转换应保持纯函数行为。
+公共外框、字体及 Emoji 降级由渲染层统一处理，模板不重复实现。
 
 ## 常用命令
 
@@ -73,9 +44,8 @@ TypeScript 开启 `noUnusedLocals` / `noUnusedParameters`，后续未使用的�
 | `pnpm preview:typography` | 生成排版样张到 `artifacts/typography/` |
 | `pnpm build` | 检查并构建生产服务、worker 与 Playground |
 
-首次单独运行测试前执行 `pnpm fonts:fetch` 和 `pnpm emoji:fetch`。代码风格以 [biome.json](../biome.json) 为准：
-两空格、LF、120 列，JS/TS 使用单引号与分号。Markdown 不由 Biome 检查。
-仓库包含 VS Code 推荐扩展与工作区设置，可安装 Biome 扩展使用相同规则。
+首次单独运行测试前执行 `pnpm fonts:fetch` 和 `pnpm emoji:fetch`。代码风格以 [biome.json](../biome.json) 为准。
+Markdown 不由 Biome 检查。
 
 ## 新增模板
 
@@ -106,8 +76,6 @@ TypeScript 开启 `noUnusedLocals` / `noUnusedParameters`，后续未使用的�
 
 尺寸包含统一外框和水印，优先采用 `auto-height` 或 `content`。
 `content` 必须提供内部内容的无换行测量树及 `data-measure` 节点，不重复外框边距，也不依赖远程资源。
-`social_post` 的底部来源和链接也参与宽度测量，包含标签字重、边框、内边距和分隔符间距；
-卡片可由底栏撑宽至 700px，超过上限后单行省略显示。
 使用实际字形和布局测量，不按字符数或预估行数计算高度。
 
 统一复用 [typography.ts](../src/core/typography.ts) 的语义字号和换行样式。
