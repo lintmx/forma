@@ -19,3 +19,10 @@ export const renderRequestSchema = z
   })
   .strict();
 export type RenderRequest = z.infer<typeof renderRequestSchema>;
+
+// Binary attachments are internal transport data, never part of the JSON envelope.
+export type Attachments = Map<string, Uint8Array>;
+export interface RenderJob {
+  request: RenderRequest;
+  attachments?: Attachments;
+}

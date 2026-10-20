@@ -8,6 +8,7 @@ import { build } from 'esbuild';
 import { toNodeHandler } from 'h3/node';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
+import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { buildOptions } from '../scripts/build-options.js';
@@ -303,6 +304,68 @@ describe('HTTP end-to-end', () => {
       mediaServer.closeAllConnections();
       await new Promise<void>(resolve => mediaServer.close(() => resolve()));
       await rm(directory, { recursive: true, force: true });
+    }
+  });
+  it('renders uploaded images through real workers and isolates resource IDs', async () => {
+    await mkdir('artifacts/uploads', { recursive: true });
+    const make = async (color: string, format: 'png' | 'jpeg' | 'webp') =>
+      sharp({ create: { width: 80, height: 40, channels: 3, background: color } })
+        .toFormat(format)
+        .toBuffer();
+    const upload = (bytes: Uint8Array, format = 'svg', template = 'article') => {
+      const body = new FormData();
+      body.append('cover', new Blob([new Uint8Array(bytes)], { type: 'text/plain' }), 'untrusted.txt');
+      body.append(
+        'request',
+        JSON.stringify({
+          template,
+          format,
+          assetUrlPrefix: 'https://unused.invalid/',
+          data:
+            template === 'article'
+              ? { title: '上传图片 中文 日本語', content: '![封面](asset:cover)\n\n![重复引用](asset:cover)' }
+              : {
+                  title: '上传对比',
+                  modules: [{ type: 'image', before: { url: 'asset:cover' }, after: { url: 'asset:cover' } }],
+                },
+        }),
+      );
+      return fetch(origin + '/v1/render', { method: 'POST', body });
+    };
+    for (const type of ['png', 'jpeg', 'webp'] as const) {
+      const bytes = await make('#14b45a', type);
+      for (const format of ['png', 'svg']) {
+        const response = await upload(bytes, format, type === 'jpeg' ? 'comparison' : 'article');
+        expect(response.status).toBe(200);
+        expect(response.headers.get('X-Render-Warnings')).toBe('');
+        const output = Buffer.from(await response.arrayBuffer());
+        if (format === 'svg') {
+          expect(output.toString()).toContain('data:image/');
+          expect(output.toString()).not.toContain('asset:cover');
+        } else {
+          const decoded = PNG.sync.read(output);
+          expect(decoded.width).toBe(Number(response.headers.get('X-Layout-Width')) * 2);
+          let colored = 0;
+          for (let i = 0; i < decoded.data.length; i += 4)
+            if (Math.abs(decoded.data[i]! - 20) < 8 && Math.abs(decoded.data[i + 1]! - 180) < 8) colored++;
+          expect(colored).toBeGreaterThan(1000);
+        }
+        await writeFile('artifacts/uploads/' + type + '.' + format, output);
+      }
+    }
+    const colors = await Promise.all(['red', 'blue'].map(color => make(color, 'png')));
+    const outputs = await Promise.all(colors.map(async bytes => (await upload(bytes)).text()));
+    for (let i = 0; i < colors.length; i++) {
+      expect(outputs[i]).toContain(colors[i]!.toString('base64'));
+      expect(outputs[i]).not.toContain(colors[1 - i]!.toString('base64'));
+    }
+    const missing = await post({ template: 'article', data: { content: '![缺失](asset:cover)' }, format: 'svg' });
+    expect(missing.status).toBe(200);
+    expect(missing.headers.get('X-Render-Warnings')).toContain('IMAGE_UNAVAILABLE');
+    for (const bytes of [Buffer.from('not an image'), (await make('red', 'png')).subarray(0, 40)]) {
+      const invalid = await upload(bytes);
+      expect(invalid.status).toBe(422);
+      expect((await invalid.json()).error.code).toBe('INVALID_IMAGE');
     }
   });
   it('accepts long output beyond the former pixel limit', async () => {

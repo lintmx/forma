@@ -6,7 +6,7 @@ const author = z
   .object({
     name: z.string().max(160).optional().describe('作者显示名称'),
     handle: z.string().max(160).optional().describe('账号，允许带或不带 @'),
-    avatarUrl: assetUrlSchema.optional().describe('HTTP(S)、file:// 或相对路径的头像地址'),
+    avatarUrl: assetUrlSchema.optional().describe('HTTP(S)、file://、asset:id 或相对路径的头像地址'),
     verified: z.boolean().optional().describe('显示认证标记'),
   })
   .strict();

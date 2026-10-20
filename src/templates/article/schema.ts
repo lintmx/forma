@@ -18,7 +18,7 @@ export const articleSchema = z
     authorAvatarUrl: z
       .union([z.literal(''), assetUrlSchema])
       .optional()
-      .describe('可选作者头像，HTTP(S)、file:// 或相对路径的 PNG/JPEG/WebP 地址；省略或空字符串时隐藏'),
+      .describe('可选作者头像，HTTP(S)、file://、asset:id 或相对路径的 PNG/JPEG/WebP 地址；省略或空字符串时隐藏'),
     publishedAt: z.string().max(160).optional().describe('发布时间，按输入文本展示'),
     translation: z
       .object({

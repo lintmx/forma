@@ -78,7 +78,7 @@ if (process.argv[3] === 'child') {
         const results = await Promise.all(
           workers.map(async worker => {
             const next = once<{ result?: RenderResult; error?: unknown }>(worker);
-            worker.postMessage(request);
+            worker.postMessage({ request });
             const message = await next;
             assert.ok(message.result, JSON.stringify(message.error));
             return message.result;

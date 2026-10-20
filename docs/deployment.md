@@ -62,7 +62,9 @@ docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/lintmx/forma:latest
 | `PLAYGROUND_ENABLED` | 非生产 `true` | 是否开放 `/dev/` |
 | `RENDER_CONCURRENCY` / `RENDER_QUEUE_LIMIT` | `2` / `16` | worker 数 / 等待队列上限 |
 | `RENDER_TIMEOUT_MS` | `30000` | 请求总截止时间，毫秒 |
-| `BODY_LIMIT_BYTES` | `65536` | 请求 JSON 字节上限 |
+| `BODY_LIMIT_BYTES` | `65536` | JSON 请求或 multipart 中 request 字段的字节上限 |
+| `MULTIPART_BODY_LIMIT_BYTES` | `20971520` | multipart 整体字节上限，包含字段和协议开销，最大 80 MiB |
+| `UPLOAD_MAX_FILES` | `16` | 单次上传文件数上限，最大 64 |
 | `MAX_WIDTH` / `MAX_HEIGHT` | `8192` / `32768` | 最终输出宽高上限 |
 | `MAX_PIXELS` | `32000000` | 最终输出像素数上限 |
 | `MAX_RASTER_PIXELS` | `128000000` | 中间栅格像素数上限，最大可设 `256000000` |
@@ -80,3 +82,6 @@ docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/lintmx/forma:latest
 每个 worker 独立缓存字体和图片，提高并发会增加内存占用。
 PNG 的中间栅格内存高于最终输出，需同时限制输出尺寸、`MAX_RASTER_PIXELS` 和并发量。
 超限请求会被拒绝，不会自动降低采样倍率；按实际 CPU、内存和负载调整配置。
+
+上传附件驻留内存，并发上传、排队及渲染的 multipart 请求总数受 worker 数量加队列容量限制。
+容量规划需同时考虑 multipart 上限、队列容量和图片解码内存；代理的请求体大小和超时配置应与服务匹配。

@@ -6,7 +6,7 @@ import { publicError } from './errors.js';
 import { loadFonts } from './fonts.js';
 import type { TemplateRegistry } from './registry.js';
 import { Renderer } from './renderer.js';
-import type { RenderRequest } from './request.js';
+import type { RenderJob } from './request.js';
 
 export async function startRenderWorker(registry: TemplateRegistry) {
   const config = workerData as Config;
@@ -17,9 +17,9 @@ export async function startRenderWorker(registry: TemplateRegistry) {
     width: 100,
   });
   const renderer = new Renderer(config, fonts, registry);
-  parentPort!.on('message', async (request: RenderRequest) => {
+  parentPort!.on('message', async ({ request, attachments }: RenderJob) => {
     try {
-      parentPort!.postMessage({ result: await renderer.render(request) });
+      parentPort!.postMessage({ result: await renderer.render(request, attachments) });
     } catch (error) {
       parentPort!.postMessage({ error: publicError(error) });
     }

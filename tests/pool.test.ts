@@ -8,9 +8,9 @@ const worker = new URL(
     encodeURIComponent(`
   import { parentPort } from 'node:worker_threads';
   parentPort.postMessage({ ready: true });
-  parentPort.on('message', request => {
+  parentPort.on('message', ({ request, attachments }) => {
     if (request.data === 'hang') { while (true) {} }
-    parentPort.postMessage({ result: { body: new Uint8Array([1]), width: 1, height: 1, format: 'png', warnings: [] } });
+    parentPort.postMessage({ result: { body: attachments?.get('cover') ?? new Uint8Array([1]), width: 1, height: 1, format: 'png', warnings: [] } });
   });
 `),
 );
@@ -36,6 +36,25 @@ describe('bounded worker pool', () => {
     expect((await first).code).toBe('RENDER_TIMEOUT');
     expect((await queued).width).toBe(1);
     expect(pool.stats.active).toBe(0);
+  });
+  it('passes binary attachments and discards cancelled queued uploads', async () => {
+    const pool = await makePool();
+    const request = { template: 'test', data: 'ok', format: 'png' as const };
+    const bytes = new Uint8Array([0, 255, 13, 10]);
+    const rendered = await pool.render(request, undefined, 2000, new Map([['cover', bytes]]));
+    expect(rendered.body).toEqual(bytes);
+    const active = new AbortController();
+    const queued = new AbortController();
+    const hanging = pool.render({ ...request, data: 'hang' }, active.signal, 2000).catch(error => error);
+    const pending = pool.render(request, queued.signal, 2000, new Map([['cover', bytes]])).catch(error => error);
+    queued.abort();
+    expect((await pending).code).toBe('CANCELLED');
+    expect(pool.stats.queued).toBe(0);
+    active.abort();
+    expect((await hanging).code).toBe('CANCELLED');
+    await expect.poll(() => pool.healthy, { timeout: 2000 }).toBe(true);
+    const next = await pool.render(request, undefined, 2000);
+    expect(next.body).toEqual(new Uint8Array([1]));
   });
   it('includes queue time in deadlines and cancels disconnected requests', async () => {
     const pool = await makePool();

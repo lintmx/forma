@@ -7,11 +7,12 @@ import { FormaError, publicError } from '../core/errors.js';
 import type { RenderPool } from '../core/pool.js';
 import type { TemplateRegistry } from '../core/registry.js';
 import { renderRequestSchema } from '../core/request.js';
+import { readMultipart } from './multipart.js';
 import { pageResponse } from './pages.js';
 
 export async function readJson(request: Request, maxBytes: number, signal: AbortSignal) {
   if (request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json')
-    throw new FormaError('CONTENT_TYPE', 'Use application/json', 415);
+    throw new FormaError('CONTENT_TYPE', 'Use application/json or multipart/form-data', 415);
   if (Number(request.headers.get('content-length') ?? 0) > maxBytes)
     throw new FormaError('BODY_LIMIT', 'Request body is too large', 413);
   const reader = request.body?.getReader();
@@ -84,6 +85,7 @@ export function createApp(
       return errorResponse(error, event);
     }
   };
+  let multipartActive = 0;
   const app = new H3({ onError: (error, event) => errorResponse(error, event), silent: true });
   app.get('/', () => pageResponse('home', config.playground));
   app.get('/healthz', () =>
@@ -102,38 +104,56 @@ export function createApp(
     handle(async event => {
       const start = Date.now();
       const signal = AbortSignal.any([event.req.signal, AbortSignal.timeout(config.timeoutMs)]);
-      const parsed = renderRequestSchema.safeParse(await readJson(event.req, config.bodyLimit, signal));
-      if (!parsed.success) throw new FormaError('VALIDATION_ERROR', 'Invalid render request', 400, parsed.error.issues);
-      const request = parsed.data;
-      // Reject invalid data before queueing, but send original input to the worker.
-      // Feeding parsed output back through a schema can apply transformations twice.
-      registry.validate(request.template, request.data);
-      // The worker's deadline includes queue time and is shortened by body reading.
-      // Use the original request signal here so deadline errors consistently use 504.
-      const result = await pool.render(request, event.req.signal, config.timeoutMs - (Date.now() - start));
-      log(config, 'info', 'Rendered card', {
-        template: request.template,
-        format: result.format,
-        width: result.width,
-        height: result.height,
-        scale: result.scale,
-        durationMs: Date.now() - start,
-      });
-      return new Response(new Uint8Array(result.body), {
-        headers: {
-          'Content-Type': result.format === 'png' ? 'image/png' : 'image/svg+xml; charset=utf-8',
-          'Content-Length': String(result.body.byteLength),
-          'Cache-Control': 'no-store',
-          'X-Content-Type-Options': 'nosniff',
-          'Content-Security-Policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox",
-          'X-Image-Width': String(result.width),
-          'X-Image-Height': String(result.height),
-          'X-Layout-Width': String(result.layoutWidth),
-          'X-Layout-Height': String(result.layoutHeight),
-          'X-Render-Scale': String(result.scale),
-          'X-Render-Warnings': result.warnings.join(','),
-        },
-      });
+      const multipart =
+        event.req.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() === 'multipart/form-data';
+      if (multipart && multipartActive >= config.concurrency + config.queueLimit)
+        throw new FormaError('BUSY', 'Upload capacity is full; retry later', 503);
+      if (multipart) multipartActive++;
+      try {
+        const { input, attachments } = multipart
+          ? await readMultipart(event.req, config, signal)
+          : { input: await readJson(event.req, config.bodyLimit, signal), attachments: undefined };
+        const parsed = renderRequestSchema.safeParse(input);
+        if (!parsed.success)
+          throw new FormaError('VALIDATION_ERROR', 'Invalid render request', 400, parsed.error.issues);
+        const request = parsed.data;
+        // Reject invalid data before queueing, but send original input to the worker.
+        // Feeding parsed output back through a schema can apply transformations twice.
+        registry.validate(request.template, request.data);
+        // The worker's deadline includes queue time and is shortened by body reading.
+        // Use the original request signal here so deadline errors consistently use 504.
+        const result = await pool.render(
+          request,
+          event.req.signal,
+          config.timeoutMs - (Date.now() - start),
+          attachments,
+        );
+        log(config, 'info', 'Rendered card', {
+          template: request.template,
+          format: result.format,
+          width: result.width,
+          height: result.height,
+          scale: result.scale,
+          durationMs: Date.now() - start,
+        });
+        return new Response(new Uint8Array(result.body), {
+          headers: {
+            'Content-Type': result.format === 'png' ? 'image/png' : 'image/svg+xml; charset=utf-8',
+            'Content-Length': String(result.body.byteLength),
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+            'Content-Security-Policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox",
+            'X-Image-Width': String(result.width),
+            'X-Image-Height': String(result.height),
+            'X-Layout-Width': String(result.layoutWidth),
+            'X-Layout-Height': String(result.layoutHeight),
+            'X-Render-Scale': String(result.scale),
+            'X-Render-Warnings': result.warnings.join(','),
+          },
+        });
+      } finally {
+        if (multipart) multipartActive--;
+      }
     }),
   );
   if (config.playground) {

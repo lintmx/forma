@@ -115,6 +115,25 @@ describe('bounded image resources', () => {
       'too large',
     );
   });
+  it('mixes request attachments with URL resources and validates even unused uploads', async () => {
+    const download = vi.fn(async () => png);
+    const store = new ImageStore(config, download);
+    const loader = await store.withAttachments(new Map([['cover', png]]), origin + '/');
+    expect(await loader.get('asset:cover')).toBe(imageDataUri(png, config));
+    expect(await loader.get('asset:cover')).toBe(imageDataUri(png, config));
+    expect(download).not.toHaveBeenCalled();
+    expect(await loader.get('image')).toBe(imageDataUri(png, config));
+    expect(download).toHaveBeenCalledWith(origin + '/image', config);
+    const next = await store.withAttachments(new Map());
+    await expect(next.get('asset:cover')).rejects.toMatchObject({ code: 'IMAGE_UNAVAILABLE' });
+    for (const bytes of [Buffer.from('<svg/>'), png.subarray(0, 35)])
+      await expect(store.withAttachments(new Map([['unused', bytes]]))).rejects.toMatchObject({
+        code: 'INVALID_IMAGE',
+      });
+    await expect(
+      new ImageStore({ ...config, imageMaxPixels: 1 }).withAttachments(new Map([['cover', png]])),
+    ).rejects.toMatchObject({ code: 'INVALID_IMAGE' });
+  });
   it('deduplicates requests, caches successes, retries failures and expires entries', async () => {
     const download = vi.fn(async () => png);
     const store = new ImageStore({ ...config, imageCacheTtlMs: 10 }, download);

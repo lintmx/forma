@@ -17,7 +17,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "vitest run",
-    "test:e2e": "vitest run tests/api.test.ts tests/templates.test.ts tests/asset-prefix.test.ts",
+    "test:e2e": "vitest run tests/api.test.ts tests/templates.test.ts tests/asset-prefix.test.ts tests/multipart.test.ts",
     "satori:prepare": "node scripts/build-satori-patch.mjs",
     "preview:typography": "tsx scripts/render-typography.ts",
     "fonts:verify": "tsx scripts/verify-fonts.ts",
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@xmldom/xmldom": "0.9.12",
+    "busboy": "^1.6.0",
     "diff": "9.0.0",
     "entities": "8.1.0",
     "h3": "2.0.2",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
+    "@types/busboy": "^1.5.5",
     "@types/node": "^24.0.0",
     "@types/pngjs": "6.0.5",
     "@types/react": "^19.0.0",

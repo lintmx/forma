@@ -8,7 +8,9 @@ const relativeUrl = z
   .max(2048)
   .regex(/^(?![a-zA-Z][a-zA-Z\d+.-]*:)(?![?#])[^\\\s]+$/, 'Expected a resource URL or path');
 
-export const assetUrlSchema = z.union([absoluteUrl, relativeUrl]);
+export const assetIdPattern = /^[a-zA-Z0-9_-]{1,64}$/;
+const attachmentUrl = z.string().regex(/^asset:[a-zA-Z0-9_-]{1,64}$/);
+export const assetUrlSchema = z.union([absoluteUrl, relativeUrl, attachmentUrl]);
 
 export const assetUrlPrefixSchema = z
   .string()

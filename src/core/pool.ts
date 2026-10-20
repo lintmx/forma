@@ -2,11 +2,12 @@ import { Worker } from 'node:worker_threads';
 import type { Config } from '../config.js';
 import { log } from '../config.js';
 import { FormaError } from './errors.js';
-import type { RenderRequest } from './request.js';
+import type { Attachments, RenderRequest } from './request.js';
 import type { RenderResult } from './types.js';
 
 interface Job {
   request: RenderRequest;
+  attachments?: Attachments;
   resolve: (result: RenderResult) => void;
   reject: (error: Error) => void;
   cleanup: () => void;
@@ -87,7 +88,12 @@ export class RenderPool {
     });
   }
 
-  render(request: RenderRequest, signal?: AbortSignal, timeoutMs = this.config.timeoutMs): Promise<RenderResult> {
+  render(
+    request: RenderRequest,
+    signal?: AbortSignal,
+    timeoutMs = this.config.timeoutMs,
+    attachments?: Attachments,
+  ): Promise<RenderResult> {
     if (this.closed || this.slots.length === 0)
       return Promise.reject(new FormaError('UNAVAILABLE', 'Renderer is unavailable', 503));
     if (signal?.aborted) return Promise.reject(new FormaError('CANCELLED', 'Request cancelled', 499));
@@ -113,6 +119,7 @@ export class RenderPool {
       const abort = () => cancel(new FormaError('CANCELLED', 'Request cancelled', 499));
       const job: Job = {
         request,
+        attachments,
         resolve,
         reject,
         cleanup: () => {
@@ -129,7 +136,8 @@ export class RenderPool {
     for (const slot of this.slots) {
       if (!slot.ready || slot.retired || slot.job || !this.queue.length) continue;
       slot.job = this.queue.shift()!;
-      slot.worker.postMessage(slot.job.request);
+      slot.worker.postMessage({ request: slot.job.request, attachments: slot.job.attachments });
+      slot.job.attachments = undefined;
     }
   }
   private retire(slot: Slot, error: FormaError, replace: boolean) {

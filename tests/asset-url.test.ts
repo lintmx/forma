@@ -28,6 +28,25 @@ describe('asset URL prefix contract', () => {
     expect(resolveAssetUrl(input, '')).toBe(input);
   });
 
+  it('accepts only bounded attachment IDs and never prefixes them', () => {
+    for (const value of ['asset:cover', 'asset:Cover_01-x', 'asset:' + 'a'.repeat(64)]) {
+      expect(assetUrlSchema.safeParse(value).success).toBe(true);
+      expect(resolveAssetUrl(value, prefix)).toBe(value);
+    }
+    for (const value of [
+      'asset:',
+      'asset:' + 'a'.repeat(65),
+      'asset://cover',
+      'asset:../cover',
+      'asset:cover?a',
+      'asset:cover#x',
+      'asset:图片',
+      'asset:cover\n',
+      'asset:cover%20x',
+    ])
+      expect(assetUrlSchema.safeParse(value).success, value).toBe(false);
+  });
+
   it('normalizes the optional prefix and rejects invalid top-level options', () => {
     expect(renderRequestSchema.parse(request).assetUrlPrefix).toBeUndefined();
     expect(renderRequestSchema.parse({ ...request, assetUrlPrefix: '  ' }).assetUrlPrefix).toBe('');

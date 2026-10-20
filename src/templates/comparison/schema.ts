@@ -8,7 +8,7 @@ const image = z
   .object({
     url: z
       .union([z.literal(''), assetUrlSchema])
-      .describe('HTTP(S)、file:// 或相对路径的图片地址；空字符串显示暂无图片'),
+      .describe('HTTP(S)、file://、asset:id 或相对路径的图片地址；空字符串显示暂无图片'),
     label: z.string().max(160).optional().describe('图片标签，默认更新前或更新后'),
   })
   .strict();

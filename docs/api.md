@@ -97,14 +97,59 @@ Playground 的“资源 URL 前缀”用于同一次编辑的预览及 PNG / SVG
 
 | 状态码 | 常见原因 |
 | --- | --- |
-| 400 | JSON 无效或 Schema 校验失败 |
+| 400 | multipart 结构错误、JSON 无效或 Schema 校验失败 |
 | 404 | 模板或路由不存在 |
-| 413 | 请求体超过上限 |
-| 415 | 请求不是 `application/json` |
-| 422 | 尺寸、像素或输出字节超限；文字或 Emoji 缺失时使用占位符并返回 200 与警告头 |
+| 413 | 请求体、文件大小或附件数量超过上限 |
+| 415 | 请求不是 `application/json` 或 `multipart/form-data` |
+| 422 | 上传图片无效，或尺寸、像素、输出字节超限；文字或 Emoji 缺失时使用占位符并返回 200 与警告头 |
 | 500 | 内部渲染错误（`INTERNAL_ERROR`） |
 | 503 | 队列已满或渲染服务不可用 |
 | 504 | 请求超时 |
 
 渲染接口的 503 响应附带 `Retry-After: 1`，调用方可据此延迟重试。
 输入和资源限制见 [部署配置](deployment.md)，图片及字体支持范围见 [渲染与资源](rendering.md)。
+
+## 随请求上传图片
+
+`POST /v1/render` 也接受 `multipart/form-data`。包含一个且仅一个名为 `request` 的文本字段，
+内容是上述 JSON 请求；其他字段必须为图片文件。字段顺序不限，不要把 `request` 作为 JSON 文件上传。
+文件字段名称即资源 ID，模板图片地址使用 `asset:<id>` 引用，Markdown 正文和译文中的图片同样适用。
+
+资源 ID 区分大小写，仅允许 1～64 个 ASCII 字母、数字、下划线或连字符，`request` 为保留名称。
+重复字段或非法名称返回 `400 INVALID_MULTIPART`。文件名不参与资源匹配，也不会被用作本地路径。
+`assetUrlPrefix` 不影响 `asset:`；上传图片可与现有 HTTP(S)、file 图片混用，同一附件可引用多次。
+
+```bash
+curl http://localhost:3000/v1/render \
+  --form-string 'request={"template":"article","format":"png","data":{"title":"上传图片","content":"![封面](asset:cover)"}}' \
+  --form 'cover=@./cover.png' \
+  --output card.png
+```
+
+Node.js 示例（不要自行设置 Content-Type，FormData 会生成 boundary）：
+
+```js
+import { readFile, writeFile } from 'node:fs/promises';
+
+const body = new FormData();
+body.append('request', JSON.stringify({
+  template: 'article',
+  format: 'png',
+  data: { title: '上传图片', content: '![封面](asset:cover)' },
+}));
+body.append('cover', new Blob([await readFile('./cover.png')]), 'cover.png');
+const response = await fetch('http://localhost:3000/v1/render', { method: 'POST', body });
+if (!response.ok) throw new Error(await response.text());
+await writeFile('card.png', new Uint8Array(await response.arrayBuffer()));
+```
+
+上传仅支持 PNG、JPEG、WebP，按实际文件内容校验，不信任扩展名和 MIME。
+所有附件（包括未被引用的附件）均校验；损坏、不支持的图片或尺寸超限返回 `422 INVALID_IMAGE`。
+JSON 字段、单文件、整个 multipart 请求的大小或文件数量超限返回 `413 BODY_LIMIT`。
+JSON 损坏仍返回 `400 INVALID_JSON`，请求及模板 Schema 错误仍返回 `400 VALIDATION_ERROR`。
+合法 `asset:id` 未提供附件时沿用资源缺失降级，返回图片及 `IMAGE_UNAVAILABLE` 警告。
+
+附件仅在当前请求内有效，不落盘、不进入跨请求图片缓存；响应结束后不能再次引用。
+上传、排队和渲染共享原有总超时。并发 multipart 请求（包括上传、排队和渲染）最多为
+`RENDER_CONCURRENCY + RENDER_QUEUE_LIMIT`，超出返回 `503 BUSY`，防止上传阶段无界占用内存。
+限制配置见 [部署配置](deployment.md)。

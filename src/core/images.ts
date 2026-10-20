@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import type { Config } from '../config.js';
 import { resolveAssetUrl } from './asset-url.js';
 import { FormaError } from './errors.js';
+import type { Attachments } from './request.js';
 
 // HTTP(S) and local files share resource limits; Satori only receives embedded data.
 export async function downloadImage(input: string, config: Config): Promise<Buffer> {
@@ -88,6 +89,18 @@ export function imageDataUri(buffer: Buffer, config: Config) {
   return 'data:image/' + (size.type === 'jpg' ? 'jpeg' : size.type) + ';base64,' + buffer.toString('base64');
 }
 
+async function normalizeImage(buffer: Buffer, config: Config, validateContent = false): Promise<string> {
+  let data = imageDataUri(buffer, config);
+  // Decode uploads as well as inspecting their headers, rejecting corrupt payloads.
+  const image = sharp(buffer, { limitInputPixels: config.imageMaxPixels, pages: 1 });
+  if (data.startsWith('data:image/webp;')) {
+    data = imageDataUri(await image.png().toBuffer(), config);
+  } else if (validateContent) {
+    await image.stats();
+  }
+  return data;
+}
+
 export type ImageLoader = Pick<ImageStore, 'get'>;
 
 export class ImageStore {
@@ -103,6 +116,25 @@ export class ImageStore {
     return { get: async input => this.get(resolveAssetUrl(input, prefix)) };
   }
 
+  async withAttachments(attachments: Attachments, prefix?: string): Promise<ImageLoader> {
+    const local = new Map<string, string>();
+    for (const [id, bytes] of attachments) {
+      try {
+        local.set('asset:' + id, await normalizeImage(Buffer.from(bytes), this.config, true));
+      } catch {
+        throw new FormaError('INVALID_IMAGE', 'Invalid uploaded image', 422, { asset: id });
+      }
+    }
+    return {
+      get: async input => {
+        if (!input.startsWith('asset:')) return this.get(resolveAssetUrl(input, prefix));
+        const data = local.get(input);
+        if (!data) throw new FormaError('IMAGE_UNAVAILABLE', 'Uploaded image is missing');
+        return data;
+      },
+    };
+  }
+
   async get(url: string): Promise<string> {
     const entry = this.cache.get(url);
     if (entry && entry.expires > Date.now()) {
@@ -115,12 +147,7 @@ export class ImageStore {
     if (pending) return pending;
     const promise = this.download(url, this.config)
       .then(async buffer => {
-        let data = imageDataUri(buffer, this.config);
-        // Keep input normalization stable; convert WebP only after validating input limits.
-        if (data.startsWith('data:image/webp;')) {
-          const png = await sharp(buffer, { limitInputPixels: this.config.imageMaxPixels, pages: 1 }).png().toBuffer();
-          data = imageDataUri(png, this.config);
-        }
+        const data = await normalizeImage(buffer, this.config);
         const bytes = Buffer.byteLength(data);
         if (bytes <= this.config.imageCacheBytes) {
           while (this.bytes + bytes > this.config.imageCacheBytes || this.cache.size >= 128)

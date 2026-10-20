@@ -74,3 +74,7 @@ Satori 在开发、测试和构建前按 [源码补丁](../patches/satori-text-l
 
 图片缓存按 worker 独立管理，受容量和有效期限制，不持久化。
 相同资源可复用缓存，但不同 worker 可能分别下载。
+
+multipart 请求的图片可通过 `asset:id` 引用，具体见 [随请求上传图片](api.md#随请求上传图片)。
+附件在 worker 内校验并解码，WebP 转换为 PNG 后交给渲染器；同一附件只在本次请求内复用，
+不进入远程 URL 缓存，不同请求的相同资源 ID 相互独立。模板仍使用 `assets` 钩子及 `ImageLoader.get()`。
