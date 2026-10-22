@@ -65,6 +65,12 @@ Markdown 不由 Biome 检查。
 注册后 API 和 Playground 自动展示模板，无需修改首页文档或增加一份模板字段表。
 测试专用模板留在 `tests/fixtures/`，不注册到生产入口。部署前重新构建服务或镜像。
 
+YouTube 模板保留 API 字段结构。普通视频传 `status.publishAt` 表示定时发布，
+`status.privacyStatus` 为 `public` / `unlisted` 时按已发布展示；`snippet.publishedAt` 仅用于显示发布日期。
+直播通过 `snippet.liveBroadcastContent` 区分预约与直播中，`liveStreamingDetails.actualEndTime` 优先标记结束，
+结束后由调用方传 `replayAvailable: true` 确认回放可观看。`observedAt` 仅计算已播时长，计划时间到点不自动切换状态。
+频道名最多一行、标题最多两行，超出显示省略号；简介保留前十行，超出以省略标记折叠。
+
 ## 尺寸与排版
 
 | `sizing.mode` | 行为与要求 |

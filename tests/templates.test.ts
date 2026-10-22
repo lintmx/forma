@@ -57,6 +57,7 @@ describe('production template catalog', () => {
       'comparison',
       'article',
       'bilibili',
+      'youtube',
     ]);
     const app = createApp(config, pool, registry);
     const health = await app.fetch(new Request('http://localhost/healthz'));
@@ -71,6 +72,7 @@ describe('production template catalog', () => {
       'comparison',
       'article',
       'bilibili',
+      'youtube',
     ]);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/example'));
     expect(metadata.status).toBe(200);
@@ -194,6 +196,51 @@ describe('production template catalog', () => {
                 live: { status: 'live', roomId: 2289410, popularity: 1842000, startedAt: '20:15' },
               },
             }),
+          }),
+        );
+        expect(response.status).toBe(200);
+        expect(response.headers.get('X-Image-Width')).toBe(format === 'png' ? '1200' : '600');
+        const body = Buffer.from(await response.arrayBuffer());
+        expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
+          format === 'png' ? 'PNG' : '<svg',
+        );
+      }
+    }
+  });
+
+  it('exposes youtube metadata and renders API-shaped video and live data through the production worker', async () => {
+    const app = createApp(config, pool, registry);
+    const metadata = await app.fetch(new Request('http://localhost/v1/templates/youtube'));
+    expect(metadata.status).toBe(200);
+    const info = await metadata.json();
+    expect(info.schema.required).toEqual(['snippet']);
+    expect(info.schema.properties.snippet.required).toEqual(['title']);
+    expect(info.mock).toEqual(registry.get('youtube').mock);
+    const phases = [
+      { snippet: { title: '已发布' }, statistics: { viewCount: '0' } },
+      { snippet: { title: '定时发布' }, status: { privacyStatus: 'private', publishAt: '2026-10-25T12:00:00Z' } },
+      {
+        snippet: { title: '预约直播', liveBroadcastContent: 'upcoming' },
+        liveStreamingDetails: { scheduledStartTime: '2026-10-22T12:00:00Z' },
+      },
+      {
+        snippet: { title: '正在直播', liveBroadcastContent: 'live' },
+        liveStreamingDetails: { actualStartTime: '2026-10-22T12:00:00Z', concurrentViewers: '1200' },
+      },
+      { snippet: { title: '直播结束' }, liveStreamingDetails: { actualEndTime: '2026-10-22T14:00:00Z' } },
+      {
+        snippet: { title: '回放' },
+        liveStreamingDetails: { actualEndTime: '2026-10-22T14:00:00Z' },
+        replayAvailable: true,
+      },
+    ];
+    for (const format of ['png', 'svg']) {
+      for (const data of phases) {
+        const response = await app.fetch(
+          new Request('http://localhost/v1/render', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template: 'youtube', format, data }),
           }),
         );
         expect(response.status).toBe(200);

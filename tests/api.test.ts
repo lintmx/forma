@@ -165,6 +165,8 @@ describe('HTTP end-to-end', () => {
       'social_post',
       'comparison',
       'article',
+      'bilibili',
+      'youtube',
       'test-content',
       'test-auto-height',
     ]);

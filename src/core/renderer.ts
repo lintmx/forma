@@ -51,8 +51,10 @@ export class Renderer {
       fontFamily: this.fonts.fontFamily,
       monospaceFontFamily: this.fonts.monospaceFontFamily,
     };
+    const graphemeImages: Record<string, string> = {};
     const base: Omit<SatoriOptions, 'width' | 'height'> = {
       fonts: this.fonts.fonts,
+      graphemeImages,
       embedFont: true,
       loadAdditionalAsset: (language, segment) => additionalAsset(language, segment, missingEmoji, missingGlyph),
       onStyleError: error => {
@@ -68,7 +70,7 @@ export class Renderer {
       : undefined;
     const dimensions = await layoutOptions(
       template.sizing,
-      await prepareEmoji(measure, missingEmoji),
+      await prepareEmoji(measure, missingEmoji, graphemeImages),
       base,
       this.config,
     );
@@ -79,7 +81,7 @@ export class Renderer {
       watermark,
       autoWidth: template.sizing.mode === 'auto-width',
     });
-    const svg = await satori(await prepareEmoji(card, missingEmoji), { ...base, ...dimensions });
+    const svg = await satori(await prepareEmoji(card, missingEmoji, graphemeImages), { ...base, ...dimensions });
     const { width: layoutWidth, height: layoutHeight } = svgDimensions(svg);
     const width = layoutWidth * scale;
     const height = layoutHeight * scale;

@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { cloneElement, createElement, isValidElement, type ReactNode } from 'react';
+import { type CSSProperties, cloneElement, createElement, isValidElement, type ReactNode } from 'react';
 import type { Font } from 'satori';
 import presentation from '../../emoji/presentation.json' with { type: 'json' };
 
@@ -82,7 +82,11 @@ export async function additionalAsset(
 
 // Resolve the same pure function components Satori supports, then replace text
 // only (never URLs, attributes or SVG paths). Used for measurement AND final layout.
-export async function prepareEmoji(node: ReactNode, onMissing: () => void): Promise<ReactNode> {
+export async function prepareEmoji(
+  node: ReactNode,
+  onMissing: () => void,
+  graphemeImages?: Record<string, string>,
+): Promise<ReactNode> {
   if (typeof node === 'string') {
     const pieces: ReactNode[] = [];
     let end = 0;
@@ -114,12 +118,27 @@ export async function prepareEmoji(node: ReactNode, onMissing: () => void): Prom
     pieces.push(node.slice(end));
     return createElement('span', null, ...pieces);
   }
-  if (Array.isArray(node)) return Promise.all(node.map(child => prepareEmoji(child, onMissing)));
-  if (!isValidElement<{ children?: ReactNode }>(node)) return node;
+  if (Array.isArray(node)) return Promise.all(node.map(child => prepareEmoji(child, onMissing, graphemeImages)));
+  if (!isValidElement<{ children?: ReactNode; style?: CSSProperties }>(node)) return node;
   if (typeof node.type === 'function') {
     const component = node.type as (props: { children?: ReactNode }) => ReactNode | Promise<ReactNode>;
-    return prepareEmoji(await component(node.props), onMissing);
+    return prepareEmoji(await component(node.props), onMissing, graphemeImages);
   }
   if (node.props.children === undefined) return node;
-  return cloneElement(node, { children: await prepareEmoji(node.props.children, onMissing) });
+  if (
+    graphemeImages &&
+    typeof node.props.children === 'string' &&
+    (node.props.style?.lineClamp || node.props.style?.textOverflow === 'ellipsis')
+  ) {
+    const prepared = await prepareEmoji(node.props.children, onMissing);
+    if (isValidElement<{ children: ReactNode[] }>(prepared)) {
+      for (const child of prepared.props.children) {
+        if (isValidElement<{ alt: string; src: string }>(child) && child.type === 'img') {
+          graphemeImages[child.props.alt] = child.props.src;
+        }
+      }
+    }
+    return node;
+  }
+  return cloneElement(node, { children: await prepareEmoji(node.props.children, onMissing, graphemeImages) });
 }

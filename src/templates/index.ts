@@ -4,6 +4,7 @@ import { bilibili } from './bilibili/index.js';
 import { comparison } from './comparison/index.js';
 import { example } from './example/index.js';
 import { socialPost } from './social_post/index.js';
+import { youtube } from './youtube/index.js';
 
 // Each server, worker or test owns its catalog; registration has no global side effects.
 export function createTemplateRegistry() {
@@ -12,5 +13,6 @@ export function createTemplateRegistry() {
     .register(socialPost)
     .register(comparison)
     .register(article)
-    .register(bilibili);
+    .register(bilibili)
+    .register(youtube);
 }
