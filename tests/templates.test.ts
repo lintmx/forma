@@ -51,7 +51,13 @@ describe('production template catalog', () => {
   });
 
   it('starts real workers and serves example as the default template', async () => {
-    expect(registry.list().map(template => template.id)).toEqual(['example', 'social_post', 'comparison', 'article']);
+    expect(registry.list().map(template => template.id)).toEqual([
+      'example',
+      'social_post',
+      'comparison',
+      'article',
+      'bilibili',
+    ]);
     const app = createApp(config, pool, registry);
     const health = await app.fetch(new Request('http://localhost/healthz'));
     expect(health.status).toBe(200);
@@ -64,6 +70,7 @@ describe('production template catalog', () => {
       'social_post',
       'comparison',
       'article',
+      'bilibili',
     ]);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/example'));
     expect(metadata.status).toBe(200);
@@ -160,6 +167,43 @@ describe('production template catalog', () => {
     );
     expect(invalid.status).toBe(400);
     expect((await invalid.json()).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('exposes bilibili metadata and renders video and live cards through the production worker', async () => {
+    const app = createApp(config, pool, registry);
+    const metadata = await app.fetch(new Request('http://localhost/v1/templates/bilibili'));
+    expect(metadata.status).toBe(200);
+    const info = await metadata.json();
+    expect(info.schema.required).toEqual(['title']);
+    expect(info.mock).toEqual(registry.get('bilibili').mock);
+    for (const type of ['video', 'live']) {
+      for (const format of ['png', 'svg']) {
+        const response = await app.fetch(
+          new Request('http://localhost/v1/render', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              template: 'bilibili',
+              format,
+              data: {
+                type,
+                title: 'Bilibili 视频与直播',
+                author: { name: '测试作者', uid: 123, verified: true },
+                bvid: 'BV1W44y1G7u2',
+                stats: { views: 0 },
+                live: { status: 'live', roomId: 2289410, popularity: 1842000, startedAt: '20:15' },
+              },
+            }),
+          }),
+        );
+        expect(response.status).toBe(200);
+        expect(response.headers.get('X-Image-Width')).toBe(format === 'png' ? '1200' : '600');
+        const body = Buffer.from(await response.arrayBuffer());
+        expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
+          format === 'png' ? 'PNG' : '<svg',
+        );
+      }
+    }
   });
 
   it('renders body and Maple monospace text through the production worker', async () => {
