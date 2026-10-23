@@ -1,6 +1,7 @@
 import { TemplateRegistry } from '../core/registry.js';
 import { article } from './article/index.js';
 import { bilibili } from './bilibili/index.js';
+import { chat } from './chat/index.js';
 import { comparison } from './comparison/index.js';
 import { example } from './example/index.js';
 import { socialPost } from './social_post/index.js';
@@ -14,5 +15,6 @@ export function createTemplateRegistry() {
     .register(comparison)
     .register(article)
     .register(bilibili)
-    .register(youtube);
+    .register(youtube)
+    .register(chat);
 }

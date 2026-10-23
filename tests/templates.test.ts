@@ -58,6 +58,7 @@ describe('production template catalog', () => {
       'article',
       'bilibili',
       'youtube',
+      'chat',
     ]);
     const app = createApp(config, pool, registry);
     const health = await app.fetch(new Request('http://localhost/healthz'));
@@ -73,6 +74,7 @@ describe('production template catalog', () => {
       'article',
       'bilibili',
       'youtube',
+      'chat',
     ]);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/example'));
     expect(metadata.status).toBe(200);
@@ -250,6 +252,31 @@ describe('production template catalog', () => {
           format === 'png' ? 'PNG' : '<svg',
         );
       }
+    }
+  });
+
+  it('exposes chat metadata and renders both formats through the production worker', async () => {
+    const app = createApp(config, pool, registry);
+    const metadata = await app.fetch(new Request('http://localhost/v1/templates/chat'));
+    expect(metadata.status).toBe(200);
+    const info = await metadata.json();
+    expect(info.schema.required).toEqual(['title', 'messages']);
+    expect(info.mock).toEqual(registry.get('chat').mock);
+    for (const format of ['png', 'svg']) {
+      const response = await app.fetch(
+        new Request('http://localhost/v1/render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ template: 'chat', data: info.mock, format }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Image-Width')).toBe(format === 'png' ? '880' : '440');
+      expect(response.headers.get('Content-Type')).toContain(format === 'png' ? 'image/png' : 'image/svg+xml');
+      const body = Buffer.from(await response.arrayBuffer());
+      expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
+        format === 'png' ? 'PNG' : '<svg',
+      );
     }
   });
 

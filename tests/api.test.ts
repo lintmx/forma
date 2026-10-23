@@ -167,6 +167,7 @@ describe('HTTP end-to-end', () => {
       'article',
       'bilibili',
       'youtube',
+      'chat',
       'test-content',
       'test-auto-height',
     ]);
