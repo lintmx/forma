@@ -271,7 +271,9 @@ describe('production template catalog', () => {
         }),
       );
       expect(response.status).toBe(200);
-      expect(response.headers.get('X-Image-Width')).toBe(format === 'png' ? '880' : '440');
+      const layoutWidth = Number(response.headers.get('X-Image-Width')) / (format === 'png' ? 2 : 1);
+      expect(layoutWidth).toBeGreaterThan(440);
+      expect(layoutWidth).toBeLessThan(600);
       expect(response.headers.get('Content-Type')).toContain(format === 'png' ? 'image/png' : 'image/svg+xml');
       const body = Buffer.from(await response.arrayBuffer());
       expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(

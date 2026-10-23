@@ -1,7 +1,23 @@
 import { z } from 'zod';
 import { assetUrlSchema } from '../../core/asset-url.js';
 
+const details = {
+  translation: z
+    .string()
+    .trim()
+    .max(4000)
+    .optional()
+    .describe('该条消息的译文，由调用方提供；保留换行，省略或留空时隐藏'),
+  sentAt: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .describe('该条消息的发送时间，显示在消息下方；按输入文本展示，不自动解析日期'),
+};
+
 const sender = {
+  ...details,
   side: z.enum(['left', 'right']).optional().describe('消息方向，默认 left；right 为自己发送的蓝色气泡'),
   name: z.string().trim().max(80).optional().describe('发送者昵称，省略时不显示昵称'),
   avatarUrl: assetUrlSchema.optional().describe('头像地址，支持相对路径和 asset: 附件；缺失时显示昵称首字'),
@@ -34,6 +50,7 @@ export const chatSchema = z
           z
             .object({
               type: z.literal('system').describe('居中系统提示，也可作为独立时间分隔'),
+              ...details,
               text: z.string().trim().min(1).max(400).describe('提示内容'),
             })
             .strict(),

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { PNG } from 'pngjs';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeAll, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { loadFonts } from '../src/core/fonts.js';
@@ -35,17 +36,86 @@ it('validates the example, message variants and resource URLs', () => {
     { type: 'image' },
     { type: 'image', url: 'javascript:alert(1)' },
     { type: 'system', text: '提示', side: 'right' },
+    { type: 'text', text: '你好', translation: { text: 'Hello' } },
+    { type: 'image', url: 'asset:photo', sentAt: 123 },
+    { type: 'system', text: '提示', translation: '文'.repeat(4001) },
   ]) {
     expect(chatSchema.safeParse({ title: '聊天', messages: [message] }).success).toBe(false);
   }
   expect(chatSchema.safeParse({ title: '聊天', messages: [{ type: 'image', url: 'asset:photo' }] }).success).toBe(true);
 });
 
+it('displays translations and sent times for text, image and system messages', () => {
+  const data = chatSchema.parse({
+    title: '逐条翻译',
+    messages: [
+      { type: 'text', text: 'Hello', translation: '你好', sentAt: '18:30', time: '星期五' },
+      { type: 'text', side: 'right', text: '收到', translation: 'Received', sentAt: '18:31' },
+      { type: 'image', url: 'asset:photo', translation: '海边照片', sentAt: '18:32' },
+      { type: 'system', text: '群名已更新', translation: 'Group renamed', sentAt: '18:33' },
+    ],
+  });
+  const html = renderToStaticMarkup(
+    chat.render(data, { assets: {}, fontFamily: 'sans-serif', monospaceFontFamily: 'monospace' }),
+  );
+  for (const message of data.messages) {
+    expect(html).toContain(message.translation);
+    expect(html).toContain(message.sentAt);
+  }
+  expect(html).toContain('星期五');
+});
+
+it('wraps multilingual translations and sent times while preserving legacy messages without these fields', async () => {
+  const messages: ChatData['messages'] = [
+    { type: 'text', name: '小夏', text: 'Hello', time: '星期五' },
+    { type: 'text', side: 'right', text: '收到' },
+    { type: 'image', side: 'right', url: imageUrl },
+    { type: 'system', text: '群名已更新' },
+  ];
+  const data = { title: '逐条译文与时间', messages };
+  const legacy = await renderer.render({ template: 'chat', data, format: 'svg' });
+  const blank = await renderer.render({
+    template: 'chat',
+    data: { ...data, messages: messages.map(message => ({ ...message, translation: '  \n', sentAt: '  ' })) },
+    format: 'svg',
+  });
+  expect(blank.body).toEqual(legacy.body);
+  const heights = [];
+  for (const count of [1, 6]) {
+    const translated = {
+      ...data,
+      messages: messages.map((message, index) => ({
+        ...message,
+        translation: (
+          '中文 日本語 한국어 English 👩🏽‍💻\n' +
+          'https://example.com/' +
+          'long-path-'.repeat(count)
+        ).repeat(count),
+        sentAt: `2026-10-23 18:3${index}:00 +08:00${count > 1 ? '（星期五 / Friday / 金曜日）' : ''}`,
+      })),
+    };
+    const svg = await renderer.render({ template: 'chat', data: translated, format: 'svg' });
+    const png = await renderer.render({ template: 'chat', data: translated, format: 'png' });
+    expect(svg.width).toBeGreaterThanOrEqual(440);
+    expect(svg.width).toBeLessThanOrEqual(600);
+    expect(png.width).toBe(svg.width * 2);
+    expect(png.height).toBe(svg.height * 2);
+    expect(svg.warnings).toEqual([]);
+    expect(png.warnings).toEqual([]);
+    heights.push(svg.height);
+    await writeFile(`artifacts/chat/translation-${count}.png`, png.body);
+    await writeFile(`artifacts/chat/translation-${count}.svg`, svg.body);
+  }
+  expect(heights[0]).toBeGreaterThan(legacy.height);
+  expect(heights[1]).toBeGreaterThan(heights[0]! + 300);
+});
+
 it('renders the conversation as real SVG and 2x PNG with incoming and outgoing bubbles', async () => {
   const png = await renderer.render({ template: 'chat', data: chat.mock, format: 'png' });
   const svg = await renderer.render({ template: 'chat', data: chat.mock, format: 'svg' });
-  expect(png.width).toBe(880);
-  expect(svg.width).toBe(440);
+  expect(svg.width).toBeGreaterThan(440);
+  expect(svg.width).toBeLessThan(600);
+  expect(png.width).toBe(svg.width * 2);
   expect(png.height).toBe(svg.height * 2);
   expect(png.warnings).toEqual([]);
   expect(svg.warnings).toEqual([]);
@@ -65,6 +135,41 @@ it('renders the conversation as real SVG and 2x PNG with incoming and outgoing b
   await writeFile('artifacts/chat/example.svg', svg.body);
 });
 
+it.each(['left', 'right'] as const)(
+  'adapts one-sided %s messages between 440 and 600px with content height',
+  async side => {
+    const sizes = [];
+    for (const [name, text] of [
+      ['short', '你好 👋'],
+      ['medium', '明天下午三点在海边见，记得带上相机。'],
+      ['long', '中文 日本語 한국어 English 👩🏽‍💻 https://example.com/'.repeat(8)],
+    ] as const) {
+      const data = { title: '聊天', messages: [{ type: 'text', side, text, sentAt: '18:30' }] };
+      const svg = await renderer.render({ template: 'chat', data, format: 'svg' });
+      const png = await renderer.render({ template: 'chat', data, format: 'png' });
+      expect(png.width).toBe(svg.width * 2);
+      expect(png.height).toBe(svg.height * 2);
+      expect(svg.warnings).toEqual([]);
+      expect(png.warnings).toEqual([]);
+      sizes.push(svg);
+      await writeFile(`artifacts/chat/adaptive-${side}-${name}.png`, png.body);
+      await writeFile(`artifacts/chat/adaptive-${side}-${name}.svg`, svg.body);
+    }
+    expect(sizes[0]!.width).toBe(440);
+    expect(sizes[1]!.width).toBeGreaterThan(440);
+    expect(sizes[1]!.width).toBeLessThan(600);
+    expect(sizes[2]!.width).toBe(600);
+    expect(sizes[2]!.height).toBeGreaterThan(sizes[0]!.height);
+    const two = await renderer.render({
+      template: 'chat',
+      data: { title: '聊天', messages: Array(2).fill({ type: 'text', side, text: '你好 👋', sentAt: '18:30' }) },
+      format: 'svg',
+    });
+    expect(two.width).toBe(440);
+    expect(two.height).toBeGreaterThan(sizes[0]!.height);
+  },
+);
+
 it('grows with long multilingual messages and preserves explicit newlines', async () => {
   const heights = [];
   for (const count of [1, 8]) {
@@ -82,7 +187,7 @@ it('grows with long multilingual messages and preserves explicit newlines', asyn
     };
     const png = await renderer.render({ template: 'chat', data, format: 'png' });
     const svg = await renderer.render({ template: 'chat', data, format: 'svg' });
-    expect(png.width).toBe(880);
+    expect(png.width).toBe(1200);
     expect(png.height).toBe(svg.height * 2);
     expect(png.warnings).toEqual([]);
     heights.push(png.height);
