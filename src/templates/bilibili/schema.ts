@@ -10,7 +10,7 @@ export const bilibiliSchema = z
     title: z.string().trim().min(1).max(1000).describe('视频或直播间标题，完整展示并自动换行'),
     author: z
       .object({
-        name: z.string().trim().min(1).max(160).describe('UP 主或主播名称'),
+        name: z.string().trim().min(1).max(160).describe('UP 主或主播名称，最多展示一行，超出显示省略号'),
         uid: id.optional().describe('用户 UID，不含 @uid_ 前缀'),
         avatarUrl: assetUrlSchema.optional().describe('HTTP(S)、file://、asset:id 或相对路径的头像地址'),
         verified: z.boolean().optional().describe('是否显示蓝色认证徽章'),

@@ -65,6 +65,9 @@ Markdown 不由 Biome 检查。
 注册后 API 和 Playground 自动展示模板，无需修改首页文档或增加一份模板字段表。
 测试专用模板留在 `tests/fixtures/`，不注册到生产入口。部署前重新构建服务或镜像。
 
+Bilibili 模板宽度为 600px，高度自适应。作者名称最多展示一行，超出显示省略号；
+标题完整换行展示，简介保留前十行，超出以省略标记折叠。
+
 YouTube 模板保留 API 字段结构。普通视频传 `status.publishAt` 表示定时发布，
 `status.privacyStatus` 为 `public` / `unlisted` 时按已发布展示；`snippet.publishedAt` 仅用于显示发布日期。
 直播通过 `snippet.liveBroadcastContent` 区分预约与直播中，`liveStreamingDetails.actualEndTime` 优先标记结束，
