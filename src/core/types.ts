@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 import type { ImageLoader } from './images.js';
+import type { RenderRequest } from './request.js';
 
 export type SizeStrategy =
   | { mode: 'fixed'; width: number; height: number }
@@ -22,6 +23,13 @@ export interface Template<T extends Record<string, unknown> = Record<string, unk
   schema: z.ZodType<T>;
   sizing: SizeStrategy;
   mock: T;
+  presets?: Array<{
+    id: string;
+    name: string;
+    data: T;
+    watermark?: RenderRequest['watermark'];
+    assetUrlPrefix?: RenderRequest['assetUrlPrefix'];
+  }>;
   // Content-only intrinsic-width probe. The renderer supplies the frame and font.
   measure?: (data: T, context: TemplateContext) => ReactNode;
   assets?: (data: T, images: ImageLoader) => Promise<Record<string, string | undefined>>;

@@ -82,6 +82,13 @@ describe('production template catalog', () => {
     expect(data.schema.required).toEqual(['text']);
     expect(Object.keys(data.schema.properties)).toEqual(['text', 'monospace']);
     expect(data.mock).toEqual(registry.get('example').mock);
+    for (const template of templates) {
+      const response = await app.fetch(new Request('http://localhost/v1/templates/' + template.id));
+      const metadata = await response.json();
+      expect(metadata.presets).toEqual(registry.metadata(template.id).presets);
+      expect(template.presets).toEqual(metadata.presets);
+      expect(metadata.presets[0]).toEqual({ id: 'default', name: '默认示例', data: metadata.mock });
+    }
   });
 
   it('exposes the social_post schema and renders it through a real worker', async () => {

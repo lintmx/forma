@@ -4,6 +4,7 @@ import { textStyle, typography } from '../../core/typography.js';
 import { highlightTextRuns } from '../shared/highlight.js';
 import { youtubeMock } from './mock.js';
 import { broadcastState, durationSeconds, formatCount, formatSeconds, formatTime } from './presentation.js';
+import { youtubePresets } from './presets.js';
 import { type YoutubeData, youtubeSchema } from './schema.js';
 
 const ink = '#18181b';
@@ -34,6 +35,7 @@ export const youtube: Template<YoutubeData> = {
   schema: youtubeSchema,
   sizing: { mode: 'auto-height', width: 600 },
   mock: youtubeMock,
+  presets: youtubePresets,
   assets: async (data, images) => {
     const thumbnails = data.snippet.thumbnails;
     const cover = async () => {

@@ -4,6 +4,7 @@ import { MediaList } from '../shared/media.js';
 import { SourceFooter } from '../shared/source-footer.js';
 import { ArticleBody, column, loadArticleImages } from './body.js';
 import { articleMock } from './mock.js';
+import { articlePresets } from './presets.js';
 import { type ArticleData, articleSchema } from './schema.js';
 
 export const article: Template<ArticleData> = {
@@ -13,13 +14,14 @@ export const article: Template<ArticleData> = {
   schema: articleSchema,
   sizing: { mode: 'auto-height', width: 700 },
   mock: articleMock,
+  presets: articlePresets,
   assets: loadArticleImages,
   render: (data, context) => {
     const translation = data.translation;
     const hasTranslation =
       translation &&
       [translation.title, translation.text, translation.model, translation.sourceLanguage].some(value => value?.trim());
-    const byline = [data.author?.trim(), data.publishedAt?.trim()].filter(Boolean).join(' · ');
+    const byline = [data.author?.trim(), data.publishedAt?.trim()].filter(Boolean).join(' / ');
     const avatar = data.authorAvatarUrl ? context.assets[data.authorAvatarUrl] : undefined;
     return (
       <div style={{ ...column, ...typography.prose, ...textStyle }}>
@@ -76,7 +78,7 @@ export const article: Template<ArticleData> = {
               }}
             >
               <div style={{ display: 'block', color: colors.muted, ...typography.meta }}>
-                {(translation.model?.trim() ? '使用 ' + translation.model.trim() + ' · ' : '') +
+                {(translation.model?.trim() ? '使用 ' + translation.model.trim() + ' / ' : '') +
                   (translation.sourceLanguage?.trim() ? '翻译自 ' + translation.sourceLanguage.trim() : '翻译')}
               </div>
               {Boolean(translation.title?.trim()) && (

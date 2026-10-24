@@ -2,7 +2,7 @@ import type { ComparisonData } from './schema.js';
 
 export const comparisonMock: ComparisonData = {
   title: '账号数据更新',
-  subtitle: 'Forma · 资料与关注变化',
+  subtitle: 'Forma / 资料与关注变化',
   time: '2026-10-15 10:30',
   modules: [
     {

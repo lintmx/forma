@@ -16,12 +16,27 @@ export class TemplateRegistry {
     }
     const schema = template.schema.strict();
     const mock = schema.parse(template.mock);
+    const presetSchema = renderOptionsSchema
+      .extend({
+        id: z.string().regex(/^[a-z][a-z0-9_-]*$/),
+        name: z.string().trim().min(1),
+        data: schema,
+      })
+      .strict();
+    const presetIds = new Set(['default']);
+    const presets = (template.presets ?? []).map(preset => {
+      const parsed = presetSchema.parse(preset);
+      if (presetIds.has(parsed.id)) throw new Error('Duplicate preset: ' + template.id + '/' + parsed.id);
+      presetIds.add(parsed.id);
+      return { ...parsed, data: preset.data };
+    });
     if (template.sizing.mode === 'content' && !template.measure)
       throw new Error('Content templates require an intrinsic measure tree');
     this.templates.set(template.id, {
       ...template,
       schema,
       mock,
+      presets,
     } as Template);
     return this;
   }
@@ -42,6 +57,7 @@ export class TemplateRegistry {
       sizing: t.sizing,
       schema: z.toJSONSchema(t.schema),
       mock: t.mock,
+      presets: [{ id: 'default', name: '默认示例', data: t.mock }, ...(t.presets ?? [])],
     };
   }
   validate(id: string, data: unknown) {

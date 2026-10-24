@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Template } from '../../core/types.js';
 import { textStyle, typography } from '../../core/typography.js';
+import { examplePresets } from './presets.js';
 
 const schema = z
   .object({
@@ -15,6 +16,7 @@ export const example: Template<z.infer<typeof schema>> = {
   description: '保留换行、自动换行，高度随文本内容自适应；可选择正文或等宽字体。',
   schema,
   sizing: { mode: 'auto-height', width: 620 },
+  presets: examplePresets,
   mock: {
     text: '你好，世界。\nこれはプレーンテキストのサンプルです。\nThis is a plain text example.\n안녕하세요, 세계.',
     monospace: false,

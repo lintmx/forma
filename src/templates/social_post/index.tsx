@@ -7,6 +7,7 @@ import type { MediaLayout } from '../shared/media-schema.js';
 import { SourceFooter } from '../shared/source-footer.js';
 import { loadAssets } from './media.js';
 import { socialPostMock } from './mock.js';
+import { socialPostPresets } from './presets.js';
 import { type PostSnapshot, postEntries, type SocialPostData, socialPostSchema, visibleReplies } from './schema.js';
 
 const secondary = colors.muted;
@@ -41,7 +42,7 @@ function TextBlock({ text, compact = false, style }: { text: string; compact?: b
 
 function handleLine(post: PostSnapshot) {
   const handle = post.author?.handle ? '@' + post.author.handle.replace(/^@/, '') : undefined;
-  return [handle, post.publishedAt].filter(Boolean).join(' · ');
+  return [handle, post.publishedAt].filter(Boolean).join(' / ');
 }
 
 function Header({
@@ -250,7 +251,7 @@ function SocialPost({ data, assets }: { data: SocialPostData; assets: TemplateCo
             />
           </svg>
           <div style={{ display: 'flex', flexGrow: 1, minWidth: 0, ...textStyle }}>
-            {data.reshare.by.name} 转发了{data.reshare.publishedAt && ' · ' + data.reshare.publishedAt}
+            {data.reshare.by.name} 转发了{data.reshare.publishedAt && ' / ' + data.reshare.publishedAt}
           </div>
         </div>
       )}
@@ -345,7 +346,7 @@ function Measure({ data }: { data: SocialPostData }) {
       {data.postKind === 'reshare' &&
         data.reshare &&
         line(
-          data.reshare.by.name + ' 转发了' + (data.reshare.publishedAt ? ' · ' + data.reshare.publishedAt : ''),
+          data.reshare.by.name + ' 转发了' + (data.reshare.publishedAt ? ' / ' + data.reshare.publishedAt : ''),
           typography.meta.fontSize,
           400,
           25,
@@ -362,6 +363,7 @@ export const socialPost: Template<SocialPostData> = {
   schema: socialPostSchema,
   sizing: { mode: 'content', minWidth: 400, maxWidth: 700 },
   mock: socialPostMock,
+  presets: socialPostPresets,
   assets: loadAssets,
   measure: data => <Measure data={data} />,
   render: (data, context) => <SocialPost data={data} assets={context.assets} />,

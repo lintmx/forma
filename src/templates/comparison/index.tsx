@@ -4,6 +4,7 @@ import type { Template, TemplateContext } from '../../core/types.js';
 import { colors, textStyle, typography } from '../../core/typography.js';
 import { calculateMetricDelta, type DiffLine, diffLines, displayValue } from './comparison.js';
 import { comparisonMock } from './mock.js';
+import { comparisonPresets } from './presets.js';
 import { type ComparisonData, type ComparisonModule, comparisonSchema } from './schema.js';
 
 const column: CSSProperties = {
@@ -113,7 +114,7 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
           {(['before', 'after'] as const).map(side => (
             <div key={side} style={{ ...column, width: '50%', padding: '10px 12px', border, borderRadius: 8, gap: 6 }}>
               <Text style={{ ...typography.meta, color: side === 'after' ? '#2563eb' : colors.muted }}>
-                {side === 'after' ? '更新后 · AFTER' : '更新前 · BEFORE'}
+                {side === 'after' ? '更新后 / AFTER' : '更新前 / BEFORE'}
               </Text>
               <Text style={{ ...typography.compact }}>{module[side] || '—'}</Text>
             </div>
@@ -223,6 +224,7 @@ export const comparison: Template<ComparisonData> = {
   schema: comparisonSchema,
   sizing: { mode: 'auto-height', width: 600 },
   mock: comparisonMock,
+  presets: comparisonPresets,
   assets: async (data, images) => {
     const entries = await Promise.all(
       data.modules.flatMap((module, index) =>

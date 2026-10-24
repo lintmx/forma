@@ -37,11 +37,67 @@ describe('content-only template registry', () => {
     expect(metadata.schema.properties).not.toHaveProperty('watermark');
     expect(metadata.schema.additionalProperties).toBe(false);
     expect(metadata.mock).toEqual({ title: '示例' });
+    expect(metadata.presets).toEqual([{ id: 'default', name: '默认示例', data: metadata.mock }]);
     expect(metadata).not.toHaveProperty('documentation');
     expect(template.mock).toEqual({ title: '示例' });
     expect(registry.validate(template.id, { title: '示例' })).toEqual({
       title: '示例',
     });
+  });
+  it('exposes complete presets with top-level options without changing the original definition', () => {
+    const preset = {
+      id: 'compact',
+      name: '精简内容',
+      data: { title: '短标题' },
+      watermark: '',
+      assetUrlPrefix: 'https://example.com/images',
+    };
+    const registry = new TemplateRegistry().register({ ...template, presets: [preset] });
+    expect(registry.metadata(template.id).presets).toEqual([
+      { id: 'default', name: '默认示例', data: template.mock },
+      { ...preset, assetUrlPrefix: 'https://example.com/images/' },
+    ]);
+    expect(preset.assetUrlPrefix).toBe('https://example.com/images');
+    expect(registry.list()[0]).toEqual(registry.metadata(template.id));
+  });
+  it('rejects invalid preset identities, data and options during registration', () => {
+    const preset = { id: 'short', name: '短文本', data: { title: '短标题' } };
+    for (const invalid of [
+      { id: 'default' },
+      { id: 'Bad ID' },
+      { name: ' ' },
+      { data: { title: '' } },
+      { data: { title: '标题', watermark: 'wrong level' } },
+      { watermark: 'x'.repeat(161) },
+      { assetUrlPrefix: 'file:///tmp/' },
+      { format: 'png' },
+    ]) {
+      expect(() => new TemplateRegistry().register({ ...template, presets: [{ ...preset, ...invalid }] })).toThrow();
+    }
+    expect(() => new TemplateRegistry().register({ ...template, presets: [preset, preset] })).toThrow(
+      'Duplicate preset',
+    );
+  });
+  it('validates presets with refinements but preserves their input for rendering', () => {
+    const schema = z
+      .object({ title: z.string().overwrite(value => value + '!') })
+      .refine(data => data.title !== 'invalid!');
+    const preset = { id: 'short', name: '短文本', data: { title: '短标题' } };
+    const registry = new TemplateRegistry().register({ ...template, schema, presets: [preset] });
+    const input = registry.metadata(template.id).presets[1]!.data;
+    expect(input).toEqual({ title: '短标题' });
+    expect(registry.validate(template.id, input)).toEqual({ title: '短标题!' });
+    expect(() =>
+      new TemplateRegistry().register({ ...template, schema, presets: [{ ...preset, data: { title: 'invalid' } }] }),
+    ).toThrow();
+  });
+  it('provides valid, named presets for every production template', () => {
+    const registry = createTemplateRegistry();
+    for (const metadata of registry.list()) {
+      expect(metadata.presets.length).toBeGreaterThan(1);
+      expect(new Set(metadata.presets.map(preset => preset.id)).size).toBe(metadata.presets.length);
+      for (const preset of metadata.presets) expect(() => registry.validate(metadata.id, preset.data)).not.toThrow();
+    }
   });
   it('keeps business refinements and rejects render options inside content and unknown fields', () => {
     const schema = z.object({ title: z.string().min(1) }).refine(data => data.title !== 'invalid', {

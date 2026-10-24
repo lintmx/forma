@@ -2,6 +2,7 @@ import { imageSize } from 'image-size';
 import type { CSSProperties } from 'react';
 import type { Template, TemplateContext } from '../../core/types.js';
 import { textStyle, typography } from '../../core/typography.js';
+import { chatPresets } from './presets.js';
 import { type ChatData, chatSchema } from './schema.js';
 
 const column: CSSProperties = { display: 'flex', flexDirection: 'column', minWidth: 0, boxSizing: 'border-box' };
@@ -232,6 +233,7 @@ export const chat: Template<ChatData> = {
     '手机 QQ 风格的聊天窗口，支持左右气泡、头像、昵称、逐条译文与发送时间、图片和系统提示；宽度在 440–600px 之间自适应，高度随内容变化。',
   schema: chatSchema,
   sizing: { mode: 'content', minWidth: 440, maxWidth: 600 },
+  presets: chatPresets,
   mock: {
     title: '周末出逃计划',
     subtitle: '3 人的群聊',

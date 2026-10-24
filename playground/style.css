@@ -40,14 +40,14 @@ select:focus-visible {
 }
 .header {
   height: 84px;
-  border-bottom: 1px solid #dde3da;
+  border-bottom: 0.5px solid #dde3da;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 5vw;
 }
 .brand {
-  font-size: 27px;
+  font-size: 32px;
   font-weight: 700;
   letter-spacing: -1px;
   display: flex;
@@ -67,7 +67,7 @@ select:focus-visible {
   line-height: 36px;
 }
 .version {
-  font-size: 10px;
+  font-size: 12px;
   color: #829087;
   letter-spacing: 1.5px;
   font-weight: 500;
@@ -92,12 +92,12 @@ main {
   padding: 52px 5vw 24px;
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 2px;
   color: #7d8b7f;
 }
 .intro h1 {
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 500;
   letter-spacing: -1px;
   margin: 14px 0;
@@ -110,7 +110,7 @@ main {
 .workspace {
   display: grid;
   grid-template-columns: minmax(320px, 0.88fr) minmax(440px, 1.35fr);
-  border: 1px solid #dfe5dc;
+  border: 0.5px solid #dfe5dc;
   border-radius: 16px;
   overflow: hidden;
   background: white;
@@ -118,7 +118,7 @@ main {
 }
 .editor-panel {
   padding: 28px;
-  border-right: 1px solid #e5e9e2;
+  border-right: 0.5px solid #e5e9e2;
 }
 .panel-heading {
   display: flex;
@@ -128,7 +128,7 @@ main {
 }
 .step {
   font:
-    11px ui-monospace,
+    12px ui-monospace,
     monospace;
   color: #8b9a8f;
   background: #f1f5ef;
@@ -136,7 +136,7 @@ main {
   border-radius: 5px;
 }
 h2 {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   margin: 0;
 }
@@ -152,14 +152,14 @@ select {
   width: 100%;
   padding: 12px 40px 12px 14px;
   color: #284b3b;
-  border: 1px solid #dce3da;
+  border: 0.5px solid #dce3da;
   border-radius: 8px;
   background-color: #fcfdfb;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4 6 4 4 4-4' stroke='%23284b3b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 16px 16px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .template-description {
   font-size: 12px;
@@ -173,7 +173,7 @@ select {
   justify-content: space-between;
   margin: 24px 0 10px;
   color: #859187;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1px;
 }
 .editor-toolbar button,
@@ -191,7 +191,7 @@ textarea {
   min-height: 375px;
   background: #f8faf7;
   color: #465c4f;
-  border: 1px solid #e4e9e0;
+  border: 0.5px solid #e4e9e0;
   border-radius: 8px;
   padding: 18px 15px;
   font:
@@ -221,7 +221,7 @@ textarea:focus {
 }
 .render-status {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 12px;
   color: #70907a;
 }
 .render-status.invalid {
@@ -232,7 +232,7 @@ textarea:focus {
   background-color: #edf0e9;
   background-image: radial-gradient(#cfd8ca 1px, transparent 1px);
   background-size: 18px 18px;
-  border: 1px solid #e3e8df;
+  border: 0.5px solid #e3e8df;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -254,21 +254,23 @@ textarea:focus {
 .stale-label {
   position: absolute;
   bottom: 14px;
-  font-size: 11px;
+  font-size: 12px;
   color: #7b857c;
   background: #fff;
   padding: 6px 10px;
   border-radius: 4px;
 }
 .placeholder {
-  font-size: 13px;
+  font-size: 14px;
   color: #869082;
 }
 .preview-footer {
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   font:
-    10px ui-monospace,
+    12px ui-monospace,
     monospace;
   color: #8e998f;
   margin-top: 14px;
@@ -287,14 +289,14 @@ textarea:focus {
 .primary {
   background: #2f5945;
   color: white;
-  border: 1px solid #2f5945;
+  border: 0.5px solid #2f5945;
 }
 .primary span {
   margin-left: 18px;
 }
 .secondary {
   background: white;
-  border: 1px solid #d8e0d4;
+  border: 0.5px solid #d8e0d4;
   color: #5e7362;
 }
 .error {
@@ -317,14 +319,14 @@ textarea:focus {
   overflow: auto;
   max-height: 300px;
   white-space: pre-wrap;
-  font-size: 11px;
+  font-size: 12px;
   color: #677c6c;
 }
 .page-footer {
   display: flex;
   justify-content: space-between;
   margin-top: 28px;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 1px;
   color: #8f9c90;
 }
@@ -336,10 +338,10 @@ textarea:focus {
   width: 100%;
   padding: 12px 14px;
   color: #284b3b;
-  border: 1px solid #dce3da;
+  border: 0.5px solid #dce3da;
   border-radius: 8px;
   background: #fcfdfb;
-  font-size: 13px;
+  font-size: 14px;
 }
 .watermark-field input:focus-visible {
   outline: 3px solid #83b5a0;
@@ -360,13 +362,13 @@ textarea:disabled,
   }
   .editor-panel {
     border-right: 0;
-    border-bottom: 1px solid #e5e9e2;
+    border-bottom: 0.5px solid #e5e9e2;
   }
   .preview-stage {
     min-height: 320px;
   }
   .intro h1 {
-    font-size: 28px;
+    font-size: 32px;
   }
   .header {
     padding: 0 22px;

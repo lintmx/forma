@@ -51,7 +51,7 @@ export function SourceFooter({
           {label}
         </div>
       )}
-      {label && address && <div style={{ display: 'flex', flexShrink: 0, margin: '0 5px' }}>·</div>}
+      {label && address && <div style={{ display: 'flex', flexShrink: 0, margin: '0 5px' }}>/</div>}
       {address && (
         <div
           style={{

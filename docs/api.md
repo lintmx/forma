@@ -13,8 +13,13 @@
 | `GET /v1/templates/:template` | 单个模板元数据 |
 | `GET /healthz` | 就绪状态及 worker、执行中、排队任务统计；不可用时返回 503 |
 
-模板元数据包含 `id`、`name`、`description`、`sizing`、JSON Schema `schema` 和示例 `mock`。
+模板元数据包含 `id`、`name`、`description`、`sizing`、JSON Schema `schema`、示例 `mock` 和预设列表 `presets`。
 以运行中服务的元数据为字段依据，无需随新增模板维护独立字段表。
+
+`presets` 每项包含模板内唯一的 `id`、展示名称 `name`、完整业务数据 `data`，以及可选的顶层
+`watermark`、`assetUrlPrefix`。第一项固定为 `id: "default"`、`name: "默认示例"`，数据来自 `mock`。
+渲染时将预设的 `data` 和通用选项与 `template`、`format` 组合；预设的 `id`、`name` 不传给渲染接口。
+API 不会根据预设 ID 查找配置，也不会自动添加水印。
 
 ## 渲染请求
 

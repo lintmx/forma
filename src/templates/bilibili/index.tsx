@@ -4,6 +4,7 @@ import { textStyle, typography } from '../../core/typography.js';
 import { highlightTextRuns } from '../shared/highlight.js';
 import { SourceFooter } from '../shared/source-footer.js';
 import { bilibiliMock } from './mock.js';
+import { bilibiliPresets } from './presets.js';
 import { type BilibiliData, bilibiliSchema } from './schema.js';
 
 const ink = '#20212b';
@@ -36,6 +37,7 @@ export const bilibili: Template<BilibiliData> = {
   schema: bilibiliSchema,
   sizing: { mode: 'auto-height', width: 600 },
   mock: bilibiliMock,
+  presets: bilibiliPresets,
   assets: async (data, images) => {
     const entries = await Promise.all(
       [
@@ -68,7 +70,7 @@ export const bilibili: Template<BilibiliData> = {
       isLive ? '实时直播频道' : data.publishedAt,
     ]
       .filter(Boolean)
-      .join(' · ');
+      .join(' / ');
     const primary = (
       [
         ['views', '播放'],
