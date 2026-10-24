@@ -1,3 +1,9 @@
+const logo =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M0 0H8V32H0Z M12 0H28L32 4V8H12Z M12 12H26V20H12Z" fill="#2B4AFF"/></svg>',
+  );
+
 const styles = `
   :root { --paper: #f5f3ee; --ink: #242722; --muted: #676a62; --line: #cdcec5; --blue: #2b4aff; --display: 72px; --motion: 180ms; --slow-motion: 500ms; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif; color: var(--ink); background: var(--paper); font-synthesis: none; }
   * { box-sizing: border-box; }
@@ -9,7 +15,7 @@ const styles = `
   header, footer, main { width: min(100% - 112px, 1360px); margin-inline: auto; }
   header { display: flex; justify-content: space-between; align-items: center; min-height: 96px; border-bottom: .5px solid var(--line); }
   .brand { display: inline-flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 650; letter-spacing: -1px; }
-  .mark { display: grid; place-items: center; width: 32px; height: 32px; background: var(--blue); color: white; font: italic 24px Georgia, serif; border-radius: 4px; }
+  .mark { display: block; flex-shrink: 0; width: 32px; height: 32px; }
   nav { display: flex; gap: 32px; align-items: center; font-size: 12px; }
   nav a { padding-block: 12px; transition: color var(--motion); }
   nav a:hover, .text-link:hover { color: var(--blue); }
@@ -125,11 +131,11 @@ export function pageResponse(page: 'home' | 'not-found', playground: boolean) {
   <meta name="description" content="Forma 将 JSON 数据通过模板渲染为 PNG 或 SVG，提供 HTTP API 和在线 Playground。">
   ${home ? '' : '<meta name="robots" content="noindex">'}
   <title>${home ? 'Forma / 让数据成为图片' : '404 / 页面未找到 / Forma'}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%232b4aff'/%3E%3Ctext x='10' y='25' fill='white' font-family='Georgia' font-style='italic' font-size='30'%3Ef%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="${logo}">
   <style>${styles}</style>
 </head>
 <body>
-  <header><a class="brand" href="/" aria-label="Forma 首页"><span class="mark" aria-hidden="true">f</span>forma</a><nav aria-label="主导航"><a class="nav-current" href="/"${home ? ' aria-current="page"' : ''}>概览</a><a class="nav-play" href="/dev">Playground <span aria-hidden="true">↗</span></a></nav></header>
+  <header><a class="brand" href="/" aria-label="Forma 首页"><img class="mark" src="${logo}" width="32" height="32" alt="">forma</a><nav aria-label="主导航"><a class="nav-current" href="/"${home ? ' aria-current="page"' : ''}>概览</a><a class="nav-play" href="/dev">Playground <span aria-hidden="true">↗</span></a></nav></header>
   <main${home ? '' : ' class="not-found"'}>${content}</main>
   <footer><span>forma / 让内容有形</span><span>STRUCTURED IN. BEAUTIFULLY OUT.</span></footer>
 </body>

@@ -84,16 +84,10 @@ textarea:focus-visible {
   gap: 12px;
 }
 .brand-mark {
-  display: grid;
-  place-items: center;
+  display: block;
+  flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border-radius: 4px;
-  background: var(--blue);
-  color: white;
-  font:
-    italic 24px Georgia,
-    serif;
 }
 .header nav {
   display: flex;

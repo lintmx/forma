@@ -162,9 +162,7 @@ function App() {
     <div className="app">
       <header className="header">
         <a href="/" className="brand" aria-label="Forma 首页">
-          <span className="brand-mark" aria-hidden="true">
-            f
-          </span>
+          <img className="brand-mark" src={`${import.meta.env.BASE_URL}favicon.svg`} width="32" height="32" alt="" />
           forma
         </a>
         <nav aria-label="主导航">
