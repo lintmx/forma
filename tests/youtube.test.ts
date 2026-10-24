@@ -129,14 +129,16 @@ it('displays the correct time and metrics for each broadcast phase', () => {
   const timed = html(scheduled);
   expect(timed).toContain('定时发布');
   expect(timed).toContain('预计发布');
-  expect(timed).toContain('2026-10-25 20:00');
+  expect(timed).toContain('>2026-10-25</div>');
+  expect(timed).toContain('>20:00</div>');
   expect(timed).not.toContain('发布于');
   expect(timed).not.toContain('点赞');
   expect(timed).not.toContain('>9:56</div>');
   const before = html(upcoming);
   expect(before).toContain('预约直播');
   expect(before).toContain('预定开播');
-  expect(before).toContain('2026-10-22 20:00');
+  expect(before).toContain('>2026-10-22</div>');
+  expect(before).toContain('>20:00</div>');
   expect(before).not.toContain('播放');
   expect(before).not.toContain('点赞');
   expect(before).not.toContain('发布于');
@@ -145,8 +147,10 @@ it('displays the correct time and metrics for each broadcast phase', () => {
   expect(during).toContain('>LIVE</div>');
   expect(during).toContain('1.8万 人正在观看');
   expect(during).toContain('实际开播');
-  expect(during).toContain('2026-10-22 20:02');
+  expect(during).toContain('>2026-10-22</div>');
+  expect(during).toContain('>20:02</div>');
   expect(during).toContain('已播 1:13:00');
+  expect(during.indexOf('实际开播')).toBeLessThan(during.indexOf('从故事板到最终渲染'));
   expect(during).not.toContain('预定开播');
   const noViewers = html({
     ...live,
@@ -155,7 +159,8 @@ it('displays the correct time and metrics for each broadcast phase', () => {
   expect(noViewers).not.toContain('人正在观看');
   const after = html(ended);
   expect(after).toContain('直播结束');
-  expect(after).toContain('2026-10-22 21:34');
+  expect(after).toContain('>2026-10-22</div>');
+  expect(after).toContain('>21:34</div>');
   expect(after).not.toContain('人正在观看');
   expect(after).not.toContain('已播');
   expect(after).not.toContain('>LIVE</div>');

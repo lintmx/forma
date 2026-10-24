@@ -94,6 +94,7 @@ export const youtube: Template<YoutubeData> = {
                 ]
               : []
     ).filter((entry): entry is [string, string] => !!entry[1]);
+    const singleTime = timeline.length === 1;
     const stats = (
       [
         ['viewCount', '播放'],
@@ -117,10 +118,10 @@ export const youtube: Template<YoutubeData> = {
             : undefined;
     const badge: CSSProperties = {
       display: 'flex',
-      position: 'absolute',
-      bottom: 12,
+      position: context.assets.cover ? 'absolute' : 'relative',
+      bottom: context.assets.cover ? 12 : undefined,
       maxWidth: '90%',
-      padding: '5px 9px',
+      padding: '6px 10px',
       borderRadius: 4,
       color: '#fff',
       backgroundColor: 'rgba(24,24,27,0.88)',
@@ -177,9 +178,9 @@ export const youtube: Template<YoutubeData> = {
             <Text
               style={{
                 ...typography.meta,
-                padding: '5px 9px',
+                padding: onAir ? '5px 9px' : '5px 0',
                 borderRadius: 4,
-                backgroundColor: onAir ? red : '#f7f7f8',
+                backgroundColor: onAir ? red : undefined,
                 color: onAir ? '#fff' : muted,
                 fontWeight: 700,
               }}
@@ -193,14 +194,17 @@ export const youtube: Template<YoutubeData> = {
             display: 'flex',
             position: 'relative',
             width: '100%',
+            boxSizing: 'border-box',
             aspectRatio: context.assets.cover ? 16 / 9 : undefined,
-            height: context.assets.cover ? undefined : 112,
-            borderRadius: 8,
+            height: context.assets.cover ? undefined : 72,
+            borderRadius: 4,
             overflow: 'hidden',
             border,
             backgroundColor: '#f4f4f5',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: !context.assets.cover && coverDetail ? 'space-between' : 'center',
+            padding: context.assets.cover ? 0 : '0 12px',
+            gap: 12,
           }}
         >
           {context.assets.cover ? (
@@ -209,7 +213,15 @@ export const youtube: Template<YoutubeData> = {
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
-            <div style={{ ...column, alignItems: 'center', gap: 8, paddingBottom: coverDetail ? 32 : 0, color: muted }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                flexShrink: 0,
+                color: muted,
+              }}
+            >
               <svg width="28" height="20" viewBox="0 0 28 20">
                 <rect width="28" height="20" rx="5" fill="#dedee2" />
                 <path d="M11 5.5 19 10 11 14.5Z" fill="#fff" />
@@ -218,15 +230,77 @@ export const youtube: Template<YoutubeData> = {
             </div>
           )}
           {coverDetail && (
-            <div style={{ ...badge, right: 12, alignItems: 'center', gap: 6, fontFamily: mono }}>
+            <div style={{ ...badge, right: context.assets.cover ? 12 : undefined, alignItems: 'center', gap: 6 }}>
               {onAir && <div style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: red, flexShrink: 0 }} />}
               <Text>{coverDetail}</Text>
             </div>
           )}
         </div>
-        <Text style={{ ...typography.section, lineClamp: 2, overflow: 'hidden' }}>{snippet.title}</Text>
+        <Text style={{ ...typography.heading, fontSize: 22, lineClamp: 2, overflow: 'hidden' }}>{snippet.title}</Text>
+        {(timeline.length > 0 || state === 'upcoming') && (
+          <div style={{ ...column, gap: 12, borderTop: border, paddingTop: 16 }}>
+            {state === 'upcoming' && !live?.scheduledStartTime && <Text style={{ color: muted }}>开播时间待定</Text>}
+            {timeline.length > 0 && (
+              <div style={{ display: 'flex', gap: 24 }}>
+                {timeline.map(([label, value]) => {
+                  const [date, time] = formatTime(value, timeZone).split(' ');
+                  return (
+                    <div
+                      key={label}
+                      style={{
+                        ...column,
+                        flex: 1,
+                        flexDirection: singleTime ? 'row' : 'column',
+                        alignItems: singleTime ? 'center' : undefined,
+                        justifyContent: 'space-between',
+                        gap: singleTime ? 24 : 4,
+                      }}
+                    >
+                      <div style={{ ...column, gap: 4 }}>
+                        <Text style={{ ...typography.meta, color: muted }}>{label}</Text>
+                        <Text style={{ ...typography.heading, fontSize: 22, fontFamily: mono, lineHeight: 1.2 }}>
+                          {time}
+                        </Text>
+                      </div>
+                      <div
+                        style={{
+                          ...column,
+                          gap: 4,
+                          maxWidth: singleTime ? '65%' : undefined,
+                          ...typography.meta,
+                          color: muted,
+                          textAlign: singleTime ? 'right' : undefined,
+                        }}
+                      >
+                        <Text style={{ ...(singleTime ? typography.compact : typography.meta), fontFamily: mono }}>
+                          {date}
+                        </Text>
+                        {singleTime && <Text>{timeZone === 'Asia/Shanghai' ? 'UTC+8' : timeZone}</Text>}
+                        {singleTime && elapsed !== undefined && <Text>{'已播 ' + formatSeconds(elapsed)}</Text>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {timeline.length > 1 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, ...typography.meta, color: muted }}>
+                <Text>{timeZone === 'Asia/Shanghai' ? 'UTC+8' : timeZone}</Text>
+                {elapsed !== undefined && <Text>{'已播 ' + formatSeconds(elapsed)}</Text>}
+                {total !== undefined && <Text>{'总时长 ' + formatSeconds(total)}</Text>}
+              </div>
+            )}
+          </div>
+        )}
         {snippet.description?.trim() && (
-          <div style={{ ...column, marginTop: -8, color: muted, lineHeight: descriptionLineHeight + 'px' }}>
+          <div
+            style={{
+              ...column,
+              marginTop: timeline.length > 0 || state === 'upcoming' ? 0 : -8,
+              color: muted,
+              lineHeight: descriptionLineHeight + 'px',
+            }}
+          >
             <div style={{ ...column, position: 'relative', maxHeight: descriptionMaxHeight + 20, overflow: 'hidden' }}>
               <Text style={{ flexShrink: 0 }}>
                 {highlightTextRuns([{ text: snippet.description.trim() }], { urls: true })}
@@ -248,48 +322,28 @@ export const youtube: Template<YoutubeData> = {
             </div>
           </div>
         )}
-        {(timeline.length > 0 || state === 'upcoming') && (
-          <div style={{ ...column, gap: 16, borderTop: border, paddingTop: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, ...typography.meta, color: muted }}>
-              <Text style={{ flex: 1 }}>{isVideo ? '发布安排' : '直播时间'}</Text>
-              {elapsed !== undefined && <Text style={{ fontFamily: mono }}>{'已播 ' + formatSeconds(elapsed)}</Text>}
-              {total !== undefined && <Text style={{ fontFamily: mono }}>{'总时长 ' + formatSeconds(total)}</Text>}
-              {timeline.length > 0 && <Text>{timeZone === 'Asia/Shanghai' ? 'UTC+8' : timeZone}</Text>}
-            </div>
-            <div style={{ display: 'flex', gap: 20 }}>
-              {state === 'upcoming' && !live?.scheduledStartTime && <Text style={{ color: muted }}>开播时间待定</Text>}
-              {timeline.map(([label, value]) => (
-                <div key={label} style={{ ...column, flex: 1, gap: 6 }}>
-                  <Text style={{ ...typography.meta, color: muted }}>{label}</Text>
-                  <Text style={{ fontFamily: mono }}>{formatTime(value, timeZone)}</Text>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
         {stats.length > 0 && (
           <div
             style={{
               display: 'flex',
               borderTop: border,
-              paddingTop: 20,
+              paddingTop: 16,
+              gap: 20,
             }}
           >
-            {stats.map(([key, label], index) => (
+            {stats.map(([key, label]) => (
               <div
                 key={key}
                 style={{
                   ...column,
                   flex: 1,
                   gap: 4,
-                  paddingLeft: index ? 20 : 0,
-                  borderLeft: index ? border : undefined,
                 }}
               >
                 <Text
                   style={{
-                    ...typography.section,
-                    letterSpacing: -0.5,
+                    ...typography.compact,
+                    fontWeight: 700,
                   }}
                 >
                   {formatCount(data.statistics![key]!)}
