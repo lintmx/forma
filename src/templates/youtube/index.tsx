@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { Template } from '../../core/types.js';
 import { textStyle, typography } from '../../core/typography.js';
 import { highlightTextRuns } from '../shared/highlight.js';
+import { SourceFooter } from '../shared/source-footer.js';
 import { youtubeMock } from './mock.js';
 import { broadcastState, durationSeconds, formatCount, formatSeconds, formatTime } from './presentation.js';
 import { youtubePresets } from './presets.js';
@@ -353,30 +354,11 @@ export const youtube: Template<YoutubeData> = {
             ))}
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 16, borderTop: border }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <svg width="20" height="14" viewBox="0 0 20 14">
-              <rect width="20" height="14" rx="4" fill={red} />
-              <path d="M8 3.5 14 7 8 10.5Z" fill="#fff" />
-            </svg>
-            <Text style={{ ...typography.meta, fontWeight: 700 }}>YouTube</Text>
-          </div>
-          {data.id && (
-            <Text
-              style={{
-                ...typography.meta,
-                flex: 1,
-                color: muted,
-                textAlign: 'right',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {'https://www.youtube.com/watch?v=' + data.id}
-            </Text>
-          )}
-        </div>
+        <SourceFooter
+          source="YouTube"
+          url={data.id ? 'https://www.youtube.com/watch?v=' + data.id : undefined}
+          marginTop={0}
+        />
       </div>
     );
   },

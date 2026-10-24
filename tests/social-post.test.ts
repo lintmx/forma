@@ -14,6 +14,7 @@ import { rasterize } from '../src/core/rasterize.js';
 import { Renderer } from '../src/core/renderer.js';
 import { textStyle, typography } from '../src/core/typography.js';
 import { createTemplateRegistry } from '../src/templates/index.js';
+import { SourceFooter } from '../src/templates/shared/source-footer.js';
 import { socialPost } from '../src/templates/social_post/index.js';
 import { socialPostSchema } from '../src/templates/social_post/schema.js';
 import { expectPngQuality } from './fixtures/png-quality.js';
@@ -79,6 +80,38 @@ const render = (data: unknown, format: 'png' | 'svg' = 'png') =>
   renderer.render({ template: 'social_post', data, format });
 
 describe('social_post contract', () => {
+  it('matches built-in source logos and canonical names by exact alias', () => {
+    for (const [source, label, color] of [
+      [' yOuTuBe ', 'YouTube', '#ff0000'],
+      ['油管', 'YouTube', '#ff0000'],
+      ['BILIBILI', 'Bilibili', '#fb7299'],
+      ['bilibili LIVE', 'Bilibili Live', '#fb7299'],
+      ['哔哩哔哩', 'Bilibili', '#fb7299'],
+      ['哔哩哔哩直播', 'Bilibili Live', '#fb7299'],
+      ['B站', 'Bilibili', '#fb7299'],
+      ['B站直播', 'Bilibili Live', '#fb7299'],
+      ['TWITTER', 'Twitter', '#1d9bf0'],
+      ['推特', 'Twitter', '#1d9bf0'],
+      ['x', 'X', '#18181b'],
+    ]) {
+      const html = renderToStaticMarkup(createElement(SourceFooter, { source }));
+      expect(html).toContain('<svg');
+      expect(html).toContain(`fill="${color}"`);
+      expect(html).toContain(`>${label}</div>`);
+      expect(html).not.toContain('<img');
+    }
+  });
+  it('keeps unknown sources text-only and does not infer logos from URLs', () => {
+    for (const source of ['Forma Journal', 'Twitter 新闻', 'YouTube Channel', undefined]) {
+      const html = renderToStaticMarkup(
+        createElement(SourceFooter, { source, url: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ' }),
+      );
+      expect(html).not.toContain('<svg');
+      if (source) expect(html).toContain(`>${source}</div>`);
+      else expect(html).toContain('justify-content:flex-start');
+    }
+    expect(renderToStaticMarkup(createElement(SourceFooter, { source: ' ', url: '\n' }))).toBe('');
+  });
   it('accepts optional sections, empty content and a media-only post', () => {
     for (const data of [{}, { author: {}, content: '' }, { media }, socialPost.mock]) {
       expect(registry.validate('social_post', data)).toEqual(data);
@@ -382,6 +415,29 @@ describe('social_post real Satori and Skia output', () => {
       'svg',
     );
     expect(result.layoutWidth).toBe(700);
+  });
+  it('keeps brand names and URL prefixes visible when a long address is truncated', async () => {
+    const data = { content: '正文', source: 'Twitter', url: 'https://example.com/' + 'segment/'.repeat(120) };
+    for (const width of [400, 700]) {
+      const svg = await satori(
+        CardFrame({
+          children: socialPost.render(data, { assets: {}, ...fonts }),
+          fontFamily: fonts.fontFamily,
+          monospaceFontFamily: fonts.monospaceFontFamily,
+        }),
+        { fonts: fonts.fonts, width, embedFont: false },
+      );
+      const text = [...svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)].map(match => decodeHTML(match[1]!)).join('');
+      expect(text).toContain('Twitter');
+      expect(text).toContain('https://example.com/');
+      expect(text).toContain('…');
+      const positions = [...svg.matchAll(/<text\b[^>]*x="([^"]+)"[^>]*width="([^"]+)"[^>]*>(.*?)<\/text>/g)];
+      const label = positions.find(match => match[3] === 'Twitter')!;
+      const protocol = positions.find(match => match[3] === 'https')!;
+      const domain = positions.find(match => match[3] === 'example.com')!;
+      expect(Number(protocol[1])).toBeGreaterThanOrEqual(Number(label[1]) + Number(label[2]) + 12);
+      expect(Number(domain[1]) + Number(domain[2])).toBeLessThan(width - 29);
+    }
   });
   it('omits blank footer metadata and keeps long names and source URLs within the frame', async () => {
     const short = await render({ content: '正文' });

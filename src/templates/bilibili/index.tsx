@@ -97,7 +97,14 @@ export const bilibili: Template<BilibiliData> = {
     };
     return (
       <div style={{ ...column, color: ink, ...typography.compact, gap: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div
+          style={{
+            display: data.author || metadata ? 'flex' : 'none',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, gap: 12 }}>
             {data.author && (
               <div style={{ display: 'flex', position: 'relative', flexShrink: 0 }}>
@@ -171,19 +178,6 @@ export const bilibili: Template<BilibiliData> = {
               )}
               {metadata && <Text style={{ ...typography.meta, color: muted, fontFamily: mono }}>{metadata}</Text>}
             </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: pink, flexShrink: 0 }}>
-            <svg width={22} height={22} viewBox="0 0 24 24">
-              <path
-                d="M8 3l3 3m5-3-3 3M5 7h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zM8 12v3m8-3v3"
-                fill="none"
-                stroke={pink}
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <Text style={{ ...typography.large, fontWeight: 700, letterSpacing: -0.5 }}>bilibili</Text>
           </div>
         </div>
         <div

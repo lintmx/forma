@@ -114,6 +114,15 @@ see [emoji/LICENSE-UNICODE](emoji/LICENSE-UNICODE).
 
 Runtime and build dependency licenses remain with their respective packages.
 
+## Brand logos
+
+The YouTube, Bilibili, Twitter and X paths embedded in
+[SourceFooter](src/templates/shared/source-footer.tsx) come from
+[Simple Icons 9.21.0](https://github.com/simple-icons/simple-icons/tree/9.21.0/icons),
+distributed under [CC0 1.0](https://github.com/simple-icons/simple-icons/blob/9.21.0/LICENSE.md).
+The paths are unchanged; display size, viewport and color are set by Forma.
+Brand names and trademarks remain the property of their respective owners.
+
 ## Satori local source patch
 
 Satori 0.62.0 is distributed under the Mozilla Public License 2.0; its license
