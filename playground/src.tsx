@@ -41,7 +41,7 @@ function App() {
   const [preview, setPreview] = useState<Preview>();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<'png' | 'svg' | null>(null);
   const [showSchema, setShowSchema] = useState(false);
   const urlRef = useRef<string | undefined>(undefined);
   const drafts = useRef(new Map<string, ReturnType<typeof presetDraft>>());
@@ -143,7 +143,7 @@ function App() {
   }
   async function download(format: 'png' | 'svg') {
     if (!template) return;
-    setDownloading(true);
+    setDownloading(format);
     try {
       const response = await render({ template: selected, data: JSON.parse(json), format, watermark, assetUrlPrefix });
       const url = URL.createObjectURL(await response.blob());
@@ -155,31 +155,48 @@ function App() {
     } catch (error) {
       setError(message(error));
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   }
   return (
     <div className="app">
       <header className="header">
-        <a href="/dev/" className="brand">
-          <span className="brand-mark">f</span>forma
-          <span className="version">PLAYGROUND / 01</span>
+        <a href="/" className="brand" aria-label="Forma 首页">
+          <span className="brand-mark" aria-hidden="true">
+            f
+          </span>
+          forma
         </a>
-        <div className="header-note">
-          <span className="status-dot" /> Satori + Skia
-        </div>
+        <nav aria-label="主导航">
+          <a href="/">概览</a>
+          <a href="/dev/" aria-current="page">
+            Playground{' '}
+            <span className="nav-arrow" aria-hidden="true">
+              ↗
+            </span>
+          </a>
+        </nav>
       </header>
       <main>
         <section className="intro">
-          <div className="eyebrow">MESSAGES, BEAUTIFULLY FORMED</div>
-          <h1>让信息，有自己的形状。</h1>
-          <p>选择模板，填入内容。每一次预览，都是真正的图片输出。</p>
+          <div>
+            <div className="eyebrow">THE PLAYGROUND</div>
+            <h1>让想法，在这里成形。</h1>
+          </div>
+          <p>
+            选择模板，写下内容。
+            <br />
+            下一张好图片，从这里开始。
+          </p>
         </section>
         <div className="workspace">
           <section className="editor-panel" aria-label="卡片编辑器">
             <div className="panel-heading">
               <span className="step">01</span>
               <h2>内容与模板</h2>
+              <a className="preview-jump" href="#preview">
+                查看预览 ↓
+              </a>
             </div>
             <label className="field-label" htmlFor="template">
               卡片模板
@@ -213,36 +230,16 @@ function App() {
                 </option>
               ))}
             </select>
-            <div className="watermark-field">
-              <label className="field-label" htmlFor="watermark">
-                底部水印
-              </label>
-              <input
-                id="watermark"
-                type="text"
-                maxLength={160}
-                value={watermark}
-                onChange={e => setWatermark(e.target.value)}
-                placeholder="留空隐藏水印"
-                disabled={!template}
-              />
-            </div>
-            <div className="watermark-field">
-              <label className="field-label" htmlFor="asset-url-prefix">
-                资源 URL 前缀
-              </label>
-              <input
-                id="asset-url-prefix"
-                type="url"
-                maxLength={2048}
-                value={assetUrlPrefix}
-                onChange={e => setAssetUrlPrefix(e.target.value)}
-                placeholder="例如 http://localhost:8000/，留空不补全"
-                disabled={!template}
-              />
-            </div>
             <div className="editor-toolbar">
-              <label htmlFor="json">JSON DATA{modified && <span role="status"> / 已修改</span>}</label>
+              <label htmlFor="json">
+                data.json
+                {modified && (
+                  <span className="modified" role="status">
+                    {' '}
+                    / 已修改
+                  </span>
+                )}
+              </label>
               <button type="button" disabled={!template} onClick={resetPreset}>
                 重置当前预设
               </button>
@@ -260,95 +257,159 @@ function App() {
                 {error}
               </pre>
             )}
-            <div className="editor-footer">
-              <button type="button" disabled={!template} onClick={() => setShowSchema(!showSchema)}>
-                {showSchema ? '收起 Schema' : '查看 Schema'}
-              </button>
-            </div>
-            {showSchema && template && <pre className="schema">{JSON.stringify(template?.schema, null, 2)}</pre>}
-          </section>
-          <section className="preview-panel" aria-label="图片预览">
-            <div className="panel-heading">
-              <span className="step">02</span>
-              <h2>图片预览</h2>
-              <span className={'render-status ' + (error ? 'invalid' : '')} aria-live="polite">
-                {templatesLoading
-                  ? '加载模板中…'
-                  : loading
-                    ? '渲染中…'
-                    : error
-                      ? template
-                        ? '请检查输入'
-                        : '模板加载失败'
-                      : !template
-                        ? '暂无模板'
-                        : fresh
-                          ? '已更新'
-                          : '等待预览'}
-              </span>
-            </div>
-            <div className="preview-stage">
-              {preview ? (
-                <img
-                  src={preview.url}
-                  width={preview.layoutWidth}
-                  height={preview.layoutHeight}
-                  alt={template?.name + ' / ' + preset?.name + '真实 PNG 预览'}
-                  className={!fresh ? 'stale' : ''}
+            <details className="export-options">
+              <summary>
+                输出设置 <span className="options-hint">水印与图片资源</span>
+              </summary>
+              <div className="watermark-field">
+                <label className="field-label" htmlFor="watermark">
+                  底部水印
+                </label>
+                <input
+                  id="watermark"
+                  type="text"
+                  maxLength={160}
+                  value={watermark}
+                  onChange={e => setWatermark(e.target.value)}
+                  placeholder="留空隐藏水印"
+                  disabled={!template}
                 />
-              ) : (
-                <div className="placeholder">
+              </div>
+              <div className="watermark-field">
+                <label className="field-label" htmlFor="asset-url-prefix">
+                  资源 URL 前缀
+                </label>
+                <input
+                  id="asset-url-prefix"
+                  type="url"
+                  maxLength={2048}
+                  value={assetUrlPrefix}
+                  onChange={e => setAssetUrlPrefix(e.target.value)}
+                  placeholder="例如 http://localhost:8000/，留空不补全"
+                  disabled={!template}
+                />
+              </div>
+            </details>
+            <div className="editor-footer">
+              <span>JSON / UTF-8</span>
+              <button
+                type="button"
+                disabled={!template}
+                aria-expanded={showSchema}
+                aria-controls="template-schema"
+                onClick={() => setShowSchema(!showSchema)}
+              >
+                {showSchema ? '收起 Schema −' : '查看 Schema +'}
+              </button>
+            </div>
+            {showSchema && template && (
+              <pre id="template-schema" className="schema">
+                {JSON.stringify(template.schema, null, 2)}
+              </pre>
+            )}
+          </section>
+          <section id="preview" className="preview-panel" aria-label="图片预览">
+            <div className="preview-content">
+              <div className="panel-heading">
+                <span className="step">02</span>
+                <h2>图片预览</h2>
+                <span className={'render-status ' + (error ? 'invalid' : loading ? 'busy' : '')} aria-live="polite">
                   {templatesLoading
-                    ? '正在加载模板…'
-                    : template
-                      ? '你的下一张卡片，从这里开始。'
+                    ? '加载模板中…'
+                    : loading
+                      ? '渲染中…'
                       : error
-                        ? '暂时无法加载模板。'
-                        : '暂无可用模板，注册后即可预览。'}
-                </div>
-              )}
-              {preview && !fresh && <span className="stale-label">上一次成功预览</span>}
-            </div>
-            <div className="preview-footer">
-              <span>
-                {preview
-                  ? preview.width +
-                    ' × ' +
-                    preview.height +
-                    ' px / ' +
-                    preview.scale +
-                    '× / ' +
-                    preview.elapsed +
-                    ' ms / ' +
-                    formatBytes(preview.bytes)
-                  : '等待生成'}
-              </span>
-              <span>{template?.sizing.mode}</span>
-            </div>
-            {preview?.warnings && <div className="warning">{renderWarningMessage(preview.warnings)}</div>}
-            <div className="downloads">
-              <button
-                type="button"
-                className="secondary"
-                disabled={!fresh || !!error || downloading}
-                onClick={() => void download('svg')}
-              >
-                下载 SVG
-              </button>
-              <button
-                type="button"
-                className="primary"
-                disabled={!fresh || !!error || downloading}
-                onClick={() => void download('png')}
-              >
-                下载 PNG <span>↓</span>
-              </button>
+                        ? template
+                          ? '请检查输入'
+                          : '模板加载失败'
+                        : !template
+                          ? '暂无模板'
+                          : fresh
+                            ? '已更新'
+                            : '等待预览'}
+                </span>
+              </div>
+              <div className="preview-stage" aria-busy={loading}>
+                <span className="canvas-label" aria-hidden="true">
+                  OUTPUT / PNG
+                </span>
+                {preview ? (
+                  <a
+                    className="preview-image"
+                    href={preview.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="在新窗口查看原图"
+                  >
+                    <img
+                      src={preview.url}
+                      width={preview.layoutWidth}
+                      height={preview.layoutHeight}
+                      alt={template?.name + ' / ' + preset?.name + '真实 PNG 预览'}
+                      className={!fresh ? 'stale' : ''}
+                    />
+                    <span className="image-action" aria-hidden="true">
+                      查看原图 ↗
+                    </span>
+                  </a>
+                ) : (
+                  <div className="placeholder">
+                    {templatesLoading
+                      ? '正在加载模板…'
+                      : template
+                        ? '正在为内容排版…'
+                        : error
+                          ? '暂时无法加载模板。'
+                          : '暂无可用模板，注册后即可预览。'}
+                  </div>
+                )}
+                {preview && !fresh && <span className="stale-label">上一次成功预览</span>}
+              </div>
+              <div className="preview-footer">
+                <span>
+                  {preview
+                    ? preview.width +
+                      ' × ' +
+                      preview.height +
+                      ' px / ' +
+                      preview.scale +
+                      '× / ' +
+                      preview.elapsed +
+                      ' ms / ' +
+                      formatBytes(preview.bytes)
+                    : '等待生成'}
+                </span>
+                <span>PNG / 2×</span>
+              </div>
+              {preview?.warnings && <div className="warning">{renderWarningMessage(preview.warnings)}</div>}
+              <div className="downloads">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={!fresh || !!error || !!downloading}
+                  onClick={() => void download('svg')}
+                >
+                  {downloading === 'svg' ? '正在导出…' : '下载 SVG'}
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={!fresh || !!error || !!downloading}
+                  onClick={() => void download('png')}
+                >
+                  {downloading === 'png' ? '正在导出…' : '下载 PNG'}{' '}
+                  <span className="download-arrow" aria-hidden="true">
+                    ↓
+                  </span>
+                </button>
+              </div>
+              <p className="preview-note">点击图片查看原图。PNG 高清导出，SVG 保留矢量。</p>
             </div>
           </section>
         </div>
         <footer className="page-footer">
-          <span>FORMA / SCHEMA-DRIVEN CARDS</span>
-          <span>同一管线，一致输出</span>
+          <span>forma / 让内容有形</span>
+          <span>STRUCTURED IN. BEAUTIFULLY OUT.</span>
         </footer>
       </main>
     </div>
