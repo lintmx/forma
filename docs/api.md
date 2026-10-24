@@ -170,3 +170,4 @@ JSON 损坏仍返回 `400 INVALID_JSON`，请求及模板 Schema 错误仍返回
 直播通过 `snippet.liveBroadcastContent` 区分预约与直播中，`liveStreamingDetails.actualEndTime` 优先标记结束，
 结束后由调用方传 `replayAvailable: true` 确认回放可观看。`observedAt` 仅计算已播时长，计划时间到点不自动切换状态。
 频道名最多一行、标题最多两行，超出显示省略号；简介保留前十行，超出以省略标记折叠。
+封面正常加载时保持 16:9，未提供封面或加载失败时使用紧凑占位；卡片宽度固定为 600px，高度随内容调整。

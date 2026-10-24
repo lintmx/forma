@@ -22,13 +22,13 @@ const context = { assets: {}, fontFamily: 'sans-serif', monospaceFontFamily: 'mo
 const upcoming: YoutubeData = {
   id: 'aqz-KE-bpKQ',
   snippet: {
-    title: '一起创造电影世界 · Blender Live / オープン制作室',
+    title: '一起创造电影世界｜Blender Live / オープン制作室',
     channelTitle: 'Blender Studio',
     liveBroadcastContent: 'upcoming',
     publishedAt: '2026-10-20T08:00:00Z',
     thumbnails: { maxres: { url: 'https://example.com/cover.png' } },
     description:
-      '从故事板到最终渲染，一起探索开源动画的创作过程。\nLive workshop · 制作の裏側 🎬\nhttps://www.blender.org',
+      '从故事板到最终渲染，一起探索开源动画的创作过程。\nLive workshop / 制作の裏側 🎬\nhttps://www.blender.org',
   },
   liveStreamingDetails: { scheduledStartTime: '2026-10-22T12:00:00Z', scheduledEndTime: '2026-10-22T14:00:00Z' },
   contentDetails: { duration: 'PT0S' },
@@ -174,7 +174,7 @@ it('displays the correct time and metrics for each broadcast phase', () => {
   expect(published).toContain('https://www.youtube.com/watch?v=aqz-KE-bpKQ');
   expect(published.indexOf('Blender</div>')).toBeLessThan(published.indexOf('封面加载失败'));
   expect(published.indexOf('封面加载失败')).toBeLessThan(published.indexOf(youtube.mock.snippet.title));
-  expect(published).toContain('border-top:1px solid #eef0f3');
+  expect(published).toContain('border-top:0.5px solid #e4e4e7');
   expect(published).not.toContain('<a ');
 });
 

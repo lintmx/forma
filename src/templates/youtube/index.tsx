@@ -2,18 +2,15 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { Template } from '../../core/types.js';
 import { textStyle, typography } from '../../core/typography.js';
 import { highlightTextRuns } from '../shared/highlight.js';
-import { SourceFooter } from '../shared/source-footer.js';
 import { youtubeMock } from './mock.js';
 import { broadcastState, durationSeconds, formatCount, formatSeconds, formatTime } from './presentation.js';
 import { type YoutubeData, youtubeSchema } from './schema.js';
 
-const ink = '#0f1419';
-const muted = '#536471';
+const ink = '#18181b';
+const muted = '#64646c';
 const red = '#ff0000';
-const blue = '#1d9bf0';
-const border = '1px solid #eff3f4';
+const border = '0.5px solid #e4e4e7';
 const column: CSSProperties = { display: 'flex', flexDirection: 'column', minWidth: 0 };
-const panel: CSSProperties = { backgroundColor: '#f7f9fa', border, borderRadius: 14, padding: 16 };
 const descriptionLineHeight = Math.ceil(typography.compact.fontSize * 1.6);
 const descriptionMaxHeight = descriptionLineHeight * 10;
 const labels = {
@@ -75,7 +72,6 @@ export const youtube: Template<YoutubeData> = {
       finished && live?.actualStartTime && live.actualEndTime
         ? Math.max(0, (Date.parse(live.actualEndTime) - Date.parse(live.actualStartTime)) / 1000)
         : undefined;
-    const accent = onAir ? red : state === 'scheduled' || state === 'upcoming' || state === 'replay' ? blue : muted;
     const timeline = (
       state === 'scheduled'
         ? [['预计发布', data.status?.publishAt]]
@@ -106,7 +102,9 @@ export const youtube: Template<YoutubeData> = {
     const metadata =
       state === 'published' && snippet.publishedAt
         ? '发布于 ' + formatTime(snippet.publishedAt, timeZone).slice(0, 10)
-        : labels[state];
+        : isVideo
+          ? '普通视频'
+          : 'YouTube 直播';
     const coverDetail =
       onAir && live?.concurrentViewers !== undefined
         ? formatCount(live.concurrentViewers) + ' 人正在观看'
@@ -118,21 +116,20 @@ export const youtube: Template<YoutubeData> = {
     const badge: CSSProperties = {
       display: 'flex',
       position: 'absolute',
-      bottom: 10,
-      maxWidth: '65%',
-      padding: '2px 7px',
+      bottom: 12,
+      maxWidth: '90%',
+      padding: '5px 9px',
       borderRadius: 4,
       color: '#fff',
-      backgroundColor: 'rgba(15,20,25,0.8)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      backgroundColor: 'rgba(24,24,27,0.88)',
       ...typography.meta,
     };
     return (
-      <div style={{ ...column, gap: 16, color: ink, ...typography.compact }}>
+      <div style={{ ...column, gap: 20, color: ink, ...typography.compact }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, gap: 12 }}>
             {snippet.channelTitle && (
-              <div style={{ display: 'flex', position: 'relative', flexShrink: 0 }}>
+              <div style={{ display: 'flex', flexShrink: 0 }}>
                 <div
                   style={{
                     display: 'flex',
@@ -140,11 +137,11 @@ export const youtube: Template<YoutubeData> = {
                     height: 40,
                     borderRadius: 20,
                     overflow: 'hidden',
-                    border: onAir ? '2px solid ' + red : border,
+                    border,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#f7f9fa',
-                    color: muted,
+                    backgroundColor: '#f4f4f5',
+                    color: ink,
                     fontWeight: 700,
                   }}
                 >
@@ -154,31 +151,13 @@ export const youtube: Template<YoutubeData> = {
                     <span>{Array.from(snippet.channelTitle)[0]}</span>
                   )}
                 </div>
-                {onAir && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      position: 'absolute',
-                      bottom: -4,
-                      right: -4,
-                      padding: '0 3px',
-                      borderRadius: 8,
-                      backgroundColor: red,
-                      color: '#fff',
-                      fontSize: 8,
-                      fontFamily: mono,
-                    }}
-                  >
-                    LIVE
-                  </div>
-                )}
               </div>
             )}
             <div style={{ ...column, flex: 1, gap: 2 }}>
               {snippet.channelTitle && (
                 <Text
                   style={{
-                    ...typography.body,
+                    ...typography.compact,
                     lineHeight: 1.3,
                     fontWeight: 700,
                     whiteSpace: 'nowrap',
@@ -192,20 +171,19 @@ export const youtube: Template<YoutubeData> = {
               <Text style={{ ...typography.meta, color: muted }}>{metadata}</Text>
             </div>
           </div>
-          <div style={{ ...column, alignItems: 'flex-end', maxWidth: '36%', gap: 4 }}>
+          <div style={{ display: 'flex', flexShrink: 0, maxWidth: '36%' }}>
             <Text
               style={{
                 ...typography.meta,
-                padding: '4px 10px',
-                borderRadius: 20,
-                backgroundColor: onAir ? '#fef2f2' : '#f0f2f5',
-                color: onAir ? red : muted,
-                border: onAir ? '1px solid #fbd3d6' : border,
+                padding: '5px 9px',
+                borderRadius: 4,
+                backgroundColor: onAir ? red : '#f7f7f8',
+                color: onAir ? '#fff' : muted,
+                fontWeight: 700,
               }}
             >
-              {isVideo ? '普通视频' : '直播'}
+              {onAir ? 'LIVE' : labels[state]}
             </Text>
-            {data.id && <Text style={{ ...typography.meta, color: '#8b98a5', fontFamily: mono }}>{data.id}</Text>}
           </div>
         </div>
         <div
@@ -213,11 +191,12 @@ export const youtube: Template<YoutubeData> = {
             display: 'flex',
             position: 'relative',
             width: '100%',
-            aspectRatio: 16 / 9,
-            borderRadius: 14,
+            aspectRatio: context.assets.cover ? 16 / 9 : undefined,
+            height: context.assets.cover ? undefined : 112,
+            borderRadius: 8,
             overflow: 'hidden',
             border,
-            backgroundColor: '#f7f9fa',
+            backgroundColor: '#f4f4f5',
             alignItems: 'center',
             justifyContent: 'center',
           }}
@@ -228,23 +207,24 @@ export const youtube: Template<YoutubeData> = {
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
-            <Text style={{ color: muted }}>{hasCover ? '封面加载失败' : '暂无封面'}</Text>
+            <div style={{ ...column, alignItems: 'center', gap: 8, paddingBottom: coverDetail ? 32 : 0, color: muted }}>
+              <svg width="28" height="20" viewBox="0 0 28 20">
+                <rect width="28" height="20" rx="5" fill="#dedee2" />
+                <path d="M11 5.5 19 10 11 14.5Z" fill="#fff" />
+              </svg>
+              <Text style={typography.meta}>{hasCover ? '封面加载失败' : '暂无封面'}</Text>
+            </div>
           )}
-          <Text style={{ ...badge, left: 10, maxWidth: '32%', backgroundColor: accent, fontWeight: 700 }}>
-            {labels[state]}
-          </Text>
           {coverDetail && (
-            <div style={{ ...badge, right: 10, alignItems: 'center', gap: 5, fontFamily: mono }}>
+            <div style={{ ...badge, right: 12, alignItems: 'center', gap: 6, fontFamily: mono }}>
               {onAir && <div style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: red, flexShrink: 0 }} />}
               <Text>{coverDetail}</Text>
             </div>
           )}
         </div>
-        <Text style={{ ...typography.large, lineHeight: 1.4, fontWeight: 700, lineClamp: 2, overflow: 'hidden' }}>
-          {snippet.title}
-        </Text>
+        <Text style={{ ...typography.section, lineClamp: 2, overflow: 'hidden' }}>{snippet.title}</Text>
         {snippet.description?.trim() && (
-          <div style={{ ...column, ...panel, padding: 14, color: muted, lineHeight: descriptionLineHeight + 'px' }}>
+          <div style={{ ...column, marginTop: -8, color: muted, lineHeight: descriptionLineHeight + 'px' }}>
             <div style={{ ...column, position: 'relative', maxHeight: descriptionMaxHeight + 20, overflow: 'hidden' }}>
               <Text style={{ flexShrink: 0 }}>
                 {highlightTextRuns([{ text: snippet.description.trim() }], { urls: true })}
@@ -257,7 +237,7 @@ export const youtube: Template<YoutubeData> = {
                   left: 0,
                   width: '100%',
                   height: 20,
-                  backgroundColor: panel.backgroundColor,
+                  backgroundColor: '#fff',
                   ...typography.compact,
                 }}
               >
@@ -266,76 +246,81 @@ export const youtube: Template<YoutubeData> = {
             </div>
           </div>
         )}
-        {state !== 'published' && (
-          <div
-            style={{ ...panel, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}
-          >
-            <div style={{ ...column, gap: 4, flexShrink: 0 }}>
-              <Text style={{ ...typography.meta, color: muted }}>{isVideo ? '发布状态' : '直播状态'}</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: accent, fontWeight: 700 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: accent, flexShrink: 0 }} />
-                <Text>{labels[state]}</Text>
-              </div>
-              {state === 'replay' && <Text style={{ ...typography.meta, color: muted }}>回放已可观看</Text>}
-              {elapsed !== undefined && (
-                <Text style={{ ...typography.meta, fontFamily: mono }}>{'已播 ' + formatSeconds(elapsed)}</Text>
-              )}
-              {total !== undefined && (
-                <Text style={{ ...typography.meta, fontFamily: mono }}>{'总时长 ' + formatSeconds(total)}</Text>
-              )}
+        {(timeline.length > 0 || state === 'upcoming') && (
+          <div style={{ ...column, gap: 16, borderTop: border, paddingTop: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, ...typography.meta, color: muted }}>
+              <Text style={{ flex: 1 }}>{isVideo ? '发布安排' : '直播时间'}</Text>
+              {elapsed !== undefined && <Text style={{ fontFamily: mono }}>{'已播 ' + formatSeconds(elapsed)}</Text>}
+              {total !== undefined && <Text style={{ fontFamily: mono }}>{'总时长 ' + formatSeconds(total)}</Text>}
+              {timeline.length > 0 && <Text>{timeZone === 'Asia/Shanghai' ? 'UTC+8' : timeZone}</Text>}
             </div>
-            <div style={{ ...column, alignItems: 'flex-end', flex: 1, gap: 6 }}>
+            <div style={{ display: 'flex', gap: 20 }}>
               {state === 'upcoming' && !live?.scheduledStartTime && <Text style={{ color: muted }}>开播时间待定</Text>}
               {timeline.map(([label, value]) => (
-                <div key={label} style={{ ...column, alignItems: 'flex-end', gap: 2 }}>
+                <div key={label} style={{ ...column, flex: 1, gap: 6 }}>
                   <Text style={{ ...typography.meta, color: muted }}>{label}</Text>
-                  <Text style={{ fontWeight: 700, fontFamily: mono, textAlign: 'right' }}>
-                    {formatTime(value, timeZone)}
-                  </Text>
+                  <Text style={{ fontFamily: mono }}>{formatTime(value, timeZone)}</Text>
                 </div>
               ))}
-              {timeline.length > 0 && (
-                <Text style={{ ...typography.meta, color: '#8b98a5' }}>
-                  {timeZone === 'Asia/Shanghai' ? 'UTC+8' : timeZone}
-                </Text>
-              )}
             </div>
           </div>
         )}
         {stats.length > 0 && (
           <div
             style={{
-              ...panel,
               display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              gap: 24,
+              borderTop: border,
+              paddingTop: 20,
             }}
           >
-            {stats.map(([key, label]) => (
-              <div key={key} style={{ display: 'flex', alignItems: 'baseline', gap: 6, maxWidth: '100%' }}>
-                <Text style={{ ...typography.meta, color: muted, flexShrink: 0 }}>{label}</Text>
+            {stats.map(([key, label], index) => (
+              <div
+                key={key}
+                style={{
+                  ...column,
+                  flex: 1,
+                  gap: 4,
+                  paddingLeft: index ? 20 : 0,
+                  borderLeft: index ? border : undefined,
+                }}
+              >
                 <Text
                   style={{
-                    ...typography.large,
-                    lineHeight: 1.4,
-                    fontWeight: 700,
-                    fontFamily: mono,
-                    flexShrink: 1,
+                    ...typography.section,
+                    letterSpacing: -0.5,
                   }}
                 >
                   {formatCount(data.statistics![key]!)}
                 </Text>
+                <Text style={{ ...typography.meta, color: muted }}>{label}</Text>
               </div>
             ))}
           </div>
         )}
-        <SourceFooter
-          source="YouTube"
-          url={data.id ? 'https://www.youtube.com/watch?v=' + data.id : undefined}
-          marginTop={0}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 16, borderTop: border }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <svg width="20" height="14" viewBox="0 0 20 14">
+              <rect width="20" height="14" rx="4" fill={red} />
+              <path d="M8 3.5 14 7 8 10.5Z" fill="#fff" />
+            </svg>
+            <Text style={{ ...typography.meta, fontWeight: 700 }}>YouTube</Text>
+          </div>
+          {data.id && (
+            <Text
+              style={{
+                ...typography.meta,
+                flex: 1,
+                color: muted,
+                textAlign: 'right',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {'https://www.youtube.com/watch?v=' + data.id}
+            </Text>
+          )}
+        </div>
       </div>
     );
   },
