@@ -13,7 +13,6 @@ const pink = '#c93e6d';
 const red = '#cc3658';
 const border = '1px solid #ececf0';
 const column: CSSProperties = { display: 'flex', flexDirection: 'column', minWidth: 0 };
-const panel: CSSProperties = { backgroundColor: '#faf9fb', borderRadius: 10, padding: 18 };
 const descriptionLineHeight = Math.ceil(typography.compact.fontSize * 1.6);
 const descriptionMaxHeight = descriptionLineHeight * 10;
 
@@ -272,8 +271,6 @@ export const bilibili: Template<BilibiliData> = {
           <div
             style={{
               ...column,
-              paddingLeft: 14,
-              borderLeft: '2px solid #f2bfd0',
               color: '#60616e',
               lineHeight: descriptionLineHeight + 'px',
             }}
@@ -301,7 +298,7 @@ export const bilibili: Template<BilibiliData> = {
           </div>
         )}
         {!isLive && (primary.length > 0 || secondary.length > 0) && (
-          <div style={{ ...column, ...panel, backgroundColor: '#f9f3f6', gap: 16 }}>
+          <div style={{ ...column, gap: 16 }}>
             {primary.length > 0 && (
               <div style={{ display: 'flex', gap: 24 }}>
                 {primary.map(([key, label], index) => (
@@ -319,7 +316,7 @@ export const bilibili: Template<BilibiliData> = {
                 style={{
                   display: 'flex',
                   gap: 16,
-                  ...(primary.length ? { borderTop: '1px solid #eadfe5', paddingTop: 14 } : {}),
+                  ...(primary.length ? { borderTop: '0.5px solid #eadfe5', paddingTop: 14 } : {}),
                 }}
               >
                 {secondary.map(([key, label]) => (
@@ -337,8 +334,6 @@ export const bilibili: Template<BilibiliData> = {
         {isLive && (
           <div
             style={{
-              ...panel,
-              backgroundColor: onAir ? '#fff0f4' : '#f5f5f8',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
