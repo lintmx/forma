@@ -11,7 +11,7 @@ export const bilibiliSchema = z
     author: z
       .object({
         name: z.string().trim().min(1).max(160).describe('UP 主或主播名称，最多展示一行，超出显示省略号'),
-        uid: id.optional().describe('用户 UID，不含 @uid_ 前缀'),
+        uid: id.optional().describe('用户 UID'),
         avatarUrl: assetUrlSchema.optional().describe('HTTP(S)、file://、asset:id 或相对路径的头像地址'),
         verified: z.boolean().optional().describe('是否显示蓝色认证徽章'),
       })

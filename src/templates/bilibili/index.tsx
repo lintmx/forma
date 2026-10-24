@@ -65,10 +65,7 @@ export const bilibili: Template<BilibiliData> = {
           : data.aid !== undefined
             ? 'https://www.bilibili.com/video/av' + data.aid
             : undefined);
-    const metadata = [
-      data.author?.uid !== undefined ? '@uid_' + data.author.uid : undefined,
-      isLive ? '实时直播频道' : data.publishedAt,
-    ]
+    const metadata = [data.author?.uid !== undefined ? data.author.uid : undefined, isLive ? '' : data.publishedAt]
       .filter(Boolean)
       .join(' / ');
     const primary = (
