@@ -1,7 +1,6 @@
 # Forma 项目约定
 
 Forma 将 JSON 数据通过 TypeScript / TSX 模板渲染为 PNG 或 SVG，提供 HTTP API 和 React Playground。
-本文件仅记录项目特有的开发约束；任务范围和协作方式遵循用户要求及全局约定。
 
 ## 按任务查阅
 
@@ -10,7 +9,7 @@ Forma 将 JSON 数据通过 TypeScript / TSX 模板渲染为 PNG 或 SVG，提�
 - 修改排版、字体、图片或 PNG 适配器：参见 [渲染与资源](docs/rendering.md)，实现位于 `src/core/`。
 - 修改启动、构建或部署配置：参见 [部署指南](docs/deployment.md)。
 
-按任务读取相关章节，无需在每次修改前通读全部文档。公共行为变化时同步对应文档。
+公共行为变化时同步对应文档。
 
 ## 开发与验证命令
 
@@ -34,26 +33,37 @@ Forma 将 JSON 数据通过 TypeScript / TSX 模板渲染为 PNG 或 SVG，提�
 
 - 生产模板统一在 `src/templates/index.ts` 注册；测试专用模板和 worker 留在 `tests/fixtures/`。
 - 模板实现 `Template<T>`，业务字段由 Zod 对象 Schema 定义，字段用 `.describe()` 说明，`mock` 必须通过校验。
-  注册器会严格校验数据；Schema、示例和渲染组件变更应保持一致。
-- 模板的 `render` 只返回内部内容。公共外框、背景、边距、水印由 `src/core/card.tsx` 的 `CardFrame` 负责。
-  `watermark` 等通用渲染选项属于请求顶层，不放入模板 `data`。
+  Schema、示例和渲染组件保持一致。
+- `render` 只返回内部内容；公共外框、背景、边距、水印由 `src/core/card.tsx` 的 `CardFrame` 负责。
+  `watermark` 等通用选项放在请求顶层，不放入模板 `data`。
 - 当前管线为 Satori 生成 SVG，PNG 由 Skia Canvas 栅格化后交给 Sharp 编码。
   PNG 固定输出 2×，SVG 保持逻辑尺寸；请求不接受 `scale`。不要将浏览器 CSS 支持范围等同于渲染器能力。
 - 复用 `src/core/typography.ts` 的语义排版；等宽内容显式使用 `context.monospaceFontFamily`。
-  测量与最终渲染保持相同字体和间距，用真实布局测量尺寸，不按字符数估算高度。
-- 远程图片通过模板 `assets` 钩子及传入的 `ImageStore` 加载，组件从 `context.assets` 读取。
+  使用与最终渲染相同的字体和间距测量真实布局，不按字符数估算高度。
+- 图片通过模板 `assets` 钩子及传入的 `ImageLoader` 加载，组件从 `context.assets` 读取。
   保留资源校验、下载限制和失败降级，不直接将用户 URL 交给 Satori 或在组件中另行下载。
 - 字体二进制不提交 Git；更新字体时同步 `fonts/sources.json` 的来源与哈希，以及相关许可声明。
   运行时使用本地字体，不依赖宿主机字体。
 
+## 界面与文案
+
+以下规则适用于本次任务涉及的 Playground 界面与模板输出，尺寸均指逻辑像素。
+
+- 文案符合受众和场景，清晰简洁、不过于口语化、不随意造词；仅保留理解界面或完成任务所必需的说明。
+  不使用中点“·”作为文案分隔符，已有的此类分隔符应移除。
+- 按信息优先级组织功能和元素，减少额外判断；必要的选择放在用户原本就打算做选择的位置。
+- 注重元素的光学对齐；嵌套容器的内外圆角应结合间距协调，尽量保持同心。
+- 需要线条或边框时，使用 `0.5px` 宽度。
+- 同一界面或模板的字号不超过 4 种，优先控制在 3 种，最小字号为 `12px`；更多层级通过字重、颜色和间距区分。
+- 克制使用圆角、阴影及卡片左侧的彩色装饰线；确需圆角或阴影时，其数值应符合功能场景。
+
 ## 改动完成标准
 
 - 代码改动运行 `pnpm check` 和受影响的测试；影响公共渲染链路时扩大到完整测试集。
-  纯文档改动检查内容、链接和差异即可，无需触发字体下载或渲染构建。
-- 模板、排版或渲染改动检查真实 PNG / SVG 的尺寸与视觉结果，覆盖本次改动相关的长文本、多语言或缺图场景。
-  Playground 预览与下载使用同一 `POST /v1/render`；浏览器 DOM 近似图不能替代最终图片验证。
-- 新增 SVG 特性时验证 PNG 适配器兼容性；不能仅凭 SVG 能显示就判定 PNG 支持。
+  纯文档改动仅检查内容、链接和差异，无需下载字体或运行渲染构建。
+- 模板、排版或渲染改动检查真实 PNG / SVG 的尺寸与视觉结果，覆盖本次涉及的长文本、多语言或缺图场景；新增 SVG 特性须验证 PNG 适配器兼容性。
+  Playground 预览与下载统一使用 `POST /v1/render`，浏览器 DOM 近似图不能替代最终图片验证。
 - 构建或 worker 入口改动后验证构建产物及真实 `/healthz`、`/v1/render` 请求。
   服务和 worker 应分别产出 `dist/server.js`、`dist/worker.js`。
 - 新增 Playground 静态资源时核对 `src/api/app.ts` 的 `/dev/` 白名单与 MIME 映射，并验证构建后的访问。
-- 交付时说明已执行的检查及限制，区分静态检查、HTTP/worker 测试、图片检查和浏览器交互验证。
+- 交付说明已验证的层次（静态、HTTP/worker、图片、浏览器交互）及限制。

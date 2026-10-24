@@ -18,7 +18,7 @@
 
 ## 渲染请求
 
-请求使用 `Content-Type: application/json`：
+使用 `Content-Type: application/json` 发送请求；需上传图片时使用 [multipart/form-data](#随请求上传图片)。
 
 ```json
 {
@@ -53,11 +53,12 @@ PNG 固定输出 2×，SVG 保留原始布局尺寸。
 | `images/a.png?v=2` | `http://localhost:8000/static/images/a.png?v=2` |
 | `https://cdn.example.com/a.png` | 保持原样 |
 | `file:///tmp/a.png` | 保持原样 |
+| `asset:cover` | 保持原样，引用本次请求的附件 |
 | `//cdn.example.com/a.png` | `http://cdn.example.com/a.png`（继承前缀协议） |
 
 前缀必须是完整 HTTP(S) URL，可带目录，不接受查询参数或片段；末尾 `/` 自动补齐。
 资源路径中的 `.`、`..` 按 URL 规则解析，`..` 可回到上级目录；空格需写为 `%20`。
-有协议的资源地址不添加前缀，支持的协议仍为 HTTP、HTTPS 和 `file`。
+HTTP(S)、`file:` 和 `asset:` 资源地址不添加前缀。
 资源空值沿用各字段原有约定，不替换成前缀地址。未设置前缀的相对路径、资源不存在或加载失败，
 均使用模板降级内容并返回 `IMAGE_UNAVAILABLE`；非法前缀返回 400 `VALIDATION_ERROR`。
 
@@ -101,7 +102,7 @@ Playground 的“资源 URL 前缀”用于同一次编辑的预览及 PNG / SVG
 | 404 | 模板或路由不存在 |
 | 413 | 请求体、文件大小或附件数量超过上限 |
 | 415 | 请求不是 `application/json` 或 `multipart/form-data` |
-| 422 | 上传图片无效，或尺寸、像素、输出字节超限；文字或 Emoji 缺失时使用占位符并返回 200 与警告头 |
+| 422 | 上传图片无效，或尺寸、像素、输出字节超限 |
 | 500 | 内部渲染错误（`INTERNAL_ERROR`） |
 | 503 | 队列已满或渲染服务不可用 |
 | 504 | 请求超时 |
@@ -117,10 +118,10 @@ Playground 的“资源 URL 前缀”用于同一次编辑的预览及 PNG / SVG
 
 资源 ID 区分大小写，仅允许 1～64 个 ASCII 字母、数字、下划线或连字符，`request` 为保留名称。
 重复字段或非法名称返回 `400 INVALID_MULTIPART`。文件名不参与资源匹配，也不会被用作本地路径。
-`assetUrlPrefix` 不影响 `asset:`；上传图片可与现有 HTTP(S)、file 图片混用，同一附件可引用多次。
+上传图片可与 HTTP(S)、`file:` 图片混用，同一附件可引用多次。
 
 ```bash
-curl http://localhost:3000/v1/render \
+curl --fail-with-body http://localhost:3000/v1/render \
   --form-string 'request={"template":"article","format":"png","data":{"title":"上传图片","content":"![封面](asset:cover)"}}' \
   --form 'cover=@./cover.png' \
   --output card.png
@@ -143,13 +144,29 @@ if (!response.ok) throw new Error(await response.text());
 await writeFile('card.png', new Uint8Array(await response.arrayBuffer()));
 ```
 
-上传仅支持 PNG、JPEG、WebP，按实际文件内容校验，不信任扩展名和 MIME。
-所有附件（包括未被引用的附件）均校验；损坏、不支持的图片或尺寸超限返回 `422 INVALID_IMAGE`。
+所有附件（包括未引用的附件）按实际内容校验，仅支持 PNG、JPEG、WebP，不依赖扩展名和 MIME；
+损坏、不支持的图片或尺寸超限返回 `422 INVALID_IMAGE`。
 JSON 字段、单文件、整个 multipart 请求的大小或文件数量超限返回 `413 BODY_LIMIT`。
 JSON 损坏仍返回 `400 INVALID_JSON`，请求及模板 Schema 错误仍返回 `400 VALIDATION_ERROR`。
 合法 `asset:id` 未提供附件时沿用资源缺失降级，返回图片及 `IMAGE_UNAVAILABLE` 警告。
 
-附件仅在当前请求内有效，不落盘、不进入跨请求图片缓存；响应结束后不能再次引用。
-上传、排队和渲染共享原有总超时。并发 multipart 请求（包括上传、排队和渲染）最多为
-`RENDER_CONCURRENCY + RENDER_QUEUE_LIMIT`，超出返回 `503 BUSY`，防止上传阶段无界占用内存。
-限制配置见 [部署配置](deployment.md)。
+附件仅在当前请求内有效，不落盘、不进入跨请求图片缓存。上传、排队和渲染共享请求总超时。
+并发 multipart 请求最多为 `RENDER_CONCURRENCY + RENDER_QUEUE_LIMIT`，超出返回 `503 BUSY`；
+限制配置及资源预算见 [部署指南](deployment.md#并发与资源预算)。
+
+## 模板使用补充
+
+以下说明补充模板元数据中的字段定义与示例。
+
+### Bilibili
+
+宽度为 600px，高度自适应。作者名称最多一行，超出显示省略号；标题完整换行展示，
+简介保留前十行，超出以省略标记折叠。
+
+### YouTube
+
+保留 YouTube API 字段结构。普通视频传 `status.publishAt` 表示定时发布，
+`status.privacyStatus` 为 `public` / `unlisted` 时按已发布展示；`snippet.publishedAt` 仅用于显示发布日期。
+直播通过 `snippet.liveBroadcastContent` 区分预约与直播中，`liveStreamingDetails.actualEndTime` 优先标记结束，
+结束后由调用方传 `replayAvailable: true` 确认回放可观看。`observedAt` 仅计算已播时长，计划时间到点不自动切换状态。
+频道名最多一行、标题最多两行，超出显示省略号；简介保留前十行，超出以省略标记折叠。

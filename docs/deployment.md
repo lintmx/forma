@@ -4,7 +4,7 @@
 
 ## Node.js
 
-需要 Node.js 22.12+ 和 pnpm 10.32.1。在仓库根目录执行：
+需要 Node.js 22.12+，pnpm 版本以 [package.json](../package.json) 的 `packageManager` 为准。在仓库根目录执行：
 
 ```sh
 pnpm install --frozen-lockfile
@@ -12,7 +12,7 @@ pnpm build
 NODE_ENV=production pnpm start
 ```
 
-`pnpm build` 准备字体、Emoji 及带源码补丁的 Satori，运行静态检查，并构建服务、worker 和 Playground。
+`pnpm build` 准备字体、Emoji 及带源码补丁的 Satori，运行静态检查，输出 `dist/server.js`、`dist/worker.js` 和 `dist/playground/`。
 `pnpm dev` 和 `pnpm start` 自动读取根目录 `.env`，已设置的 shell 环境变量优先；修改后需重启。
 生产模式默认关闭 `/dev/`，需要时设置 `PLAYGROUND_ENABLED=true`。
 
@@ -38,9 +38,8 @@ Compose 的 `.env` 用于变量替换，仅 [compose.yaml](../compose.yaml) 中�
 
 ## GHCR 自动构建
 
-[GitHub Actions workflow](../.github/workflows/docker-publish.yml) 在每次推送 `master` 时使用根目录
-`Dockerfile` 构建 `linux/amd64` 镜像，并发布到 `ghcr.io/<仓库所有者>/<仓库名>:latest`（路径转为小写）。
-当前仓库的镜像为 `ghcr.io/lintmx/forma:latest`。
+[GitHub Actions workflow](../.github/workflows/docker-publish.yml) 在推送 `master` 时使用根目录 `Dockerfile`
+构建 `linux/amd64` 镜像，当前仓库发布到 `ghcr.io/lintmx/forma:latest`。
 
 发布使用 GitHub 自动提供的 `GITHUB_TOKEN`，无需额外配置登录 Secret。
 镜像的公开或私有可见性由 GHCR 包设置控制。
@@ -59,10 +58,10 @@ docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/lintmx/forma:latest
 | --- | --- | --- |
 | `PORT` / `HOST` | `3000` / `0.0.0.0` | 服务监听端口 / 地址 |
 | `LOG_LEVEL` | `info` | `silent`、`error`、`info` 或 `debug` |
-| `PLAYGROUND_ENABLED` | 非生产 `true` | 是否开放 `/dev/` |
+| `PLAYGROUND_ENABLED` | 生产 `false`，其他 `true` | 是否开放 `/dev/`，生产环境指 `NODE_ENV=production` |
 | `RENDER_CONCURRENCY` / `RENDER_QUEUE_LIMIT` | `2` / `16` | worker 数 / 等待队列上限 |
 | `RENDER_TIMEOUT_MS` | `30000` | 请求总截止时间，毫秒 |
-| `BODY_LIMIT_BYTES` | `65536` | JSON 请求或 multipart 中 request 字段的字节上限 |
+| `BODY_LIMIT_BYTES` | `65536` | JSON 请求或 multipart 中 `request` 字段的字节上限 |
 | `MULTIPART_BODY_LIMIT_BYTES` | `20971520` | multipart 整体字节上限，包含字段和协议开销，最大 80 MiB |
 | `UPLOAD_MAX_FILES` | `16` | 单次上传文件数上限，最大 64 |
 | `MAX_WIDTH` / `MAX_HEIGHT` | `8192` / `32768` | 最终输出宽高上限 |
@@ -70,7 +69,7 @@ docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/lintmx/forma:latest
 | `MAX_RASTER_PIXELS` | `128000000` | 中间栅格像素数上限，最大可设 `256000000` |
 | `MAX_OUTPUT_BYTES` | `67108864` | SVG / PNG 输出字节上限 |
 | `IMAGE_TIMEOUT_MS` | `4000` | 单张图片下载总超时，毫秒 |
-| `IMAGE_MAX_BYTES` / `IMAGE_MAX_PIXELS` | `5242880` / `16000000` | 图片字节数 / 解码像素数上限 |
+| `IMAGE_MAX_BYTES` / `IMAGE_MAX_PIXELS` | `5242880` / `16000000` | 单张图片字节数 / 解码像素数上限，适用于下载与上传 |
 | `IMAGE_CACHE_BYTES` / `IMAGE_CACHE_TTL_MS` | `33554432` / `300000` | 每 worker 图片缓存字节预算 / 有效期，毫秒 |
 | `FONT_CONFIG` | `fonts/fonts.json` | 字体配置路径 |
 

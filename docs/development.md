@@ -23,7 +23,7 @@ tests/fixtures/   仅供测试使用的模板和 worker 入口
 
 ## 模块边界
 
-生产入口通过 `createTemplateRegistry()` 注册模板，HTTP 和 worker 必须使用相同目录。
+HTTP 和 worker 均通过 `createTemplateRegistry()` 创建相同的生产模板注册表。
 核心模块负责请求校验、资源加载和渲染，不反向依赖生产模板；业务展示留在模板内。
 测试可创建独立注册器，测试模板和 worker 仅放在 `tests/fixtures/`。
 
@@ -38,14 +38,14 @@ tests/fixtures/   仅供测试使用的模板和 worker 入口
 | `pnpm format` / `pnpm format:check` | 应用格式 / 仅检查格式 |
 | `pnpm lint` | 仅运行 lint |
 | `pnpm test` | 单元测试及本地 HTTP、worker、图片测试 |
-| `pnpm test:e2e` | API 与生产模板的 HTTP 图片生成测试 |
+| `pnpm test:e2e` | API 与生产模板的 HTTP 图片生成测试，不含浏览器交互 |
 | `pnpm fonts:fetch` / `pnpm fonts:verify` | 下载并校验默认字体 / 仅离线校验 |
 | `pnpm emoji:fetch` / `pnpm emoji:verify` | 下载并校验 Emoji / 仅离线校验 |
 | `pnpm preview:typography` | 生成排版样张到 `artifacts/typography/` |
 | `pnpm build` | 检查并构建生产服务、worker 与 Playground |
 
-首次单独运行测试前执行 `pnpm fonts:fetch` 和 `pnpm emoji:fetch`。代码风格以 [biome.json](../biome.json) 为准。
-Markdown 不由 Biome 检查。
+单独运行渲染测试前需准备字体和 Emoji；缺少资源时执行上述下载命令，已有资源可离线校验。
+代码风格以 [biome.json](../biome.json) 为准，Markdown 不由 Biome 检查。
 
 ## 新增模板
 
@@ -59,20 +59,10 @@ Markdown 不由 Biome 检查。
    为失败资源提供占位或替代文本，不在组件中直接 `fetch`。
 5. 在 [src/templates/index.ts](../src/templates/index.ts) 导入并调用 `.register()`。
    ID 须唯一、以小写字母开头，仅含小写字母、数字、下划线或连字符。
-6. 添加相关布局和输出测试，并在 Playground 检查短文、长文、多语言与缺图情况。
+6. 添加相关布局和输出测试，按下文的[验证要求](#验证与提交)检查真实图片。
 
-最小实现可参考 [example](../src/templates/example/index.tsx)。注册时会校验示例数据；
-注册后 API 和 Playground 自动展示模板，无需修改首页文档或增加一份模板字段表。
-测试专用模板留在 `tests/fixtures/`，不注册到生产入口。部署前重新构建服务或镜像。
-
-Bilibili 模板宽度为 600px，高度自适应。作者名称最多展示一行，超出显示省略号；
-标题完整换行展示，简介保留前十行，超出以省略标记折叠。
-
-YouTube 模板保留 API 字段结构。普通视频传 `status.publishAt` 表示定时发布，
-`status.privacyStatus` 为 `public` / `unlisted` 时按已发布展示；`snippet.publishedAt` 仅用于显示发布日期。
-直播通过 `snippet.liveBroadcastContent` 区分预约与直播中，`liveStreamingDetails.actualEndTime` 优先标记结束，
-结束后由调用方传 `replayAvailable: true` 确认回放可观看。`observedAt` 仅计算已播时长，计划时间到点不自动切换状态。
-频道名最多一行、标题最多两行，超出显示省略号；简介保留前十行，超出以省略标记折叠。
+最小实现可参考 [example](../src/templates/example/index.tsx)。注册时校验示例数据，API 和 Playground 自动展示模板，
+无需另建模板字段表。具体模板的使用补充见 [API](api.md#模板使用补充)，部署前重新构建服务或镜像。
 
 ## 尺寸与排版
 
@@ -85,15 +75,14 @@ YouTube 模板保留 API 字段结构。普通视频传 `status.publishAt` 表�
 
 尺寸包含统一外框和水印，优先采用 `auto-height` 或 `content`。
 `content` 必须提供内部内容的无换行测量树及 `data-measure` 节点，不重复外框边距，也不依赖远程资源。
-使用实际字形和布局测量，不按字符数或预估行数计算高度。
-
-统一复用 [typography.ts](../src/core/typography.ts) 的语义字号和换行样式。
-正文继承 `context.fontFamily`，代码和等宽数值显式使用 `context.monospaceFontFamily`；
-测量树与最终渲染树须保持相同字体、间距和文字角色。采用明确的 Flex 布局与 `boxSizing: border-box`。
-支持范围见 [渲染与资源](rendering.md)。
+使用实际字形和布局测量，不按字符数或预估行数计算高度；测量树与最终渲染树保持相同字体、间距和文字角色。
+采用明确的 Flex 布局与 `boxSizing: border-box`。公共排版样式和字体选择见[排版](rendering.md#排版)，
+界面与文案约定见 [AGENTS.md](../AGENTS.md#界面与文案)。
 
 ## 验证与提交
 
-提交时说明变更目的、验证结果和已知限制。运行 `pnpm check` 及受影响的测试；
-渲染改动应检查真实 PNG / SVG，排版改动可用 `pnpm preview:typography` 查看原始 2×、逻辑尺寸和 390px 宽预览。
-关注缺字、长文本换行、图片降级和布局溢出。新增 SVG 特性需补充 PNG 适配器兼容测试。
+- 代码改动运行 `pnpm check` 及受影响的测试；公共渲染链路改动运行完整测试集。
+- 模板和渲染改动检查真实 PNG / SVG，覆盖相关的短文、长文、多语言和缺图场景，关注缺字、换行与溢出；新增 SVG 特性验证 PNG 兼容性。
+- 排版改动可用 `pnpm preview:typography` 查看原始 2×、逻辑尺寸和 390px 宽预览；纯文档改动仅检查内容、链接和差异。
+
+提交时说明变更目的、已执行的验证和已知限制，区分 HTTP 测试、图片检查与浏览器交互验证。

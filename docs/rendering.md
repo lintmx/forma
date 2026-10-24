@@ -18,7 +18,7 @@ PNG 适配器支持常用路径、图形、图片、渐变和裁剪，不支持�
 
 复用 [typography.ts](../src/core/typography.ts) 的语义样式，字号以逻辑像素计。
 正文使用 `context.fontFamily`，代码和等宽内容使用 `context.monospaceFontFamily`；
-测量与最终渲染须使用相同字体、间距和换行规则。
+测量与最终渲染须使用相同字体、间距和换行规则。尺寸策略与测量树要求见[开发指南](development.md#尺寸与排版)。
 
 英文按单词换行，超长词和 URL 可字符级折行。Markdown 支持 GFM 和可见单换行，
 代码块保留缩进与空行，长行视觉折行；原始 HTML 不进入渲染树，不做语法高亮。
@@ -64,17 +64,13 @@ Satori 在开发、测试和构建前按 [源码补丁](../patches/satori-text-l
 
 ## 图片资源
 
-支持 HTTP、HTTPS 和 `file://` 的 PNG / JPEG / WebP 图片，不支持 SVG。
-资源由服务端加载，受超时、字节数、解码像素数和重定向次数限制；模板通过 `assets` 钩子获取资源，
-不直接下载或将用户 URL 交给 Satori。加载失败时应提供占位或替代内容。
+支持 PNG、JPEG、WebP，不支持 SVG 输入；WebP 转为 PNG 后交给渲染器。
+模板通过 `assets` 钩子和请求级 `ImageLoader.get()` 加载资源，组件只读取 `context.assets`，
+不自行下载或将用户 URL 交给 Satori；加载失败时提供占位或替代内容。
 
-请求顶层的 `assetUrlPrefix` 可补全头像、媒体及 Markdown 图片的相对路径，见
-[API 资源 URL 前缀](api.md#资源-url-前缀)。`localhost` 和本地文件路径均相对于服务所在主机或容器，
-本地文件访问使用服务进程的权限。
+HTTP(S) 和 `file://` 资源由服务端加载，受超时、字节数、解码像素数和重定向次数限制，
+按 worker 独立缓存并受容量和有效期限制，不持久化；不同 worker 可能分别下载。
+`localhost` 和本地文件路径相对于服务所在主机或容器，本地文件访问使用服务进程的权限。
 
-图片缓存按 worker 独立管理，受容量和有效期限制，不持久化。
-相同资源可复用缓存，但不同 worker 可能分别下载。
-
-multipart 请求的图片可通过 `asset:id` 引用，具体见 [随请求上传图片](api.md#随请求上传图片)。
-附件在 worker 内校验并解码，WebP 转换为 PNG 后交给渲染器；同一附件只在本次请求内复用，
-不进入远程 URL 缓存，不同请求的相同资源 ID 相互独立。模板仍使用 `assets` 钩子及 `ImageLoader.get()`。
+同一加载器处理 `assetUrlPrefix` 相对路径补全和 `asset:id` 附件引用。附件在 worker 内校验并解码，
+仅在当前请求内复用，不进入跨请求缓存。调用规则见 [资源 URL 前缀](api.md#资源-url-前缀)及[随请求上传图片](api.md#随请求上传图片)。
