@@ -21,46 +21,59 @@ export const article: Template<ArticleData> = {
     const hasTranslation =
       translation &&
       [translation.title, translation.text, translation.model, translation.sourceLanguage].some(value => value?.trim());
-    const byline = [data.author?.trim(), data.publishedAt?.trim()].filter(Boolean).join(' / ');
+    const author = data.author?.trim();
+    const publishedAt = data.publishedAt?.trim();
+    const hasHeader = Boolean(data.title?.trim() || author || publishedAt || data.authorAvatarUrl);
     const avatar = data.authorAvatarUrl ? context.assets[data.authorAvatarUrl] : undefined;
     return (
-      <div style={{ ...column, ...typography.prose, ...textStyle }}>
-        <div style={{ ...column, gap: 18 }}>
-          {Boolean(data.title?.trim()) && <div style={{ display: 'block', ...typography.title }}>{data.title}</div>}
-          {Boolean(byline || data.authorAvatarUrl) && (
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 10 }}>
-              {Boolean(data.authorAvatarUrl) && (
+      <div style={{ ...column, ...typography.prose, ...textStyle, lineHeight: 1.8 }}>
+        <div style={{ ...column, gap: 28 }}>
+          {hasHeader && (
+            <div style={{ ...column, gap: 20, paddingBottom: 24, borderBottom: '0.5px solid ' + colors.border }}>
+              {Boolean(data.title?.trim()) && (
                 <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 36,
-                    height: 36,
-                    flexShrink: 0,
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    backgroundColor: '#eef2f6',
-                    color: colors.muted,
-                    ...typography.meta,
-                    fontWeight: 700,
-                  }}
+                  style={{ display: 'block', ...typography.title, fontSize: 32, lineHeight: 1.3, letterSpacing: -0.6 }}
                 >
-                  {avatar ? (
-                    <img src={avatar} width={36} height={36} style={{ objectFit: 'cover' }} />
-                  ) : (
-                    <span>
-                      {Array.from(data.author?.trim() ?? '')
-                        .slice(0, 2)
-                        .join('')
-                        .toUpperCase() || '?'}
-                    </span>
-                  )}
+                  {data.title}
                 </div>
               )}
-              {Boolean(byline) && (
-                <div style={{ display: 'block', minWidth: 0, flex: 1, ...typography.meta, color: colors.muted }}>
-                  {byline}
+              {Boolean(author || publishedAt || data.authorAvatarUrl) && (
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 12 }}>
+                  {Boolean(data.authorAvatarUrl) && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 36,
+                        height: 36,
+                        flexShrink: 0,
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        backgroundColor: '#eef2f6',
+                        color: colors.muted,
+                        ...typography.meta,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {avatar ? (
+                        <img src={avatar} width={36} height={36} style={{ objectFit: 'cover' }} />
+                      ) : (
+                        <span>
+                          {Array.from(data.author?.trim() ?? '')
+                            .slice(0, 2)
+                            .join('')
+                            .toUpperCase() || '?'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {Boolean(author || publishedAt) && (
+                    <div style={{ ...column, flex: 1, gap: 3, ...typography.meta }}>
+                      {author && <div style={{ display: 'block', fontWeight: 700 }}>{author}</div>}
+                      {publishedAt && <div style={{ display: 'block', color: colors.muted }}>{publishedAt}</div>}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -70,19 +83,30 @@ export const article: Template<ArticleData> = {
             <div
               style={{
                 ...column,
-                gap: 12,
-                padding: 16,
-                border: '1px solid ' + colors.border,
-                borderRadius: 8,
-                backgroundColor: '#f8fafb',
+                gap: 16,
+                paddingTop: 20,
+                borderTop: '0.5px solid ' + colors.border,
               }}
             >
-              <div style={{ display: 'block', color: colors.muted, ...typography.meta }}>
-                {(translation.model?.trim() ? '使用 ' + translation.model.trim() + ' / ' : '') +
-                  (translation.sourceLanguage?.trim() ? '翻译自 ' + translation.sourceLanguage.trim() : '翻译')}
+              <div style={{ display: 'block', width: '100%', ...typography.meta, color: colors.muted, ...textStyle }}>
+                {Boolean(translation.model?.trim()) && (
+                  <>
+                    <span>使用 </span>
+                    <span style={{ color: colors.link }}>{translation.model?.trim()}</span>
+                    <span> </span>
+                  </>
+                )}
+                {translation.sourceLanguage?.trim() ? (
+                  <>
+                    <span>翻译自 </span>
+                    <span style={{ color: colors.link }}>{translation.sourceLanguage.trim()}</span>
+                  </>
+                ) : (
+                  '翻译'
+                )}
               </div>
               {Boolean(translation.title?.trim()) && (
-                <div style={{ display: 'block', ...typography.heading }}>{translation.title}</div>
+                <div style={{ display: 'block', ...typography.body, fontWeight: 700 }}>{translation.title}</div>
               )}
               {Boolean(translation.text?.trim()) && (
                 <ArticleBody text={translation.text!} format={translation.format} context={context} />
@@ -91,7 +115,7 @@ export const article: Template<ArticleData> = {
           )}
           <MediaList media={data.media} layout={data.mediaLayout} assets={context.assets} prefix="article" />
         </div>
-        <SourceFooter source={data.source} url={data.url} marginTop={data.media?.length ? 0 : 12} />
+        <SourceFooter source={data.source} url={data.url} marginTop={data.media?.length ? 12 : 28} />
       </div>
     );
   },

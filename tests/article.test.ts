@@ -144,7 +144,7 @@ it.each(['markdown', 'text'] as const)('renders highlights in both original and 
     },
   };
   const html = renderToStaticMarkup(article.render(data, context));
-  expect([...html.matchAll(/color:#0969da/g)]).toHaveLength(6);
+  expect([...html.matchAll(/color:#0969da/g)]).toHaveLength(8);
   const pngResult = await renderer.render({ template: 'article', format: 'png', data });
   expect(pngResult.warnings).toEqual([]);
   const png = PNG.sync.read(Buffer.from(pngResult.body));
@@ -322,14 +322,14 @@ it('preserves soft breaks, hard breaks and paragraph spacing after typography ch
   expect(paragraph.height).toBeGreaterThan(soft.height);
 });
 
-it('preserves combined emphasis and link decoration, with relative inline code sizing', async () => {
+it('preserves combined emphasis and link decoration, with monospace inline code', async () => {
   const text = '普通 *Italic 中文* **Bold** ***Both*** [~~removed~~](https://example.com) `inline()`';
   const html = renderToStaticMarkup(createElement(ArticleBody, { text, context }));
   expect(html).toMatch(/font-style:italic[^>]*>Italic 中文/);
   expect(html).toMatch(/font-weight:700[^>]*>Bold/);
   expect(html).toMatch(/font-style:italic;font-weight:700[^>]*>Both/);
   expect(html).toContain('text-decoration:underline line-through');
-  expect(html).toContain('font-size:0.9em');
+  expect(html).toContain('font-family:monospace');
   const result = await renderer.render({ template: 'article', data: { content: text }, format: 'png' });
   expect(result.warnings).toEqual([]);
   const normal = await renderer.render({ template: 'article', data: { content: 'Emphasis' }, format: 'png' });

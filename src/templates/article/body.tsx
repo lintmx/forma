@@ -3,7 +3,7 @@ import { type MarkedToken, marked, type Token, type Tokens } from 'marked';
 import type { CSSProperties, ReactNode } from 'react';
 import type { ImageLoader } from '../../core/images.js';
 import type { TemplateContext } from '../../core/types.js';
-import { colors, markdownHeading, proseSpacing, textStyle, typography } from '../../core/typography.js';
+import { colors, proseSpacing, textStyle, typography } from '../../core/typography.js';
 import { highlightTextRuns, type TextRun } from '../shared/highlight.js';
 import type { ArticleData } from './schema.js';
 
@@ -83,7 +83,7 @@ function inlineParts(
         return [
           {
             text: token.text,
-            style: { ...style, fontFamily: context.monospaceFontFamily, fontSize: '0.9em', backgroundColor: '#f1f3f5' },
+            style: { ...style, fontFamily: context.monospaceFontFamily, backgroundColor: colors.surface },
             highlight: false,
           },
         ];
@@ -124,12 +124,18 @@ function Inline({ tokens, context }: { tokens: Token[]; context: TemplateContext
           <img
             key={blocks.length}
             src={source}
-            style={{ maxWidth: '100%', objectFit: 'contain', marginTop: 6, marginBottom: 6 }}
+            style={{ maxWidth: '100%', objectFit: 'contain', marginTop: 12, marginBottom: 12 }}
           />
         ) : (
           <div
             key={blocks.length}
-            style={{ ...paragraph, color: colors.muted, padding: 10, backgroundColor: '#f6f8fa' }}
+            style={{
+              ...paragraph,
+              ...typography.compact,
+              color: colors.muted,
+              padding: 16,
+              backgroundColor: colors.surface,
+            }}
           >
             {part.alt ? '图片加载失败：' + part.alt : '图片加载失败'}
           </div>
@@ -147,8 +153,8 @@ function CodeBlock({ text, context }: { text: string; context: TemplateContext }
     <div
       style={{
         ...column,
-        padding: 12,
-        borderRadius: 6,
+        padding: 16,
+        border: '0.5px solid ' + colors.border,
         backgroundColor: colors.surface,
         ...typography.code,
         fontFamily: context.monospaceFontFamily,
@@ -163,6 +169,9 @@ function CodeBlock({ text, context }: { text: string; context: TemplateContext }
               flexShrink: 0,
               width: Math.max(2, String(lines.length).length) * typography.code.fontSize * 0.6,
               color: colors.muted,
+              paddingRight: 12,
+              boxSizing: 'content-box',
+              borderRight: '0.5px solid ' + colors.border,
             }}
           >
             {index + 1}
@@ -191,12 +200,12 @@ function MarkdownTable({ token, context }: { token: Tokens.Table; context: Templ
     return (
       <div style={{ ...column, ...typography.compact, gap: 12 }}>
         {(token.rows.length ? token.rows : [[]]).map((row, r) => (
-          <div key={r} style={{ ...column, border: '1px solid ' + colors.border, borderRadius: 6 }}>
+          <div key={r} style={{ ...column, borderTop: '0.5px solid ' + colors.border }}>
             <div
               style={{
                 ...column,
                 ...typography.meta,
-                padding: 8,
+                padding: '10px 12px',
                 color: colors.muted,
                 backgroundColor: colors.surface,
               }}
@@ -204,7 +213,10 @@ function MarkdownTable({ token, context }: { token: Tokens.Table; context: Templ
               {token.rows.length ? '记录 ' + (r + 1) : '表头'}
             </div>
             {token.header.map((header, c) => (
-              <div key={c} style={{ ...column, gap: 4, padding: 10, borderTop: '1px solid ' + colors.border }}>
+              <div
+                key={c}
+                style={{ ...column, gap: 4, padding: '10px 12px', borderTop: '0.5px solid ' + colors.border }}
+              >
                 <div style={{ ...column, fontWeight: 700 }}>
                   <Inline tokens={header.tokens} context={context} />
                 </div>
@@ -221,7 +233,14 @@ function MarkdownTable({ token, context }: { token: Tokens.Table; context: Templ
   );
   const total = demands.reduce((sum, value) => sum + value, 0);
   return (
-    <div style={{ ...column, border: '1px solid ' + colors.border, ...typography.compact }}>
+    <div
+      style={{
+        ...column,
+        borderTop: '0.5px solid ' + colors.border,
+        borderBottom: '0.5px solid ' + colors.border,
+        ...typography.compact,
+      }}
+    >
       {[token.header, ...token.rows].map((row, r) => (
         <div
           key={r}
@@ -230,7 +249,7 @@ function MarkdownTable({ token, context }: { token: Tokens.Table; context: Templ
             width: '100%',
             backgroundColor: r === 0 ? colors.surface : undefined,
             fontWeight: r === 0 ? 700 : 400,
-            borderTop: r ? '1px solid ' + colors.border : undefined,
+            borderTop: r ? '0.5px solid ' + colors.border : undefined,
           }}
         >
           {row.map((cell, c) => (
@@ -239,8 +258,7 @@ function MarkdownTable({ token, context }: { token: Tokens.Table; context: Templ
               style={{
                 ...column,
                 width: (100 * demands[c]!) / total + '%',
-                padding: 8,
-                borderLeft: c ? '1px solid ' + colors.border : undefined,
+                padding: '10px 12px',
                 textAlign: cell.align ?? 'left',
               }}
             >
@@ -255,7 +273,7 @@ function MarkdownTable({ token, context }: { token: Tokens.Table; context: Templ
 
 function Blocks({ tokens, context, tight = false }: { tokens: Token[]; context: TemplateContext; tight?: boolean }) {
   return (
-    <div style={{ ...column, gap: tight ? 4 : proseSpacing.paragraph }}>
+    <div style={{ ...column, gap: tight ? 4 : 16 }}>
       {tokens.map((raw, index) => {
         const token = raw as MarkedToken;
         switch (token.type) {
@@ -272,25 +290,32 @@ function Blocks({ tokens, context, tight = false }: { tokens: Token[]; context: 
                 key={index}
                 style={{
                   ...column,
-                  ...markdownHeading(token.depth),
-                  marginTop: index === 0 ? 0 : proseSpacing.headingBefore - proseSpacing.paragraph,
+                  ...(token.depth <= 3 ? typography.body : typography.compact),
+                  ...(token.depth === 1 ? { ...typography.title, fontSize: 32, letterSpacing: -0.6 } : {}),
+                  fontWeight: 700,
+                  color: token.depth === 6 ? colors.muted : colors.ink,
+                  marginTop: index === 0 ? 0 : token.depth <= 2 ? 12 : 4,
                 }}
               >
                 <Inline tokens={token.tokens} context={context} />
               </div>
             );
           case 'hr':
-            return <div key={index} style={{ width: '100%', height: 1, backgroundColor: colors.border }} />;
+            return (
+              <div
+                key={index}
+                style={{ width: '100%', height: 0.5, marginTop: 8, marginBottom: 8, backgroundColor: colors.border }}
+              />
+            );
           case 'blockquote':
             return (
               <div
                 key={index}
                 style={{
                   ...column,
-                  borderLeft: '3px solid #cbd5e1',
-                  padding: '4px 16px',
-                  color: colors.ink,
-                  backgroundColor: colors.surface,
+                  borderLeft: '0.5px solid ' + colors.muted,
+                  padding: '8px 20px',
+                  color: colors.muted,
                 }}
               >
                 <Blocks tokens={token.tokens} context={context} />
@@ -303,7 +328,15 @@ function Blocks({ tokens, context, tight = false }: { tokens: Token[]; context: 
               <div key={index} style={{ ...column, gap: proseSpacing.listItem }}>
                 {token.items.map((item, i) => (
                   <div key={i} style={{ display: 'flex', width: '100%', gap: 8 }}>
-                    <div style={{ ...textStyle, flexShrink: 0, minWidth: proseSpacing.indent, textAlign: 'right' }}>
+                    <div
+                      style={{
+                        ...textStyle,
+                        flexShrink: 0,
+                        minWidth: proseSpacing.indent,
+                        textAlign: 'right',
+                        color: colors.muted,
+                      }}
+                    >
                       {item.task ? (item.checked ? '[x]' : '[ ]') : token.ordered ? Number(token.start) + i + '.' : '•'}
                     </div>
                     <div style={{ ...column, flex: 1 }}>
