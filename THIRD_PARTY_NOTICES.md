@@ -116,12 +116,49 @@ Runtime and build dependency licenses remain with their respective packages.
 
 ## Brand logos
 
-The YouTube, Bilibili, Twitter and X paths embedded in
+The YouTube, Bilibili, Twitter, X, Sina Weibo, Instagram and GitHub paths embedded in
 [SourceFooter](src/templates/shared/source-footer.tsx) come from
 [Simple Icons 9.21.0](https://github.com/simple-icons/simple-icons/tree/9.21.0/icons),
 distributed under [CC0 1.0](https://github.com/simple-icons/simple-icons/blob/9.21.0/LICENSE.md).
 The paths are unchanged; display size, viewport and color are set by Forma.
 Brand names and trademarks remain the property of their respective owners.
+
+The Xiaohongshu path comes from
+[Simple Icons 15.22.0](https://github.com/simple-icons/simple-icons/blob/15.22.0/icons/xiaohongshu.svg),
+distributed under [CC0 1.0](https://github.com/simple-icons/simple-icons/blob/15.22.0/LICENSE.md).
+Its path is unchanged; Forma sets its display size, viewport and color.
+
+The Bangumi paths come from the
+[Bangumi iOS logo](https://github.com/bangumi/Bangumi-iOS/blob/66d5b658ab6900369eb94b0a3697360ae380c610/logo.svg).
+Forma combines its outline and face paths with a single fill, omitting the white
+background and gradients. The source is distributed under the MIT License:
+
+> Copyright (c) 2025 Bangumi
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
+
+The Replive mark is adapted from the [official site logo](https://replive.com/icons/logo.svg),
+using its symbol paths with a single fill and omitting the background, wordmark,
+gradients and shadows. The Chokume mark is a simplified monochrome vector
+adaptation of the [official site icon](https://ani.chokume.com/apple-touch-icon.png).
+These marks are used to identify their respective sources; they are not covered
+by Simple Icons' CC0 license. All rights remain with their respective owners.
 
 ## Satori local source patch
 

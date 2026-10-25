@@ -176,6 +176,13 @@ JSON 损坏仍返回 `400 INVALID_JSON`，请求及模板 Schema 错误仍返回
 | Bilibili Live | `Bilibili Live`、`哔哩哔哩直播`、`B站直播`（使用 Bilibili Logo） |
 | Twitter | `Twitter`、`推特` |
 | X | `X` |
+| 微博 | `微博`、`新浪微博`、`Weibo`、`Sina Weibo`、`SinaWeibo` |
+| 小红书 | `小红书`、`Xiaohongshu`、`XHS` |
+| Instagram | `Instagram`、`Ins`、`IG` |
+| GitHub | `GitHub` |
+| Bangumi | `Bangumi`、`BGM`、`番组计划` |
+| Replive | `Replive` |
+| チョクメ！ | `Chokume`、`チョクメ`、`チョクメ!`、`チョクメ！` |
 
 其他来源保留输入文字，不补占位图标，也不根据链接推断品牌。仅有链接时靠左显示；两项均为空时隐藏底部。
 来源与链接保持单行，空间不足时优先压缩链接；超长来源也会省略，不缩小字号。
