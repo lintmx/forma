@@ -79,7 +79,7 @@ docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/lintmx/forma:latest
 排队任务取消只移出队列，服务关闭时等待所有执行单元退出。
 
 每个 worker 独立缓存字体和图片，提高并发会增加内存占用。
-Takumi 直接编码 2× PNG；旧的 `MAX_RASTER_PIXELS` 已移除，部署时删除该配置。
+Takumi 直接编码高清 PNG；旧的 `MAX_RASTER_PIXELS` 已移除，部署时删除该配置。
 原始图片缓存默认每进程 32 MiB，Takumi 资源缓存另有 32 MiB，字形缓存为 8 MiB；字体、画布和进程开销另计。
 监控内存时累加主进程和所有渲染子进程 RSS，不能仅使用主进程内存。
 超限请求会被拒绝，不会自动降低采样倍率；按实际 CPU、内存和负载调整配置。

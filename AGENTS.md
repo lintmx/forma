@@ -37,7 +37,7 @@ Forma 将 JSON 数据通过 TypeScript / TSX 模板渲染为 PNG，提供 HTTP A
 - `render` 只返回内部内容；公共外框、背景、边距、水印由 `src/core/card.tsx` 的 `CardFrame` 负责。
   `watermark` 等通用选项放在请求顶层，不放入模板 `data`。
 - 当前管线为 TSX 经 fromJsx 转换，Takumi 在持久子进程内测量、绘制并直接编码 PNG。
-  PNG 固定输出 2×，不提供 SVG 输出；请求不接受 `scale`。不要将浏览器 CSS 支持范围等同于渲染器能力。
+  输出高清 PNG，不提供 SVG 输出；请求不接受 `scale`。不要将浏览器 CSS 支持范围等同于渲染器能力。
 - 复用 `src/core/typography.ts` 的语义排版；等宽内容显式使用 `context.monospaceFontFamily`。
   使用与最终渲染相同的字体和间距测量真实布局，不按字符数估算高度。
 - 图片通过模板 `assets` 钩子及传入的 `ImageLoader` 加载，组件从 `context.assets` 读取。

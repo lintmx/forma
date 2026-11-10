@@ -9,7 +9,6 @@ interface Preview {
   height: number;
   layoutWidth: number;
   layoutHeight: number;
-  scale: number;
   elapsed: number;
   bytes: number;
   warnings: string;
@@ -99,7 +98,6 @@ function App() {
           height: Number(response.headers.get('X-Image-Height')),
           layoutWidth: Number(response.headers.get('X-Layout-Width')),
           layoutHeight: Number(response.headers.get('X-Layout-Height')),
-          scale: Number(response.headers.get('X-Render-Scale')),
           elapsed: Math.round(performance.now() - start),
           warnings: response.headers.get('X-Render-Warnings') ?? '',
           source,
@@ -155,7 +153,7 @@ function App() {
       const url = URL.createObjectURL(await response.blob());
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = selected + '-' + presetId + '@2x.png';
+      anchor.download = selected + '-' + presetId + '.png';
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
@@ -376,14 +374,12 @@ function App() {
                       ' × ' +
                       preview.height +
                       ' px / ' +
-                      preview.scale +
-                      '× / ' +
                       preview.elapsed +
                       ' ms / ' +
                       formatBytes(preview.bytes)
                     : '等待生成'}
                 </span>
-                <span>PNG / 2×</span>
+                <span>高清 PNG</span>
               </div>
               {preview?.warnings && <div className="warning">{renderWarningMessage(preview.warnings)}</div>}
               <div className="downloads">
@@ -399,7 +395,7 @@ function App() {
                   </span>
                 </button>
               </div>
-              <p className="preview-note">点击图片查看原图，下载 2× 高清 PNG。</p>
+              <p className="preview-note">点击图片查看原图，下载高清 PNG。</p>
             </div>
           </section>
         </div>

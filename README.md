@@ -30,7 +30,7 @@ curl --fail-with-body http://localhost:3000/v1/render \
   --output example.png
 ```
 
-接口直接返回图片二进制。PNG 固定为 2× 输出；`format` 可省略或设为 `png`。
+接口直接返回高清 PNG 图片二进制；`format` 可省略或设为 `png`。
 可选的 `watermark` 放在请求顶层，`data` 只包含模板业务数据。
 
 通过 `GET /v1/templates` 查看可用模板、Schema 和示例；具体字段也可在 Playground 中查看。

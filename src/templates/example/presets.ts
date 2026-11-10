@@ -10,7 +10,7 @@ export const examplePresets: NonNullable<Template<{ text: string; monospace?: bo
     id: 'monospace',
     name: '等宽文本',
     data: {
-      text: 'Forma 配置\nformat    png\nscale     2×\nstatus    ready\n\nconst message = "你好，世界";\nconsole.log(message);',
+      text: 'Forma 配置\nformat    png\nstatus    ready\n\nconst message = "你好，世界";\nconsole.log(message);',
       monospace: true,
     },
   },

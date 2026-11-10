@@ -44,7 +44,7 @@ API 不会根据预设 ID 查找配置，也不会自动添加水印。
 
 请求顶层及模板业务对象拒绝未知字段；嵌套字段按对应 Schema 校验。
 `watermark`、`assetUrlPrefix` 不属于 `data`。接口不接受 `scale`、任意 JSX、HTML、CSS 或可执行代码。
-PNG 固定输出 2×。`format: "svg"` 返回 400 `VALIDATION_ERROR`，详情路径为 `format`。
+输出高清 PNG。`format: "svg"` 返回 400 `VALIDATION_ERROR`，详情路径为 `format`。
 
 ### 资源 URL 前缀
 
