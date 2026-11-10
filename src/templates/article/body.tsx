@@ -1,6 +1,7 @@
 import { decodeHTML } from 'entities';
 import { type MarkedToken, marked, type Token, type Tokens } from 'marked';
-import type { CSSProperties, ReactNode } from 'react';
+import { type CSSProperties, Fragment, type ReactNode } from 'react';
+import { cardContentInset } from '../../core/card.js';
 import type { ImageLoader } from '../../core/images.js';
 import type { TemplateContext } from '../../core/types.js';
 import { colors, proseSpacing, textStyle, typography } from '../../core/typography.js';
@@ -37,7 +38,7 @@ export async function loadArticleImages(data: ArticleData, images: ImageLoader) 
     });
   }
   const assets: TemplateContext['assets'] = Object.create(null);
-  // Load through the existing bounded image store, never from Satori.
+  // Load through the existing bounded image store, never from the rendering engine.
   for (const url of urls) assets[url] = await images.get(url).catch(() => undefined);
   data.media?.forEach((item, index) => {
     assets['article-media-' + index] = assets[item.previewUrl ?? item.url];
@@ -123,7 +124,7 @@ function Inline({ tokens, context }: { tokens: Token[]; context: TemplateContext
         source ? (
           <img
             key={blocks.length}
-            src={source}
+            src={source.src}
             style={{ maxWidth: '100%', objectFit: 'contain', marginTop: 12, marginBottom: 12 }}
           />
         ) : (
@@ -148,11 +149,12 @@ function Inline({ tokens, context }: { tokens: Token[]; context: TemplateContext
 }
 
 function CodeBlock({ text, context }: { text: string; context: TemplateContext }) {
-  const lines = text.split('\n');
   return (
     <div
       style={{
-        ...column,
+        display: 'grid',
+        gridTemplateColumns: 'max-content minmax(0, 1fr)',
+        columnGap: 12,
         padding: 16,
         border: '0.5px solid ' + colors.border,
         backgroundColor: colors.surface,
@@ -160,118 +162,70 @@ function CodeBlock({ text, context }: { text: string; context: TemplateContext }
         fontFamily: context.monospaceFontFamily,
       }}
     >
-      {lines.map((line, index) => (
-        <div key={index} style={{ display: 'flex', width: '100%', minWidth: 0, alignItems: 'baseline', gap: 12 }}>
+      {text.split('\n').map((line, index) => (
+        <Fragment key={index}>
           <div
             style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              flexShrink: 0,
-              width: Math.max(2, String(lines.length).length) * typography.code.fontSize * 0.6,
               color: colors.muted,
               paddingRight: 12,
-              boxSizing: 'content-box',
+              textAlign: 'right',
               borderRight: '0.5px solid ' + colors.border,
             }}
           >
             {index + 1}
           </div>
-          <div style={{ ...paragraph, flex: 1, width: undefined }}>{line.replace(/\t/g, '    ') || '\u00a0'}</div>
-        </div>
+          <div style={paragraph}>{line.replace(/\t/g, '    ') || '\u00a0'}</div>
+        </Fragment>
       ))}
     </div>
   );
 }
 
-// Use visible text demand only to distribute the available table width. Actual
-// glyph layout/wrapping remains Satori's job; a long URL cannot monopolize it.
-function cellDemand(cell: Tokens.TableCell, context: TemplateContext) {
-  const text = inlineParts(cell.tokens, context)
-    .map(part => ('text' in part ? part.text : part.alt))
-    .join('');
-  const length = Array.from(text).reduce((sum, char) => sum + (char.codePointAt(0)! > 255 ? 2 : 1), 0);
-  return Math.max(8, Math.min(32, length));
-}
-
-function MarkdownTable({ token, context }: { token: Tokens.Table; context: TemplateContext }) {
-  // More than four columns becomes labeled records instead of unreadably narrow
-  // cells. All values and their column headings remain present in the image.
-  if (token.header.length > 4) {
-    return (
-      <div style={{ ...column, ...typography.compact, gap: 12 }}>
-        {(token.rows.length ? token.rows : [[]]).map((row, r) => (
-          <div key={r} style={{ ...column, borderTop: '0.5px solid ' + colors.border }}>
-            <div
-              style={{
-                ...column,
-                ...typography.meta,
-                padding: '10px 12px',
-                color: colors.muted,
-                backgroundColor: colors.surface,
-              }}
-            >
-              {token.rows.length ? '记录 ' + (r + 1) : '表头'}
-            </div>
-            {token.header.map((header, c) => (
-              <div
-                key={c}
-                style={{ ...column, gap: 4, padding: '10px 12px', borderTop: '0.5px solid ' + colors.border }}
-              >
-                <div style={{ ...column, fontWeight: 700 }}>
-                  <Inline tokens={header.tokens} context={context} />
-                </div>
-                <Inline tokens={row[c]?.tokens ?? []} context={context} />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    );
-  }
-  const demands = token.header.map((cell, c) =>
-    Math.max(cellDemand(cell, context), ...token.rows.map(row => (row[c] ? cellDemand(row[c]!, context) : 8))),
-  );
-  const total = demands.reduce((sum, value) => sum + value, 0);
+function MarkdownTable({ token, context, width }: { token: Tokens.Table; context: TemplateContext; width: number }) {
   return (
-    <div
-      style={{
-        ...column,
-        borderTop: '0.5px solid ' + colors.border,
-        borderBottom: '0.5px solid ' + colors.border,
-        ...typography.compact,
-      }}
+    <table
+      data-forma-table-width={width}
+      style={{ width: '100%', borderCollapse: 'collapse', ...typography.compact, fontFamily: context.fontFamily }}
     >
-      {[token.header, ...token.rows].map((row, r) => (
-        <div
-          key={r}
-          style={{
-            display: 'flex',
-            width: '100%',
-            backgroundColor: r === 0 ? colors.surface : undefined,
-            fontWeight: r === 0 ? 700 : 400,
-            borderTop: r ? '0.5px solid ' + colors.border : undefined,
-          }}
-        >
-          {row.map((cell, c) => (
-            <div
-              key={c}
-              style={{
-                ...column,
-                width: (100 * demands[c]!) / total + '%',
-                padding: '10px 12px',
-                textAlign: cell.align ?? 'left',
-              }}
-            >
-              <Inline tokens={cell.tokens} context={context} />
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
+      <tbody>
+        {[token.header, ...token.rows].map((row, r) => (
+          <tr
+            key={r}
+            style={{ backgroundColor: r === 0 ? colors.surface : undefined, fontWeight: r === 0 ? 700 : 400 }}
+          >
+            {row.map((cell, c) => (
+              <td
+                key={c}
+                style={{
+                  minWidth: 72,
+                  padding: '10px 12px',
+                  borderTop: '0.5px solid ' + colors.border,
+                  borderBottom: '0.5px solid ' + colors.border,
+                  textAlign: cell.align ?? 'left',
+                  verticalAlign: 'top',
+                }}
+              >
+                <Inline tokens={cell.tokens} context={context} />
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
-function Blocks({ tokens, context, tight = false }: { tokens: Token[]; context: TemplateContext; tight?: boolean }) {
+function Blocks({
+  tokens,
+  context,
+  tight = false,
+  width = 700 - cardContentInset,
+}: {
+  tokens: Token[];
+  context: TemplateContext;
+  tight?: boolean;
+  width?: number;
+}) {
   return (
     <div style={{ ...column, gap: tight ? 4 : 16 }}>
       {tokens.map((raw, index) => {
@@ -318,7 +272,7 @@ function Blocks({ tokens, context, tight = false }: { tokens: Token[]; context: 
                   color: colors.muted,
                 }}
               >
-                <Blocks tokens={token.tokens} context={context} />
+                <Blocks tokens={token.tokens} context={context} width={width - 40.5} />
               </div>
             );
           case 'code':
@@ -340,14 +294,19 @@ function Blocks({ tokens, context, tight = false }: { tokens: Token[]; context: 
                       {item.task ? (item.checked ? '[x]' : '[ ]') : token.ordered ? Number(token.start) + i + '.' : '•'}
                     </div>
                     <div style={{ ...column, flex: 1 }}>
-                      <Blocks tokens={item.tokens} context={context} tight={!token.loose} />
+                      <Blocks
+                        tokens={item.tokens}
+                        context={context}
+                        tight={!token.loose}
+                        width={width - proseSpacing.indent - 8}
+                      />
                     </div>
                   </div>
                 ))}
               </div>
             );
           case 'table':
-            return <MarkdownTable key={index} token={token} context={context} />;
+            return <MarkdownTable key={index} token={token} context={context} width={width} />;
           default:
             return null;
         }

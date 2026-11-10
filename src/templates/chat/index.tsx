@@ -1,4 +1,3 @@
-import { imageSize } from 'image-size';
 import type { CSSProperties } from 'react';
 import type { Template, TemplateContext } from '../../core/types.js';
 import { textStyle, typography } from '../../core/typography.js';
@@ -38,7 +37,7 @@ function Message({
         >
           <div style={{ display: 'block' }}>{message.text}</div>
           {message.translation && (
-            <div style={{ display: 'block', paddingTop: 6, borderTop: '1px solid #d5dfea', ...textStyle }}>
+            <div style={{ display: 'block', paddingTop: 6, borderTop: '0.5px solid #d5dfea', ...textStyle }}>
               {message.translation}
             </div>
           )}
@@ -63,14 +62,13 @@ function Message({
   const self = message.side === 'right';
   const avatar = assets[index + '-avatar'];
   const picture = assets[index + '-image'];
-  const size = picture ? imageSize(Buffer.from(picture.slice(picture.indexOf(',') + 1), 'base64')) : undefined;
-  const ratio = size ? size.width / size.height : 4 / 3;
+  const ratio = picture ? picture.width / picture.height : 4 / 3;
   const imageWidth = Math.min(320, 360 * ratio);
   return (
     <div style={{ ...column, width: '100%', gap: 16 }}>
       {message.time && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '2px 0' }}>
-          <div style={{ width: 24, height: 1, backgroundColor: '#d5dfea', flexShrink: 0 }} />
+          <div style={{ width: 24, height: 0.5, backgroundColor: '#d5dfea', flexShrink: 0 }} />
           <div
             style={{
               display: 'block',
@@ -83,7 +81,7 @@ function Message({
           >
             {message.time}
           </div>
-          <div style={{ width: 24, height: 1, backgroundColor: '#d5dfea', flexShrink: 0 }} />
+          <div style={{ width: 24, height: 0.5, backgroundColor: '#d5dfea', flexShrink: 0 }} />
         </div>
       )}
       <div
@@ -109,13 +107,13 @@ function Message({
             overflow: 'hidden',
             backgroundColor: self ? '#dcecff' : '#e2eaf8',
             color: self ? '#326397' : '#47618c',
-            border: '1px solid rgba(255,255,255,0.9)',
+            border: '0.5px solid rgba(255,255,255,0.9)',
             ...typography.body,
             fontWeight: 700,
           }}
         >
           {avatar ? (
-            <img src={avatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={avatar.src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <span>{Array.from(message.name || (self ? '我' : '友'))[0]}</span>
           )}
@@ -142,7 +140,7 @@ function Message({
               maxWidth: '100%',
               padding: message.type === 'text' ? '10px 13px' : 4,
               borderRadius: self ? '16px 6px 16px 16px' : '6px 16px 16px 16px',
-              border: '1px solid ' + (self ? blue : '#e3eaf2'),
+              border: '0.5px solid ' + (self ? blue : '#e3eaf2'),
               backgroundColor: self ? blue : '#fff',
               backgroundImage: self ? 'linear-gradient(145deg, #0874dd, #0864cc)' : undefined,
               color: self ? '#fff' : '#253247',
@@ -166,7 +164,12 @@ function Message({
                 }}
               >
                 {picture ? (
-                  <img src={picture} width={imageWidth} height={imageWidth / ratio} style={{ objectFit: 'contain' }} />
+                  <img
+                    src={picture.src}
+                    width={imageWidth}
+                    height={imageWidth / ratio}
+                    style={{ objectFit: 'contain' }}
+                  />
                 ) : (
                   <div style={{ ...column, alignItems: 'center', padding: 14, gap: 8, width: '100%' }}>
                     <div style={{ display: 'block', ...typography.compact }}>图片加载失败</div>
@@ -194,7 +197,7 @@ function Message({
                   maxWidth: '100%',
                   margin: message.type === 'text' ? '8px 0 0' : '8px 9px 6px',
                   paddingTop: 8,
-                  borderTop: '1px solid ' + (self ? 'rgba(255,255,255,0.3)' : '#e3eaf2'),
+                  borderTop: '0.5px solid ' + (self ? 'rgba(255,255,255,0.3)' : '#e3eaf2'),
                   color: self ? '#e6f1ff' : muted,
                 }}
               >
@@ -272,43 +275,6 @@ export const chat: Template<ChatData> = {
     );
     return Object.fromEntries(entries);
   },
-  measure: data => {
-    const line = (text: string | undefined, style: CSSProperties, inset: number) =>
-      text ? (
-        <div data-measure style={{ display: 'flex', ...style, whiteSpace: 'pre', marginLeft: inset }}>
-          {text}
-        </div>
-      ) : null;
-    return (
-      <div style={{ ...column, alignItems: 'flex-start' }}>
-        {line(data.title, { ...typography.large, fontWeight: 700 }, 42)}
-        {line(data.subtitle, typography.meta, 42)}
-        {data.messages.map((message, index) => (
-          <div key={index} style={{ ...column, alignItems: 'flex-start' }}>
-            {message.type === 'system' ? (
-              <>
-                {line(message.text, typography.meta, 24)}
-                {line(message.translation, typography.meta, 24)}
-                {line(message.sentAt, typography.meta, 14)}
-              </>
-            ) : (
-              <>
-                {line(message.name, typography.meta, 62)}
-                {line(message.time, typography.meta, 50)}
-                {line(message.sentAt, typography.meta, 62)}
-                {message.type === 'text' ? (
-                  line(message.text, typography.body, 74)
-                ) : (
-                  <div data-measure style={{ display: 'flex', width: 320, height: 1, marginLeft: 65 }} />
-                )}
-                {line(message.translation, typography.compact, 74)}
-              </>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  },
   render: (data, context) => (
     <div style={{ ...column, width: '100%', color: '#253247' }}>
       <div style={{ display: 'flex', alignItems: 'center', padding: '2px 2px 16px', gap: 16 }}>
@@ -385,7 +351,7 @@ export const chat: Template<ChatData> = {
               height: 36,
               padding: '0 12px',
               borderRadius: 10,
-              border: '1px solid #e3eaf2',
+              border: '0.5px solid #e3eaf2',
               backgroundColor: '#f5f7fb',
               color: muted,
               ...typography.compact,

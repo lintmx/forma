@@ -1,12 +1,12 @@
-import { imageSize } from 'image-size';
 import type { CSSProperties, ReactNode } from 'react';
+import type { ImageAsset } from '../../core/images.js';
 import type { TemplateContext } from '../../core/types.js';
 import { colors, typography } from '../../core/typography.js';
 import type { Media, MediaLayout } from './media-schema.js';
 
-function imageRatio(source?: string) {
+function imageRatio(source?: ImageAsset) {
   if (!source) return 4 / 3;
-  const { width, height } = imageSize(Buffer.from(source.slice(source.indexOf(',') + 1), 'base64'));
+  const { width, height } = source;
   return width / height;
 }
 
@@ -17,7 +17,7 @@ function MediaItem({
   cropped = false,
 }: {
   item: Media;
-  source?: string;
+  source?: ImageAsset;
   style?: CSSProperties;
   cropped?: boolean;
 }) {
@@ -38,7 +38,7 @@ function MediaItem({
     >
       {source ? (
         <img
-          src={source}
+          src={source.src}
           alt={item.alt ?? ''}
           style={{
             position: 'absolute',
@@ -66,20 +66,22 @@ function MediaItem({
         </div>
       )}
       {item.type === 'video' && (
-        <svg
-          width={52}
-          height={52}
-          viewBox="0 0 52 52"
+        <div
           style={{
+            display: 'flex',
             position: 'absolute',
             left: '50%',
             top: '50%',
+            width: 52,
+            height: 52,
             transform: 'translate(-50%, -50%)',
           }}
         >
-          <circle cx="26" cy="26" r="26" fill="rgba(0,0,0,0.75)" />
-          <path d="M21 15L37 26L21 37Z" fill="#fff" />
-        </svg>
+          <svg width={52} height={52} viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="26" fill="rgba(0,0,0,0.75)" />
+            <path d="M21 15L37 26L21 37Z" fill="#fff" />
+          </svg>
+        </div>
       )}
       {(item.type === 'gif' || (item.type === 'audio' && item.previewUrl)) && (
         <div
@@ -178,7 +180,7 @@ export function MediaList({
         width: '100%',
         marginBottom: 12,
         overflow: 'hidden',
-        border: '1px solid #e5e7eb',
+        border: '0.5px solid #e5e7eb',
         borderRadius: 16,
         backgroundColor: '#e5e7eb',
       }}

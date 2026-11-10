@@ -1,4 +1,3 @@
-import './prepare-satori.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import sharp from 'sharp';
@@ -160,9 +159,7 @@ const results = [];
 for (const { name, request } of samples) {
   const result = await renderer.render(request);
   if (result.warnings.length) throw new Error(name + ': ' + result.warnings.join(', '));
-  const svg = await renderer.render({ ...request, format: 'svg' });
   await writeFile(resolve(directory, name + '.png'), result.body);
-  await writeFile(resolve(directory, name + '.svg'), svg.body);
   await sharp(result.body)
     .resize(result.layoutWidth)
     .png()

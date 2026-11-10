@@ -85,7 +85,7 @@ export function pageResponse(page: 'home' | 'not-found', playground: boolean) {
           <p class="description">给内容一个清晰的形状。将 JSON 交给 Forma，让文字、动态与想法，成为值得分享的图片。</p>
           <div class="actions">${playgroundLink}<a class="text-link" href="#process">了解工作方式 <span aria-hidden="true">↓</span></a></div>
           ${playground ? '' : '<p class="note">当前实例未开放 Playground。</p>'}
-          <div class="formats"><span>JSON → IMAGE</span><span>PNG / SVG</span></div>
+          <div class="formats"><span>JSON → IMAGE</span><span>PNG / 2×</span></div>
         </div>
         <figure class="specimen" aria-label="从结构化数据到视觉作品的排版示意">
           <div class="specimen-label">FORMA / COMPOSITION STUDY</div>
@@ -114,7 +114,7 @@ export function pageResponse(page: 'home' | 'not-found', playground: boolean) {
         <div class="features">
           <div class="feature"><span class="number">01 / INPUT</span><h2>内容先行</h2><p>用 JSON 描述内容。文本、社交动态、文章与对比，都有合适的表达方式。</p></div>
           <div class="feature"><span class="number">02 / COMPOSE</span><h2>让排版自然发生</h2><p>选择模板，调整数据。在 Playground 中实时查看真正的图片输出。</p></div>
-          <div class="feature"><span class="number">03 / SHARE</span><h2>准备好，被看见</h2><p>下载高清 PNG 或矢量 SVG，也可通过 HTTP API 接入你的应用。</p></div>
+          <div class="feature"><span class="number">03 / SHARE</span><h2>准备好，被看见</h2><p>下载高清 PNG，也可通过 HTTP API 接入你的应用。</p></div>
         </div>
       </section>`
     : `<p class="error-code" aria-hidden="true">404 / NOT FOUND</p>
@@ -128,7 +128,7 @@ export function pageResponse(page: 'home' | 'not-found', playground: boolean) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f3ee">
-  <meta name="description" content="Forma 将 JSON 数据通过模板渲染为 PNG 或 SVG，提供 HTTP API 和在线 Playground。">
+  <meta name="description" content="Forma 将 JSON 数据通过模板渲染为 PNG，提供 HTTP API 和在线 Playground。">
   ${home ? '' : '<meta name="robots" content="noindex">'}
   <title>${home ? 'Forma / 让数据成为图片' : '404 / 页面未找到 / Forma'}</title>
   <link rel="icon" type="image/svg+xml" href="${logo}">

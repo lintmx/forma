@@ -160,11 +160,17 @@ adaptation of the [official site icon](https://ani.chokume.com/apple-touch-icon.
 These marks are used to identify their respective sources; they are not covered
 by Simple Icons' CC0 license. All rights remain with their respective owners.
 
-## Satori local source patch
+## Takumi
 
-Satori 0.62.0 is distributed under the Mozilla Public License 2.0; its license
-is included in the dependency package. Forma modifies its text layout and font
-shaping code and retains its inline SVG fragment ID fix. The readable changes
-are provided in [patches/satori-text-layout.source.patch](patches/satori-text-layout.source.patch),
-with reproducible bundle generation in
-[scripts/build-satori-patch.mjs](scripts/build-satori-patch.mjs).
+`@takumi-rs/core` and `@takumi-rs/helpers` 2.20.0 are distributed under MIT OR Apache-2.0.
+Source: [kane50613/takumi at the 2.20.0 release](https://github.com/kane50613/takumi/tree/ae2a35011e5cddedb0a4c8b33ab0c9242ca76b2d).
+The npm packages omit license files, so Forma includes copies of the upstream
+[MIT license](licenses/takumi/LICENSE-MIT), [Apache license](licenses/takumi/LICENSE-APACHE),
+and [third-party notices](licenses/takumi/THIRD-PARTY-NOTICES.md), together with their
+referenced notices, in the source tree and runtime image.
+
+The renderer's bundled Geist 1.500 fallback font is copyright 2024 The Geist Project Authors
+and distributed under the SIL Open Font License 1.1; see
+[licenses/takumi/Geist-OFL.txt](licenses/takumi/Geist-OFL.txt), copied from
+[Geist 1.5.0](https://github.com/vercel/geist-font/blob/2d00e8e0be75923c8fed0ff5deb559f5b2a16a5d/OFL.txt).
+Forma additionally registers the local fonts listed above and does not distribute modified Takumi binaries.

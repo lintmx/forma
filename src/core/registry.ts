@@ -30,8 +30,6 @@ export class TemplateRegistry {
       presetIds.add(parsed.id);
       return { ...parsed, data: preset.data };
     });
-    if (template.sizing.mode === 'content' && !template.measure)
-      throw new Error('Content templates require an intrinsic measure tree');
     this.templates.set(template.id, {
       ...template,
       schema,

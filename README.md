@@ -1,9 +1,9 @@
 # Forma
 
-基于 TypeScript 和 TSX 模板的卡片渲染服务，将 JSON 数据转换为 PNG 或 SVG，适用于消息卡片、内容分享和数据展示。
+基于 TypeScript 和 TSX 模板的卡片渲染服务，将 JSON 数据转换为 PNG，适用于消息卡片、内容分享和数据展示。
 
 - **Schema 驱动**：通过 Zod 校验数据，模板 API 提供字段定义和示例。
-- **无需浏览器**：使用 Satori、Skia Canvas 和 Sharp 渲染，支持本地字体与 Emoji。
+- **无需浏览器**：使用 Takumi 直接渲染 PNG，支持本地字体与 Emoji。
 - **即时预览**：内置 Playground，预览与下载使用同一渲染 API。
 - **独立部署**：支持 Node.js 和 Docker，无需数据库或 Redis。
 
@@ -30,7 +30,7 @@ curl --fail-with-body http://localhost:3000/v1/render \
   --output example.png
 ```
 
-接口直接返回图片二进制。PNG 固定为 2× 输出；将 `format` 改为 `svg` 可获取原始布局尺寸的矢量图。
+接口直接返回图片二进制。PNG 固定为 2× 输出；`format` 可省略或设为 `png`。
 可选的 `watermark` 放在请求顶层，`data` 只包含模板业务数据。
 
 通过 `GET /v1/templates` 查看可用模板、Schema 和示例；具体字段也可在 Playground 中查看。

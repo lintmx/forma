@@ -12,6 +12,7 @@ import { ArticleBody, loadArticleImages } from '../src/templates/article/body.js
 import { article } from '../src/templates/article/index.js';
 import { articleSchema } from '../src/templates/article/schema.js';
 import { createTemplateRegistry } from '../src/templates/index.js';
+import { testImage } from './fixtures/image.js';
 
 let renderer: Renderer;
 const context = { assets: {}, fontFamily: 'sans-serif', monospaceFontFamily: 'monospace' };
@@ -24,7 +25,7 @@ afterEach(() => vi.restoreAllMocks());
 
 it('loads the optional avatar in text mode and deduplicates it with Markdown images', async () => {
   const images = new ImageStore(loadConfig({ LOG_LEVEL: 'silent' }));
-  const get = vi.spyOn(images, 'get').mockResolvedValue('data:image/png;base64,example');
+  const get = vi.spyOn(images, 'get').mockResolvedValue(testImage());
   const url = 'https://example.com/avatar.png';
   await loadArticleImages({ content: '正文', contentFormat: 'text', authorAvatarUrl: url }, images);
   expect(get).toHaveBeenCalledExactlyOnceWith(url);
@@ -42,7 +43,7 @@ it('loads the optional avatar in text mode and deduplicates it with Markdown ima
 it('renders a circular avatar, supports avatar-only metadata and survives image failure', async () => {
   const image = new PNG({ width: 80, height: 40 });
   for (let i = 0; i < image.data.length; i += 4) image.data.set([220, 30, 40, 255], i);
-  const uri = 'data:image/png;base64,' + PNG.sync.write(image).toString('base64');
+  const uri = testImage(PNG.sync.write(image));
   const get = vi.spyOn(ImageStore.prototype, 'get').mockResolvedValue(uri);
   const data = {
     content: '头像位于作者和时间左侧。',
@@ -62,10 +63,9 @@ it('renders a circular avatar, supports avatar-only metadata and survives image 
   const solo = await renderer.render({
     template: 'article',
     data: { content: '正文', authorAvatarUrl: data.authorAvatarUrl },
-    format: 'svg',
+    format: 'png',
   });
   expect(solo.warnings).toEqual([]);
-  expect(Buffer.from(solo.body).toString()).toContain('data:image/png;base64,');
   get.mockRejectedValue(new Error('Image unavailable'));
   const failed = await renderer.render({ template: 'article', data, format: 'png' });
   expect(failed.warnings).toEqual(['IMAGE_UNAVAILABLE']);
@@ -78,7 +78,7 @@ it('renders a circular avatar, supports avatar-only metadata and survives image 
   const missingName = await renderer.render({
     template: 'article',
     data: { content: '正文', authorAvatarUrl: data.authorAvatarUrl },
-    format: 'svg',
+    format: 'png',
   });
   expect(missingName.warnings).toEqual(['IMAGE_UNAVAILABLE']);
 });
@@ -160,8 +160,6 @@ it.each(['markdown', 'text'] as const)('renders highlights in both original and 
   expect(bluePixels).toBeGreaterThan(100);
   await mkdir('artifacts/article', { recursive: true });
   await writeFile('artifacts/article/highlights-' + format + '.png', pngResult.body);
-  const svg = await renderer.render({ template: 'article', format: 'svg', data });
-  expect(Buffer.from(svg.body).toString()).toContain('#0969da');
 });
 
 it('requires only nonblank content and allows each translation field independently', () => {
@@ -227,7 +225,7 @@ it('renders full article, title-only translation, and long multilingual text to 
   }
   await mkdir('artifacts/article', { recursive: true });
   await writeFile('artifacts/article/preview.png', full.body);
-  const minimal = await renderer.render({ template: 'article', data: { content: '正文' }, format: 'svg' });
+  const minimal = await renderer.render({ template: 'article', data: { content: '正文' }, format: 'png' });
   const empty = await renderer.render({
     template: 'article',
     data: {
@@ -240,13 +238,13 @@ it('renders full article, title-only translation, and long multilingual text to 
       source: '',
       url: '',
     },
-    format: 'svg',
+    format: 'png',
   });
   expect(empty.body).toEqual(minimal.body);
   const titleOnly = await renderer.render({
     template: 'article',
     data: { content: '正文', translation: { title: 'Translated title' } },
-    format: 'svg',
+    format: 'png',
   });
   expect(titleOnly.height).toBeGreaterThan(minimal.height);
   const long = await renderer.render({
@@ -259,16 +257,14 @@ it('renders full article, title-only translation, and long multilingual text to 
     format: 'png',
   });
   expect(long.width).toBe(1400);
-  expect(long.layoutHeight).toBeGreaterThan(minimal.height + 300);
+  expect(long.layoutHeight).toBeGreaterThan(minimal.layoutHeight + 300);
   await writeFile('artifacts/article/long.png', long.body);
 });
 
-it('renders GFM blocks, inline styles, code, nested lists, tables and images through Satori and Skia', async () => {
+it('renders GFM blocks, inline styles, code, nested lists, tables and images through Takumi', async () => {
   const image = new PNG({ width: 1000, height: 200 });
   for (let i = 0; i < image.data.length; i += 4) image.data.set([220, 30, 40, 255], i);
-  const get = vi
-    .spyOn(ImageStore.prototype, 'get')
-    .mockResolvedValue('data:image/png;base64,' + PNG.sync.write(image).toString('base64'));
+  const get = vi.spyOn(ImageStore.prototype, 'get').mockResolvedValue(testImage(PNG.sync.write(image)));
   const content =
     '# 标题一\n\n## 标题二\n\n普通 **加粗**、*斜体*、~~删除线~~、`inline code` 和 [链接](https://example.com)。\n下一行 &amp; 实体。\n\n> 引用\n>\n> 第二段\n\n3. 第三项\n4. 第四项\n   - 嵌套列表\n\n- [x] 已完成\n- [ ] 待完成\n\n```ts\nconst value = "<tag> &amp;";\nconsole.log(value);\n```\n\n| 项目 | 状态 |\n| :--- | ---: |\n| **渲染** | 完成 |\n| 长文本 | 自动换行 |\n\n---\n\n图片前 ![测试图片](https://example.com/test.png) 图片后\n\n[![引用图片][img]](https://example.com)\n\n[img]: https://example.com/test.png';
   const result = await renderer.render({ template: 'article', data: { content }, format: 'png' });
@@ -280,14 +276,12 @@ it('renders GFM blocks, inline styles, code, nested lists, tables and images thr
     if (Math.abs(png.data[i]! - 220) < 5 && Math.abs(png.data[i + 1]! - 30) < 5) redPixels++;
   expect(redPixels).toBeGreaterThan(10000);
   await writeFile('artifacts/article/markdown.png', result.body);
-  const svg = await renderer.render({ template: 'article', data: { content }, format: 'svg' });
-  expect(Buffer.from(svg.body).toString()).not.toContain('https://example.com/test.png');
 });
 
 it('loads only Markdown images, leaves plain text and HTML inert, and keeps failed image placeholders', async () => {
   const config = loadConfig({ LOG_LEVEL: 'silent' });
   const images = new ImageStore(config);
-  const get = vi.spyOn(images, 'get').mockResolvedValue('data:image/png;base64,example');
+  const get = vi.spyOn(images, 'get').mockResolvedValue(testImage());
   await loadArticleImages(
     {
       content: '![plain](https://example.com/plain.png)',
@@ -344,8 +338,8 @@ it('keeps code lines and every wide-table value readable without widening the im
     '| A | 多列内容 | 123 | **Ready** | 最后一列不能丢失 |\n| B | second row | 456 | *Waiting* | 第二条记录 |';
   const text = code + '\n\n' + table;
   const html = renderToStaticMarkup(createElement(ArticleBody, { text, context }));
-  expect(html).toContain('记录 1');
-  expect(html).toContain('记录 2');
+  expect(html).toContain('<table');
+  expect(html).toContain('grid-template-columns:max-content minmax(0, 1fr)');
   expect(html).toContain('最后一列不能丢失');
   expect(html).toContain('第二条记录');
   expect(html).toContain('>3</div>'); // Blank source line still occupies line 2.
@@ -364,6 +358,55 @@ it('keeps code lines and every wide-table value readable without widening the im
   expect(headerOnly.warnings).toEqual([]);
 });
 
+it.each(['', '> '])('keeps overflowing tables and header-only tables inside their %s container', async prefix => {
+  const columns = Array.from({ length: 14 }, (_, i) => `字段${i + 1}`);
+  const header = '| ' + columns.join(' | ') + ' |\n| ' + columns.map(() => '---').join(' | ') + ' |';
+  const row = '| ' + columns.map((_, i) => `[值${i + 1}](https://example.com)`).join(' | ') + ' |';
+  for (const [name, table] of [
+    ['records', header + '\n' + row],
+    ['headers', header],
+  ] as const) {
+    const result = await renderer.render({
+      template: 'article',
+      data: {
+        content: table
+          .split('\n')
+          .map(line => prefix + line)
+          .join('\n'),
+      },
+      format: 'png',
+    });
+    expect(result.width).toBe(1400);
+    expect(result.layoutHeight).toBeGreaterThan(name === 'records' ? 700 : 400);
+    expect(result.warnings).toEqual([]);
+    const png = PNG.sync.read(Buffer.from(result.body));
+    for (let y = 0; y < png.height; y++) {
+      const offset = (y * png.width + png.width - 8) * 4;
+      expect([...png.data.subarray(offset, offset + 3)]).toEqual([245, 245, 245]);
+    }
+    if (name === 'records') {
+      let bands = 0,
+        previous = false;
+      for (let y = 0; y < png.height; y++) {
+        let blue = false;
+        for (let x = 0; x < png.width; x++) {
+          const i = (y * png.width + x) * 4;
+          if (
+            Math.abs(png.data[i]! - 9) < 10 &&
+            Math.abs(png.data[i + 1]! - 105) < 10 &&
+            Math.abs(png.data[i + 2]! - 218) < 10
+          )
+            blue = true;
+        }
+        if (blue && !previous) bands++;
+        previous = blue;
+      }
+      expect(bands).toBeGreaterThanOrEqual(columns.length);
+    }
+    await writeFile(`artifacts/article/overflow-${prefix ? 'quote' : 'root'}-${name}.png`, result.body);
+  }
+});
+
 it('validates the article image list and shares image loading with Markdown and avatars', async () => {
   const url = 'https://example.com/shared.png';
   const data = { content: '![正文图片](' + url + ')', authorAvatarUrl: url, media: [{ url }, { url }] };
@@ -377,7 +420,7 @@ it('validates the article image list and shares image loading with Markdown and 
     expect(articleSchema.safeParse({ content: '正文', ...extra }).success).toBe(false);
   }
   const images = new ImageStore(loadConfig({ LOG_LEVEL: 'silent' }));
-  const get = vi.spyOn(images, 'get').mockResolvedValue('data:image/png;base64,example');
+  const get = vi.spyOn(images, 'get').mockResolvedValue(testImage());
   const assets = await loadArticleImages(data, images);
   expect(get).toHaveBeenCalledExactlyOnceWith(url);
   expect(assets['article-media-0']).toBe(assets[url]);
@@ -397,7 +440,7 @@ it.each(['vertical', 'grid', 'collage'] as const)(
         image.data.set(x < 160 ? [220, 30, 40, 255] : [30, 140, 220, 255], (y * image.width + x) * 4);
       }
     }
-    const uri = 'data:image/png;base64,' + PNG.sync.write(image).toString('base64');
+    const uri = testImage(PNG.sync.write(image));
     vi.spyOn(ImageStore.prototype, 'get').mockImplementation(async url => {
       if (url.endsWith('missing.png')) throw new Error('Image unavailable');
       return uri;
@@ -429,13 +472,11 @@ it.each(['vertical', 'grid', 'collage'] as const)(
       }
     }
     expect(redPixels).toBeGreaterThan(10000);
-    const svg = await renderer.render({ template: 'article', data, format: 'svg' });
-    expect(svg.width).toBe(700);
-    expect(svg.height * 2).toBe(result.height);
-    expect(Buffer.from(svg.body).toString()).not.toContain('https://example.com/');
+    const repeated = await renderer.render({ template: 'article', data, format: 'png' });
+    expect(repeated.layoutWidth).toBe(700);
+    expect(repeated.layoutHeight * 2).toBe(result.height);
     await mkdir('artifacts/article', { recursive: true });
     await writeFile('artifacts/article/media-' + mediaLayout + '.png', result.body);
-    await writeFile('artifacts/article/media-' + mediaLayout + '.svg', svg.body);
     const noTranslation = await renderer.render({
       template: 'article',
       data: { ...data, translation: undefined },
@@ -459,7 +500,7 @@ it.each(['vertical', 'grid', 'collage'] as const)(
 
 it('keeps the existing article output unchanged for an omitted or empty image list', async () => {
   const data = { content: '正文', translation: { text: 'Translation' }, source: '来源' };
-  const absent = await renderer.render({ template: 'article', data, format: 'svg' });
-  const empty = await renderer.render({ template: 'article', data: { ...data, media: [] }, format: 'svg' });
+  const absent = await renderer.render({ template: 'article', data, format: 'png' });
+  const empty = await renderer.render({ template: 'article', data: { ...data, media: [] }, format: 'png' });
   expect(empty.body).toEqual(absent.body);
 });

@@ -8,7 +8,7 @@ import { SourceFooter } from '../shared/source-footer.js';
 import { loadAssets } from './media.js';
 import { socialPostMock } from './mock.js';
 import { socialPostPresets } from './presets.js';
-import { type PostSnapshot, postEntries, type SocialPostData, socialPostSchema, visibleReplies } from './schema.js';
+import { type PostSnapshot, type SocialPostData, socialPostSchema, visibleReplies } from './schema.js';
 
 const secondary = colors.muted;
 const column: CSSProperties = {
@@ -93,7 +93,7 @@ function Header({
           }}
         >
           {avatar ? (
-            <img src={avatar} width={size} height={size} style={{ objectFit: 'cover' }} />
+            <img src={avatar.src} width={size} height={size} style={{ objectFit: 'cover' }} />
           ) : (
             <span>
               {Array.from(author.name?.trim() ?? '')
@@ -154,14 +154,6 @@ function Header({
   );
 }
 
-function translationLabel(post: PostSnapshot) {
-  const translation = post.translation;
-  return (
-    (translation?.model ? '使用 ' + translation.model + ' ' : '') +
-    (translation?.sourceLanguage ? '翻译自 ' + translation.sourceLanguage : '翻译')
-  );
-}
-
 function PostBody({
   post,
   assets,
@@ -215,7 +207,7 @@ function PostBody({
             compact={compact || reply}
             style={{
               padding: compact ? '10px 12px' : '8px 12px',
-              border: '1px solid #e5e7eb',
+              border: '0.5px solid #e5e7eb',
               borderRadius: 12,
               backgroundColor: '#f6f7f8',
               color: '#4b5563',
@@ -287,7 +279,7 @@ function SocialPost({ data, assets }: { data: SocialPostData; assets: TemplateCo
             ...column,
             padding: '12px 16px',
             marginBottom: 16,
-            border: '1px solid #e5e7eb',
+            border: '0.5px solid #e5e7eb',
             borderRadius: 16,
             backgroundColor: '#fafbfc',
             overflow: 'hidden',
@@ -301,61 +293,6 @@ function SocialPost({ data, assets }: { data: SocialPostData; assets: TemplateCo
   );
 }
 
-function Measure({ data }: { data: SocialPostData }) {
-  const line = (text: string | undefined, size: number, weight = 400, inset = 0) =>
-    text ? (
-      <div
-        data-measure
-        style={{ display: 'flex', whiteSpace: 'pre', fontSize: size, fontWeight: weight, marginLeft: inset }}
-      >
-        {text}
-      </div>
-    ) : null;
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-      {postEntries(data).map(({ post, key, compact, reply }) => {
-        const inset = reply ? 60 : compact ? 17 : 0;
-        const headerInset = inset + (post.author?.avatarUrl && !reply ? (compact ? 40 : 60) : 0);
-        return (
-          <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            {line(
-              post.author?.name,
-              compact ? typography.compact.fontSize : typography.large.fontSize,
-              700,
-              headerInset + (post.author?.verified ? 25 : 0),
-            )}
-            {line(handleLine(post), typography.meta.fontSize, 400, headerInset)}
-            {post.author?.avatarUrl && (
-              <div data-measure style={{ display: 'flex', width: compact ? 32 : 48, height: 1, marginLeft: inset }} />
-            )}
-            {line(post.content, compact || reply ? typography.compact.fontSize : typography.body.fontSize, 400, inset)}
-            {post.translation?.text && (
-              <>
-                {line(translationLabel(post), typography.meta.fontSize, 400, inset)}
-                {line(
-                  post.translation.text,
-                  compact || reply ? typography.compact.fontSize : typography.body.fontSize,
-                  400,
-                  inset + 13,
-                )}
-              </>
-            )}
-          </div>
-        );
-      })}
-      {data.postKind === 'reshare' &&
-        data.reshare &&
-        line(
-          data.reshare.by.name + ' 转发了' + (data.reshare.publishedAt ? ' / ' + data.reshare.publishedAt : ''),
-          typography.meta.fontSize,
-          400,
-          25,
-        )}
-      <SourceFooter source={data.source} url={data.url} measure />
-    </div>
-  );
-}
-
 export const socialPost: Template<SocialPostData> = {
   id: 'social_post',
   name: '社交动态',
@@ -365,6 +302,5 @@ export const socialPost: Template<SocialPostData> = {
   mock: socialPostMock,
   presets: socialPostPresets,
   assets: loadAssets,
-  measure: data => <Measure data={data} />,
   render: (data, context) => <SocialPost data={data} assets={context.assets} />,
 };

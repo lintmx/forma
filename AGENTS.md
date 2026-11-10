@@ -1,6 +1,6 @@
 # Forma 项目约定
 
-Forma 将 JSON 数据通过 TypeScript / TSX 模板渲染为 PNG 或 SVG，提供 HTTP API 和 React Playground。
+Forma 将 JSON 数据通过 TypeScript / TSX 模板渲染为 PNG，提供 HTTP API 和 React Playground。
 
 ## 按任务查阅
 
@@ -36,12 +36,12 @@ Forma 将 JSON 数据通过 TypeScript / TSX 模板渲染为 PNG 或 SVG，提�
   Schema、示例和渲染组件保持一致。
 - `render` 只返回内部内容；公共外框、背景、边距、水印由 `src/core/card.tsx` 的 `CardFrame` 负责。
   `watermark` 等通用选项放在请求顶层，不放入模板 `data`。
-- 当前管线为 Satori 生成 SVG，PNG 由 Skia Canvas 栅格化后交给 Sharp 编码。
-  PNG 固定输出 2×，SVG 保持逻辑尺寸；请求不接受 `scale`。不要将浏览器 CSS 支持范围等同于渲染器能力。
+- 当前管线为 TSX 经 fromJsx 转换，Takumi 在持久子进程内测量、绘制并直接编码 PNG。
+  PNG 固定输出 2×，不提供 SVG 输出；请求不接受 `scale`。不要将浏览器 CSS 支持范围等同于渲染器能力。
 - 复用 `src/core/typography.ts` 的语义排版；等宽内容显式使用 `context.monospaceFontFamily`。
   使用与最终渲染相同的字体和间距测量真实布局，不按字符数估算高度。
 - 图片通过模板 `assets` 钩子及传入的 `ImageLoader` 加载，组件从 `context.assets` 读取。
-  保留资源校验、下载限制和失败降级，不直接将用户 URL 交给 Satori 或在组件中另行下载。
+  保留资源校验、下载限制和失败降级，不直接将用户 URL 交给 Takumi 或在组件中另行下载。
 - 字体二进制不提交 Git；更新字体时同步 `fonts/sources.json` 的来源与哈希，以及相关许可声明。
   运行时使用本地字体，不依赖宿主机字体。
 
@@ -61,7 +61,7 @@ Forma 将 JSON 数据通过 TypeScript / TSX 模板渲染为 PNG 或 SVG，提�
 
 - 代码改动运行 `pnpm check` 和受影响的测试；影响公共渲染链路时扩大到完整测试集。
   纯文档改动仅检查内容、链接和差异，无需下载字体或运行渲染构建。
-- 模板、排版或渲染改动检查真实 PNG / SVG 的尺寸与视觉结果，覆盖本次涉及的长文本、多语言或缺图场景；新增 SVG 特性须验证 PNG 适配器兼容性。
+- 模板、排版或渲染改动检查真实 PNG 的尺寸与视觉结果，覆盖本次涉及的长文本、多语言或缺图场景；内置 SVG 图标须验证最终 PNG。
   Playground 预览与下载统一使用 `POST /v1/render`，浏览器 DOM 近似图不能替代最终图片验证。
 - 构建或 worker 入口改动后验证构建产物及真实 `/healthz`、`/v1/render` 请求。
   服务和 worker 应分别产出 `dist/server.js`、`dist/worker.js`。

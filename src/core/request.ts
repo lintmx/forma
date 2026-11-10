@@ -14,7 +14,7 @@ export const renderRequestSchema = z
   .object({
     template: z.string().min(1).max(64),
     data: z.unknown().refine((value): boolean => value !== undefined, 'data is required'),
-    format: z.enum(['png', 'svg']).default('png'),
+    format: z.literal('png').default('png'),
     ...renderOptionsSchema.shape,
   })
   .strict();

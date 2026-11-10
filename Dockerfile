@@ -1,9 +1,5 @@
 # syntax=docker/dockerfile:1
 FROM node:24-bookworm-slim AS system
-# Native Skia/sharp include Fontconfig, but the slim image has no default config.
-RUN apt-get update && apt-get install --yes --no-install-recommends fontconfig-config \
-    && rm -rf /var/lib/apt/lists/*
-
 FROM system AS base
 WORKDIR /app
 RUN npm install --global pnpm@10.32.1
@@ -24,11 +20,6 @@ RUN pnpm build
 FROM base AS dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=forma-pnpm,target=/pnpm/store,sharing=locked pnpm install --prod --frozen-lockfile --store-dir=/pnpm/store
-# Install the build-stage bundles without bringing build tools into production dependencies.
-COPY --from=build /app/artifacts/satori /tmp/satori
-COPY scripts/build-satori-patch.mjs ./scripts/
-RUN node scripts/build-satori-patch.mjs --install-from /tmp/satori
-
 FROM system AS runtime
 WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 PLAYGROUND_ENABLED=false
@@ -36,7 +27,7 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/fonts ./fonts
 COPY --from=build /app/emoji ./emoji
-COPY --from=build /app/patches ./patches
+COPY --from=build /app/licenses ./licenses
 COPY --from=build /app/package.json /app/LICENSE /app/THIRD_PARTY_NOTICES.md ./
 USER node
 EXPOSE 3000

@@ -1,4 +1,5 @@
-import { Worker } from 'node:worker_threads';
+import { type ChildProcess, fork } from 'node:child_process';
+import { once } from 'node:events';
 import type { Config } from '../config.js';
 import { log } from '../config.js';
 import { FormaError } from './errors.js';
@@ -13,17 +14,19 @@ interface Job {
   cleanup: () => void;
 }
 interface Slot {
-  worker: Worker;
+  worker: ChildProcess;
   ready: boolean;
   retired: boolean;
   job?: Job;
   startupTimer?: ReturnType<typeof setTimeout>;
+  rejectStartup?: (error: Error) => void;
 }
 
 export class RenderPool {
   private slots: Slot[] = [];
   private queue: Job[] = [];
   private closed = false;
+  private stopping = new Set<Promise<void>>();
   constructor(
     private config: Config,
     private workerUrl = new URL('./worker.js', import.meta.url),
@@ -49,10 +52,11 @@ export class RenderPool {
 
   private spawn(): Promise<void> {
     if (this.closed) return Promise.resolve();
-    const worker = new Worker(this.workerUrl, { workerData: this.config });
+    const worker = fork(this.workerUrl, { serialization: 'advanced', stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
     const slot: Slot = { worker, ready: false, retired: false };
     this.slots.push(slot);
     return new Promise((resolve, reject) => {
+      slot.rejectStartup = reject;
       const startupTimer = setTimeout(() => fail(new Error('Render worker startup timed out')), 30000);
       slot.startupTimer = startupTimer;
       const fail = (error: Error) => {
@@ -60,31 +64,41 @@ export class RenderPool {
         clearTimeout(startupTimer);
         const wasReady = slot.ready;
         this.retire(slot, new FormaError('WORKER_FAILED', 'Render worker failed', 503), wasReady);
-        if (!wasReady) reject(error);
+        if (!wasReady) slot.rejectStartup?.(error);
+        slot.rejectStartup = undefined;
       };
       worker.on('error', fail);
       worker.on('exit', code => {
         if (!slot.retired) fail(new Error('Worker exited: ' + code));
       });
-      worker.on('message', message => {
-        if (slot.retired) return;
-        if (message.ready) {
-          clearTimeout(startupTimer);
-          slot.ready = true;
-          resolve();
+      worker.on(
+        'message',
+        (message: {
+          ready?: boolean;
+          result: RenderResult;
+          error?: { code: string; message: string; status: number; details?: unknown };
+        }) => {
+          if (slot.retired) return;
+          if (message.ready) {
+            clearTimeout(startupTimer);
+            slot.rejectStartup = undefined;
+            slot.ready = true;
+            resolve();
+            this.drain();
+            return;
+          }
+          const job = slot.job;
+          if (!job) return;
+          slot.job = undefined;
+          job.cleanup();
+          if (message.error) {
+            const e = message.error;
+            job.reject(new FormaError(e.code, e.message, e.status, e.details));
+          } else job.resolve(message.result);
           this.drain();
-          return;
-        }
-        const job = slot.job;
-        if (!job) return;
-        slot.job = undefined;
-        job.cleanup();
-        if (message.error) {
-          const e = message.error;
-          job.reject(new FormaError(e.code, e.message, e.status, e.details));
-        } else job.resolve(message.result);
-        this.drain();
-      });
+        },
+      );
+      worker.send({ config: this.config });
     });
   }
 
@@ -136,7 +150,9 @@ export class RenderPool {
     for (const slot of this.slots) {
       if (!slot.ready || slot.retired || slot.job || !this.queue.length) continue;
       slot.job = this.queue.shift()!;
-      slot.worker.postMessage({ request: slot.job.request, attachments: slot.job.attachments });
+      slot.worker.send({ request: slot.job.request, attachments: slot.job.attachments }, error => {
+        if (error) this.retire(slot, new FormaError('WORKER_FAILED', 'Render worker failed', 503), true);
+      });
       slot.job.attachments = undefined;
     }
   }
@@ -152,7 +168,7 @@ export class RenderPool {
     }
     // Wait for termination before replacement so timed-out jobs cannot keep
     // consuming CPU while new requests are admitted to a fresh worker.
-    void slot.worker.terminate().then(async () => {
+    void this.stop(slot.worker).then(async () => {
       if (replace && !this.closed) {
         try {
           await this.spawn();
@@ -161,6 +177,14 @@ export class RenderPool {
         }
       }
     });
+  }
+  private stop(worker: ChildProcess): Promise<void> {
+    if (worker.exitCode !== null || worker.signalCode !== null) return Promise.resolve();
+    const stopped = once(worker, 'exit').then(() => {});
+    this.stopping.add(stopped);
+    worker.kill('SIGKILL');
+    void stopped.finally(() => this.stopping.delete(stopped));
+    return stopped;
   }
   async close() {
     this.closed = true;
@@ -174,12 +198,15 @@ export class RenderPool {
       slots.map(slot => {
         slot.retired = true;
         clearTimeout(slot.startupTimer);
+        slot.rejectStartup?.(error);
+        slot.rejectStartup = undefined;
         if (slot.job) {
           slot.job.cleanup();
           slot.job.reject(error);
         }
-        return slot.worker.terminate();
+        return this.stop(slot.worker);
       }),
     );
+    await Promise.all(this.stopping);
   }
 }

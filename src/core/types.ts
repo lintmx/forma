@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
-import type { ImageLoader } from './images.js';
+import type { ImageAsset, ImageLoader } from './images.js';
 import type { RenderRequest } from './request.js';
 
 export type SizeStrategy =
@@ -10,7 +10,7 @@ export type SizeStrategy =
   | { mode: 'content'; minWidth: number; maxWidth: number };
 
 export interface TemplateContext {
-  assets: Record<string, string | undefined>;
+  assets: Record<string, ImageAsset | undefined>;
   fontFamily: string;
   monospaceFontFamily: string;
 }
@@ -30,9 +30,7 @@ export interface Template<T extends Record<string, unknown> = Record<string, unk
     watermark?: RenderRequest['watermark'];
     assetUrlPrefix?: RenderRequest['assetUrlPrefix'];
   }>;
-  // Content-only intrinsic-width probe. The renderer supplies the frame and font.
-  measure?: (data: T, context: TemplateContext) => ReactNode;
-  assets?: (data: T, images: ImageLoader) => Promise<Record<string, string | undefined>>;
+  assets?: (data: T, images: ImageLoader) => Promise<Record<string, ImageAsset | undefined>>;
   // Return only the card's inner content. The renderer always adds the shared frame.
   render: (data: T, context: TemplateContext) => ReactNode;
 }
@@ -44,6 +42,6 @@ export interface RenderResult {
   layoutWidth: number;
   layoutHeight: number;
   scale: number;
-  format: 'png' | 'svg';
+  format: 'png';
   warnings: string[];
 }

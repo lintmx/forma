@@ -8,7 +8,7 @@
 | --- | --- |
 | `GET /` | 项目首页，含功能介绍与 Playground 入口 |
 | `GET /dev` | 跳转至 `/dev/` Playground（需启用） |
-| `POST /v1/render` | PNG 或 SVG 图片二进制 |
+| `POST /v1/render` | PNG 图片二进制 |
 | `GET /v1/templates` | `{ "templates": [...] }`，列出所有已注册模板 |
 | `GET /v1/templates/:template` | 单个模板元数据 |
 | `GET /healthz` | 就绪状态及 worker、执行中、排队任务统计；不可用时返回 503 |
@@ -38,13 +38,13 @@ API 不会根据预设 ID 查找配置，也不会自动添加水印。
 | --- | --- |
 | `template` | 必填，已注册模板 ID，1–64 字符 |
 | `data` | 必填，符合模板 Schema 的业务数据 |
-| `format` | 可选，`png`（默认）或 `svg` |
+| `format` | 可选，仅接受 `png`（默认） |
 | `watermark` | 可选，卡片外底部水印；去除首尾空白后最多 160 字符，省略或留空时隐藏且不预留空间 |
 | `assetUrlPrefix` | 可选，本次请求所有资源的 HTTP(S) 目录前缀，最多 2048 字符（含自动补齐的末尾 `/`）；去除首尾空白，省略或留空时不补全路径 |
 
 请求顶层及模板业务对象拒绝未知字段；嵌套字段按对应 Schema 校验。
 `watermark`、`assetUrlPrefix` 不属于 `data`。接口不接受 `scale`、任意 JSX、HTML、CSS 或可执行代码。
-PNG 固定输出 2×，SVG 保留原始布局尺寸。
+PNG 固定输出 2×。`format: "svg"` 返回 400 `VALIDATION_ERROR`，详情路径为 `format`。
 
 ### 资源 URL 前缀
 
@@ -67,18 +67,18 @@ HTTP(S)、`file:` 和 `asset:` 资源地址不添加前缀。
 资源空值沿用各字段原有约定，不替换成前缀地址。未设置前缀的相对路径、资源不存在或加载失败，
 均使用模板降级内容并返回 `IMAGE_UNAVAILABLE`；非法前缀返回 400 `VALIDATION_ERROR`。
 
-Playground 的“资源 URL 前缀”用于同一次编辑的预览及 PNG / SVG 下载，修改后会重新生成预览。
+Playground 的“资源 URL 前缀”用于同一次编辑的预览及 PNG 下载，修改后会重新生成预览。
 资源请求由 Forma 服务／worker 发起，`localhost` 指向其所在主机或容器。
 
 ## 成功响应
 
-响应类型为 `image/png` 或 `image/svg+xml`，直接返回图片，无 base64 JSON 包装。
+响应类型为 `image/png`，直接返回图片，无 base64 JSON 包装。
 
 | 响应头 | 含义 |
 | --- | --- |
 | `X-Image-Width` / `X-Image-Height` | 实际输出宽高 |
 | `X-Layout-Width` / `X-Layout-Height` | 原始布局宽高 |
-| `X-Render-Scale` | PNG 为 2，SVG 为 1，仅用于说明结果 |
+| `X-Render-Scale` | 固定为 2，仅用于说明结果 |
 | `X-Render-Warnings` | 逗号分隔且去重：图片不可用为 `IMAGE_UNAVAILABLE`，Emoji 使用占位符为 `EMOJI_UNAVAILABLE`，文字缺字占位为 `MISSING_GLYPH`；正常时为空 |
 
 资源加载失败时，模板可显示占位或替代文字，仍返回成功图片。调用方应检查警告头。

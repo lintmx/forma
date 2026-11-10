@@ -28,7 +28,7 @@ afterAll(async () => {
 describe('production template catalog', () => {
   it('returns missing text and emoji placeholders with warnings through the real worker', async () => {
     const app = createApp(config, pool, registry);
-    for (const format of ['svg', 'png']) {
+    for (const format of ['png']) {
       const response = await app.fetch(
         new Request('http://localhost/v1/render', {
           method: 'POST',
@@ -43,10 +43,9 @@ describe('production template catalog', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('X-Render-Warnings')).toBe('EMOJI_UNAVAILABLE,MISSING_GLYPH');
       const body = Buffer.from(await response.arrayBuffer());
-      if (format === 'svg') expect(body.toString().match(/<image\b/g)).toHaveLength(6);
-      else expect(body.subarray(1, 4).toString()).toBe('PNG');
+      expect(body.subarray(1, 4).toString()).toBe('PNG');
     }
-    const clean = await pool.render({ template: 'example', data: { text: '💕︎ 🫪' }, format: 'svg' });
+    const clean = await pool.render({ template: 'example', data: { text: '💕︎ 🫪' }, format: 'png' });
     expect(clean.warnings).toEqual([]);
   });
 
@@ -102,7 +101,7 @@ describe('production template catalog', () => {
     expect(info.schema.properties).not.toHaveProperty('watermark');
     expect(info.mock).toEqual(registry.get('social_post').mock);
     expect(info).not.toHaveProperty('documentation');
-    for (const format of ['png', 'svg']) {
+    for (const format of ['png']) {
       const response = await app.fetch(
         new Request('http://localhost/v1/render', {
           method: 'POST',
@@ -111,13 +110,11 @@ describe('production template catalog', () => {
         }),
       );
       expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toContain(format === 'png' ? 'image/png' : 'image/svg+xml');
-      expect(Number(response.headers.get('X-Image-Width'))).toBeGreaterThanOrEqual(format === 'png' ? 800 : 400);
-      expect(Number(response.headers.get('X-Image-Width'))).toBeLessThanOrEqual(format === 'png' ? 1400 : 700);
+      expect(response.headers.get('Content-Type')).toContain('image/png');
+      expect(Number(response.headers.get('X-Image-Width'))).toBeGreaterThanOrEqual(800);
+      expect(Number(response.headers.get('X-Image-Width'))).toBeLessThanOrEqual(1400);
       const body = Buffer.from(await response.arrayBuffer());
-      expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
-        format === 'png' ? 'PNG' : '<svg',
-      );
+      expect(body.subarray(1, 4).toString()).toBe('PNG');
     }
   });
 
@@ -144,7 +141,7 @@ describe('production template catalog', () => {
     ).toBe('PNG');
   });
 
-  it('exposes article with only content required and renders both formats through the production worker', async () => {
+  it('exposes article with only content required and renders PNG through the production worker', async () => {
     const app = createApp(config, pool, registry);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/article'));
     expect(metadata.status).toBe(200);
@@ -153,7 +150,7 @@ describe('production template catalog', () => {
     expect(info.schema.properties).toHaveProperty('authorAvatarUrl');
     expect(info.schema.properties.translation.required ?? []).toEqual([]);
     expect(info.mock).toEqual(registry.get('article').mock);
-    for (const format of ['png', 'svg']) {
+    for (const format of ['png']) {
       const response = await app.fetch(
         new Request('http://localhost/v1/render', {
           method: 'POST',
@@ -162,12 +159,10 @@ describe('production template catalog', () => {
         }),
       );
       expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toContain(format === 'png' ? 'image/png' : 'image/svg+xml');
-      expect(response.headers.get('X-Image-Width')).toBe(format === 'png' ? '1400' : '700');
+      expect(response.headers.get('Content-Type')).toContain('image/png');
+      expect(response.headers.get('X-Image-Width')).toBe('1400');
       const body = Buffer.from(await response.arrayBuffer());
-      expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
-        format === 'png' ? 'PNG' : '<svg',
-      );
+      expect(body.subarray(1, 4).toString()).toBe('PNG');
     }
     const invalid = await app.fetch(
       new Request('http://localhost/v1/render', {
@@ -188,7 +183,7 @@ describe('production template catalog', () => {
     expect(info.schema.required).toEqual(['title']);
     expect(info.mock).toEqual(registry.get('bilibili').mock);
     for (const type of ['video', 'live']) {
-      for (const format of ['png', 'svg']) {
+      for (const format of ['png']) {
         const response = await app.fetch(
           new Request('http://localhost/v1/render', {
             method: 'POST',
@@ -208,11 +203,9 @@ describe('production template catalog', () => {
           }),
         );
         expect(response.status).toBe(200);
-        expect(response.headers.get('X-Image-Width')).toBe(format === 'png' ? '1200' : '600');
+        expect(response.headers.get('X-Image-Width')).toBe('1200');
         const body = Buffer.from(await response.arrayBuffer());
-        expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
-          format === 'png' ? 'PNG' : '<svg',
-        );
+        expect(body.subarray(1, 4).toString()).toBe('PNG');
       }
     }
   });
@@ -243,7 +236,7 @@ describe('production template catalog', () => {
         replayAvailable: true,
       },
     ];
-    for (const format of ['png', 'svg']) {
+    for (const format of ['png']) {
       for (const data of phases) {
         const response = await app.fetch(
           new Request('http://localhost/v1/render', {
@@ -253,23 +246,21 @@ describe('production template catalog', () => {
           }),
         );
         expect(response.status).toBe(200);
-        expect(response.headers.get('X-Image-Width')).toBe(format === 'png' ? '1200' : '600');
+        expect(response.headers.get('X-Image-Width')).toBe('1200');
         const body = Buffer.from(await response.arrayBuffer());
-        expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
-          format === 'png' ? 'PNG' : '<svg',
-        );
+        expect(body.subarray(1, 4).toString()).toBe('PNG');
       }
     }
   });
 
-  it('exposes chat metadata and renders both formats through the production worker', async () => {
+  it('exposes chat metadata and renders PNG through the production worker', async () => {
     const app = createApp(config, pool, registry);
     const metadata = await app.fetch(new Request('http://localhost/v1/templates/chat'));
     expect(metadata.status).toBe(200);
     const info = await metadata.json();
     expect(info.schema.required).toEqual(['title', 'messages']);
     expect(info.mock).toEqual(registry.get('chat').mock);
-    for (const format of ['png', 'svg']) {
+    for (const format of ['png']) {
       const response = await app.fetch(
         new Request('http://localhost/v1/render', {
           method: 'POST',
@@ -278,14 +269,12 @@ describe('production template catalog', () => {
         }),
       );
       expect(response.status).toBe(200);
-      const layoutWidth = Number(response.headers.get('X-Image-Width')) / (format === 'png' ? 2 : 1);
+      const layoutWidth = Number(response.headers.get('X-Image-Width')) / 2;
       expect(layoutWidth).toBeGreaterThan(440);
       expect(layoutWidth).toBeLessThan(600);
-      expect(response.headers.get('Content-Type')).toContain(format === 'png' ? 'image/png' : 'image/svg+xml');
+      expect(response.headers.get('Content-Type')).toContain('image/png');
       const body = Buffer.from(await response.arrayBuffer());
-      expect(format === 'png' ? body.subarray(1, 4).toString() : body.toString().slice(0, 4)).toBe(
-        format === 'png' ? 'PNG' : '<svg',
-      );
+      expect(body.subarray(1, 4).toString()).toBe('PNG');
     }
   });
 
@@ -300,7 +289,7 @@ describe('production template catalog', () => {
           body: JSON.stringify({
             template: 'example',
             data: { text: 'iiii WWWW 中文 繁體 日本語 한국어 㐀㐁 ⏻', monospace },
-            format: 'svg',
+            format: 'png',
           }),
         }),
       );
@@ -326,7 +315,7 @@ describe('production template catalog', () => {
       );
       expect(response.status).toBe(404);
       expect((await response.json()).error.code).toBe('TEMPLATE_NOT_FOUND');
-      await expect(pool.render({ template, data: {}, format: 'svg' })).rejects.toMatchObject({
+      await expect(pool.render({ template, data: {}, format: 'png' })).rejects.toMatchObject({
         code: 'TEMPLATE_NOT_FOUND',
         status: 404,
       });

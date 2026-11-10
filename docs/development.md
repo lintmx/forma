@@ -61,7 +61,7 @@ HTTP 和 worker 均通过 `createTemplateRegistry()` 创建相同的生产模板
 2. Schema 只定义业务数据，通过 `.describe()` 说明字段。Schema、组件与示例按复杂度拆分到模板自己的目录。
 3. `render` 只返回内部内容。渲染器统一添加 [CardFrame](../src/core/card.tsx)，负责背景、边距、边框、圆角和水印；
    模板不重复包裹外框，也不定义保留字段 `watermark`、`assetUrlPrefix`。
-4. 如需远程图片，实现 `assets`，通过传入的 `ImageLoader.get` 获取资源，再从 `context.assets` 读取。
+4. 如需远程图片，实现 `assets`，通过传入的 `ImageLoader.get` 获取资源，再从 `context.assets` 读取资源的 `src`、`width` 和 `height`。
    资源字段复用 `src/core/asset-url.ts` 的 `assetUrlSchema`，请求级加载器自动应用 `assetUrlPrefix`。
    为失败资源提供占位或替代文本，不在组件中直接 `fetch`。
 5. 在 [src/templates/index.ts](../src/templates/index.ts) 导入并调用 `.register()`。
@@ -82,21 +82,21 @@ HTTP 和 worker 均通过 `createTemplateRegistry()` 创建相同的生产模板
 
 | `sizing.mode` | 行为与要求 |
 | --- | --- |
-| `auto-height` | 固定 `width`，由 Satori 计算高度；适合大多数纵向内容 |
-| `content` | 通过 `measure` 测量内在宽度，限制于 `minWidth` / `maxWidth`，再计算高度 |
+| `auto-height` | 固定 `width`，由 Takumi 计算高度；适合大多数纵向内容 |
+| `content` | 测量实际内容树的固有宽度，限制于 `minWidth` / `maxWidth`，再计算高度 |
 | `fixed` | 固定 `width` / `height`，模板负责内容适配 |
 | `auto-width` | 固定 `height`，由内容决定宽度；避免百分比宽度与依赖无限换行的布局 |
 
 尺寸包含统一外框和水印，优先采用 `auto-height` 或 `content`。
-`content` 必须提供内部内容的无换行测量树及 `data-measure` 节点，不重复外框边距，也不依赖远程资源。
-使用实际字形和布局测量，不按字符数或预估行数计算高度；测量树与最终渲染树保持相同字体、间距和文字角色。
-采用明确的 Flex 布局与 `boxSizing: border-box`。公共排版样式和字体选择见[排版](rendering.md#排版)，
+`content` 使用 `render` 返回的同一内容树和已加载资源，无需单独的测量钩子。
+使用实际字形和布局测量，不按字符数或预估行数计算高度；测量与最终渲染使用相同 DPR、字体和样式。
+按内容使用 block/inline、Flex、Grid 或 table，明确盒模型和语义元素的默认间距。公共排版样式和字体选择见[排版](rendering.md#排版)，
 界面与文案约定见 [AGENTS.md](../AGENTS.md#界面与文案)。
 
 ## 验证与提交
 
 - 代码改动运行 `pnpm check` 及受影响的测试；公共渲染链路改动运行完整测试集。
-- 模板和渲染改动检查真实 PNG / SVG，覆盖相关的短文、长文、多语言和缺图场景，关注缺字、换行与溢出；新增 SVG 特性验证 PNG 兼容性。
+- 模板和渲染改动检查真实 PNG，覆盖相关的短文、长文、多语言和缺图场景，关注缺字、换行与溢出；内置 SVG 图标也需验证最终 PNG。
 - 排版改动可用 `pnpm preview:typography` 查看原始 2×、逻辑尺寸和 390px 宽预览；纯文档改动仅检查内容、链接和差异。
 
 提交时说明变更目的、已执行的验证和已知限制，区分 HTTP 测试、图片检查与浏览器交互验证。

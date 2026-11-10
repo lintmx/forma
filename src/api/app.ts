@@ -138,7 +138,7 @@ export function createApp(
         });
         return new Response(new Uint8Array(result.body), {
           headers: {
-            'Content-Type': result.format === 'png' ? 'image/png' : 'image/svg+xml; charset=utf-8',
+            'Content-Type': 'image/png',
             'Content-Length': String(result.body.byteLength),
             'Cache-Control': 'no-store',
             'X-Content-Type-Options': 'nosniff',

@@ -41,7 +41,7 @@ function App() {
   const [preview, setPreview] = useState<Preview>();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [downloading, setDownloading] = useState<'png' | 'svg' | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const [showSchema, setShowSchema] = useState(false);
   const urlRef = useRef<string | undefined>(undefined);
   const drafts = useRef(new Map<string, ReturnType<typeof presetDraft>>());
@@ -141,21 +141,27 @@ function App() {
     drafts.current.delete(selected + '/' + presetId);
     applyDraft(original);
   }
-  async function download(format: 'png' | 'svg') {
+  async function download() {
     if (!template) return;
-    setDownloading(format);
+    setDownloading(true);
     try {
-      const response = await render({ template: selected, data: JSON.parse(json), format, watermark, assetUrlPrefix });
+      const response = await render({
+        template: selected,
+        data: JSON.parse(json),
+        format: 'png',
+        watermark,
+        assetUrlPrefix,
+      });
       const url = URL.createObjectURL(await response.blob());
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = selected + '-' + presetId + (format === 'png' ? '@2x' : '') + '.' + format;
+      anchor.download = selected + '-' + presetId + '@2x.png';
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       setError(message(error));
     } finally {
-      setDownloading(null);
+      setDownloading(false);
     }
   }
   return (
@@ -383,25 +389,17 @@ function App() {
               <div className="downloads">
                 <button
                   type="button"
-                  className="secondary"
-                  disabled={!fresh || !!error || !!downloading}
-                  onClick={() => void download('svg')}
-                >
-                  {downloading === 'svg' ? '正在导出…' : '下载 SVG'}
-                </button>
-                <button
-                  type="button"
                   className="primary"
                   disabled={!fresh || !!error || !!downloading}
-                  onClick={() => void download('png')}
+                  onClick={() => void download()}
                 >
-                  {downloading === 'png' ? '正在导出…' : '下载 PNG'}{' '}
+                  {downloading ? '正在导出…' : '下载 PNG'}{' '}
                   <span className="download-arrow" aria-hidden="true">
                     ↓
                   </span>
                 </button>
               </div>
-              <p className="preview-note">点击图片查看原图。PNG 高清导出，SVG 保留矢量。</p>
+              <p className="preview-note">点击图片查看原图，下载 2× 高清 PNG。</p>
             </div>
           </section>
         </div>

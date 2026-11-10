@@ -1,5 +1,5 @@
 import { diffWords } from 'diff';
-import type { CSSProperties, ReactNode } from 'react';
+import { type CSSProperties, Fragment, type ReactNode } from 'react';
 import type { Template, TemplateContext } from '../../core/types.js';
 import { colors, textStyle, typography } from '../../core/typography.js';
 import { calculateMetricDelta, type DiffLine, diffLines, displayValue } from './comparison.js';
@@ -14,7 +14,7 @@ const column: CSSProperties = {
   width: '100%',
   minWidth: 0,
 };
-const border = '1px solid ' + colors.border;
+const border = '0.5px solid ' + colors.border;
 const tones = {
   green: { color: '#15803d', backgroundColor: '#f0fdf4' },
   red: { color: '#be123c', backgroundColor: '#fff1f2' },
@@ -52,61 +52,47 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
   const mono = context.monospaceFontFamily;
   switch (module.type) {
     case 'metric':
-      return (
-        <div style={column}>
-          {module.items.length ? (
-            module.items.map((item, i) => {
-              const delta = calculateMetricDelta(item.before, item.after);
-              return (
-                <div
-                  key={i}
+      return module.items.length ? (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 12px minmax(0, 1fr) minmax(0, 0.7fr)',
+            columnGap: 8,
+            padding: '0 12px',
+            alignItems: 'center',
+          }}
+        >
+          {module.items.map((item, i) => {
+            const delta = calculateMetricDelta(item.before, item.after);
+            const cell = { padding: '10px 0', borderTop: i ? border : undefined, fontFamily: mono };
+            return (
+              <Fragment key={i}>
+                <Text style={{ ...cell, color: colors.muted, fontFamily: context.fontFamily }}>
+                  {item.label?.trim() || '指标 ' + (i + 1)}
+                </Text>
+                <Text style={{ ...cell, color: colors.muted, textDecoration: 'line-through', textAlign: 'right' }}>
+                  {displayValue(item.before)}
+                </Text>
+                <Text style={{ ...cell, color: colors.muted }}>→</Text>
+                <Text style={{ ...cell, ...typography.body, fontWeight: 700, textAlign: 'right' }}>
+                  {displayValue(item.after)}
+                </Text>
+                <Text
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    padding: '10px 12px',
-                    borderTop: i ? border : undefined,
+                    ...cell,
+                    ...typography.meta,
+                    textAlign: 'right',
+                    color: tones[delta.trend === 'up' ? 'green' : delta.trend === 'down' ? 'red' : 'gray'].color,
                   }}
                 >
-                  <Text style={{ color: colors.muted, flexShrink: 1 }}>{item.label?.trim() || '指标 ' + (i + 1)}</Text>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'flex-end',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      minWidth: 0,
-                      maxWidth: '75%',
-                      gap: 8,
-                      fontFamily: mono,
-                    }}
-                  >
-                    <Text style={{ color: colors.muted, textDecoration: 'line-through' }}>
-                      {displayValue(item.before)}
-                    </Text>
-                    <span style={{ color: colors.muted }}>→</span>
-                    <Text style={{ ...typography.body, fontWeight: 700 }}>{displayValue(item.after)}</Text>
-                    {delta.label && (
-                      <Text
-                        style={{
-                          padding: '2px 6px',
-                          borderRadius: 4,
-                          ...typography.meta,
-                          ...tones[delta.trend === 'up' ? 'green' : delta.trend === 'down' ? 'red' : 'gray'],
-                        }}
-                      >
-                        {delta.label}
-                      </Text>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <Empty />
-          )}
+                  {delta.label ?? ''}
+                </Text>
+              </Fragment>
+            );
+          })}
         </div>
+      ) : (
+        <Empty />
       );
     case 'text':
       return (
@@ -166,7 +152,7 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
                     justifyContent: 'center',
                     height: 160,
                     width: '100%',
-                    border: side === 'after' ? '1px solid #2563eb' : border,
+                    border: side === 'after' ? '0.5px solid #2563eb' : border,
                     borderRadius: 8,
                     overflow: 'hidden',
                     backgroundColor: '#f6f8fa',
@@ -174,7 +160,7 @@ function ModuleBody({ module, index, context }: { module: ComparisonModule; inde
                   }}
                 >
                   {source ? (
-                    <img src={source} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={source.src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <span>{module[side].url ? '图片加载失败' : '暂无图片'}</span>
                   )}

@@ -1,4 +1,3 @@
-import './prepare-satori.js';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -7,7 +6,6 @@ import { loadConfig } from '../src/config.js';
 import { loadFonts } from '../src/core/fonts.js';
 import { Renderer } from '../src/core/renderer.js';
 import type { RenderRequest } from '../src/core/request.js';
-import { svgDimensions } from '../src/core/sizing.js';
 import { createTemplateRegistry } from '../src/templates/index.js';
 
 // With a URL, exercise the built HTTP service and worker instead of the local Renderer.
@@ -54,8 +52,8 @@ const samples: { name: string; request: RenderRequest }[] = [
 ];
 const records = [];
 for (const { name, request } of samples) {
-  const images: Partial<Record<'png' | 'svg', Buffer>> = {};
-  for (const format of ['png', 'svg'] as const) {
+  const images: Partial<Record<'png', Buffer>> = {};
+  for (const format of ['png'] as const) {
     let body: Buffer;
     let warnings: string[];
     if (baseUrl) {
@@ -80,9 +78,7 @@ for (const { name, request } of samples) {
     await writeFile(resolve(directory, `${name}.${format}`), body);
   }
   const png = await sharp(images.png!).metadata();
-  const svg = svgDimensions(images.svg!.toString());
-  assert.deepEqual([png.width, png.height], [svg.width * 2, svg.height * 2]);
-  records.push({ name, png: [png.width, png.height], svg: [svg.width, svg.height], warnings: [] });
+  records.push({ name, png: [png.width, png.height], warnings: [] });
 }
 await writeFile(
   resolve(directory, 'results.json'),

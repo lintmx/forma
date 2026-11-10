@@ -57,7 +57,7 @@ export const article: Template<ArticleData> = {
                       }}
                     >
                       {avatar ? (
-                        <img src={avatar} width={36} height={36} style={{ objectFit: 'cover' }} />
+                        <img src={avatar.src} width={36} height={36} style={{ objectFit: 'cover' }} />
                       ) : (
                         <span>
                           {Array.from(data.author?.trim() ?? '')

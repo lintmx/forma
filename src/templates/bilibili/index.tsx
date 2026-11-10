@@ -11,10 +11,9 @@ const ink = '#20212b';
 const muted = '#686a78';
 const pink = '#c93e6d';
 const red = '#cc3658';
-const border = '1px solid #ececf0';
+const border = '0.5px solid #ececf0';
 const column: CSSProperties = { display: 'flex', flexDirection: 'column', minWidth: 0 };
 const descriptionLineHeight = Math.ceil(typography.compact.fontSize * 1.6);
-const descriptionMaxHeight = descriptionLineHeight * 10;
 
 function Text({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return <div style={{ display: 'block', minWidth: 0, ...textStyle, ...style }}>{children}</div>;
@@ -90,7 +89,7 @@ export const bilibili: Template<BilibiliData> = {
       borderRadius: 6,
       backgroundColor: 'rgba(24,25,35,0.82)',
       color: '#fff',
-      border: '1px solid rgba(255,255,255,0.1)',
+      border: '0.5px solid rgba(255,255,255,0.1)',
       ...typography.meta,
       fontFamily: mono,
     };
@@ -114,17 +113,20 @@ export const bilibili: Template<BilibiliData> = {
                     height: 44,
                     borderRadius: 22,
                     overflow: 'hidden',
-                    border: onAir ? '2px solid ' + red : border,
+                    border: onAir ? '0.5px solid ' + red : border,
                     backgroundColor: '#fceaf0',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: pink,
-                    ...typography.large,
+                    ...typography.body,
                     fontWeight: 700,
                   }}
                 >
                   {context.assets.avatar ? (
-                    <img src={context.assets.avatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img
+                      src={context.assets.avatar.src}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   ) : (
                     <span>{Array.from(data.author.name)[0]}</span>
                   )}
@@ -140,7 +142,7 @@ export const bilibili: Template<BilibiliData> = {
                       borderRadius: 4,
                       backgroundColor: red,
                       color: '#fff',
-                      fontSize: 9,
+                      fontSize: 12,
                       fontFamily: mono,
                     }}
                   >
@@ -184,7 +186,8 @@ export const bilibili: Template<BilibiliData> = {
             display: 'flex',
             position: 'relative',
             width: '100%',
-            aspectRatio: 16 / 9,
+            aspectRatio: context.assets.cover ? 16 / 9 : undefined,
+            height: context.assets.cover ? undefined : 72,
             borderRadius: 10,
             overflow: 'hidden',
             backgroundColor: '#f6eff2',
@@ -194,7 +197,7 @@ export const bilibili: Template<BilibiliData> = {
         >
           {context.assets.cover ? (
             <img
-              src={context.assets.cover}
+              src={context.assets.cover.src}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -205,8 +208,8 @@ export const bilibili: Template<BilibiliData> = {
               }}
             />
           ) : (
-            <div style={{ ...column, alignItems: 'center', gap: 14 }}>
-              <svg width={72} height={64} viewBox="0 0 72 64">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <svg width={36} height={32} viewBox="0 0 72 64">
                 <path
                   d="M23 6l9 10M49 6 40 16M13 18h46a6 6 0 0 1 6 6v28a6 6 0 0 1-6 6H13a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6z"
                   fill="none"
@@ -275,26 +278,10 @@ export const bilibili: Template<BilibiliData> = {
               lineHeight: descriptionLineHeight + 'px',
             }}
           >
-            <div style={{ ...column, position: 'relative', maxHeight: descriptionMaxHeight + 20, overflow: 'hidden' }}>
-              <Text style={{ flexShrink: 0 }}>
-                {isLive && <span style={{ color: ink, fontWeight: 700 }}>【直播简介】 </span>}
-                {highlightTextRuns([{ text: data.description.trim() }], { urls: true })}
-              </Text>
-              <div
-                style={{
-                  display: 'flex',
-                  position: 'absolute',
-                  top: descriptionMaxHeight,
-                  left: 0,
-                  width: '100%',
-                  height: 20,
-                  backgroundColor: '#fff',
-                  ...typography.compact,
-                }}
-              >
-                …
-              </div>
-            </div>
+            <Text style={{ lineClamp: 10, overflow: 'hidden' }}>
+              {isLive && <span style={{ color: ink, fontWeight: 700 }}>【直播简介】 </span>}
+              {highlightTextRuns([{ text: data.description.trim() }], { urls: true })}
+            </Text>
           </div>
         )}
         {!isLive && (primary.length > 0 || secondary.length > 0) && (
@@ -303,7 +290,7 @@ export const bilibili: Template<BilibiliData> = {
               <div style={{ display: 'flex', gap: 24 }}>
                 {primary.map(([key, label], index) => (
                   <div key={key} style={{ ...column, flex: 1, gap: 4, justifyContent: 'space-between' }}>
-                    <Text style={{ ...typography.title, color: index === 0 ? pink : ink, fontFamily: mono }}>
+                    <Text style={{ ...typography.heading, color: index === 0 ? pink : ink, fontFamily: mono }}>
                       {formatCount(data.stats![key]!)}
                     </Text>
                     <Text style={{ ...typography.meta, color: muted }}>{label}</Text>
@@ -348,7 +335,7 @@ export const bilibili: Template<BilibiliData> = {
                   alignItems: 'center',
                   gap: 8,
                   color: onAir ? red : muted,
-                  ...typography.section,
+                  ...typography.body,
                 }}
               >
                 <div style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: onAir ? red : '#8b98a5' }} />

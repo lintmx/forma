@@ -1,6 +1,3 @@
-import { parentPort, workerData } from 'node:worker_threads';
-import { createElement } from 'react';
-import satori from 'satori';
 import type { Config } from '../config.js';
 import { publicError } from './errors.js';
 import { loadFonts } from './fonts.js';
@@ -9,20 +6,23 @@ import { Renderer } from './renderer.js';
 import type { RenderJob } from './request.js';
 
 export async function startRenderWorker(registry: TemplateRegistry) {
-  const config = workerData as Config;
-  const fonts = await loadFonts(config.fontConfig);
-  // Warm Satori's WASM and font parser before accepting HTTP traffic.
-  await satori(createElement('div', { style: { display: 'flex', fontFamily: fonts.fontFamily } }, 'Ready'), {
-    fonts: fonts.fonts,
-    width: 100,
-  });
-  const renderer = new Renderer(config, fonts, registry);
-  parentPort!.on('message', async ({ request, attachments }: RenderJob) => {
+  process.once('message', async (message: { config: Config }) => {
     try {
-      parentPort!.postMessage({ result: await renderer.render(request, attachments) });
+      const config = message.config;
+      const renderer = new Renderer(config, await loadFonts(config.fontConfig), registry);
+      await renderer.warmup();
+      process.on('message', async ({ request, attachments }: RenderJob) => {
+        try {
+          process.send!({ result: await renderer.render(request, attachments) });
+        } catch (error) {
+          process.send!({ error: publicError(error) });
+        }
+      });
+      process.send!({ ready: true });
     } catch (error) {
-      parentPort!.postMessage({ error: publicError(error) });
+      console.error(error);
+      process.exit(1);
     }
   });
-  parentPort!.postMessage({ ready: true });
+  process.on('disconnect', () => process.exit(0));
 }

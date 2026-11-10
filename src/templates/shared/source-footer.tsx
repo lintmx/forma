@@ -127,17 +127,7 @@ const brands = [
   },
 ];
 
-export function SourceFooter({
-  source,
-  url,
-  marginTop = 12,
-  measure = false,
-}: {
-  source?: string;
-  url?: string;
-  marginTop?: number;
-  measure?: boolean;
-}) {
+export function SourceFooter({ source, url, marginTop = 12 }: { source?: string; url?: string; marginTop?: number }) {
   const input = source?.trim();
   const key = input?.toLowerCase();
   const brand = brands.find(item => item.aliases.some(([alias]) => alias === key));
@@ -146,12 +136,11 @@ export function SourceFooter({
   if (!label && !address) return null;
   return (
     <div
-      data-measure={measure || undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
         minWidth: 0,
-        width: measure ? undefined : '100%',
+        width: '100%',
         flexShrink: 0,
         gap: 12,
         borderTop: '0.5px solid ' + colors.border,
@@ -170,7 +159,7 @@ export function SourceFooter({
             minHeight: 18,
             minWidth: 0,
             flexShrink: 0,
-            maxWidth: measure ? undefined : address ? '70%' : '100%',
+            maxWidth: address ? '70%' : '100%',
             color: colors.ink,
             fontWeight: 700,
           }}
@@ -198,8 +187,8 @@ export function SourceFooter({
           style={{
             display: 'flex',
             minWidth: 0,
-            flexGrow: measure ? 0 : 1,
-            flexShrink: measure ? 0 : 1,
+            flexGrow: 1,
+            flexShrink: 1,
             justifyContent: label ? 'flex-end' : 'flex-start',
           }}
         >
@@ -207,7 +196,7 @@ export function SourceFooter({
             style={{
               display: 'block',
               minWidth: 0,
-              maxWidth: measure ? undefined : '100%',
+              maxWidth: '100%',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',

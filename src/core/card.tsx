@@ -2,8 +2,12 @@ import type { ReactNode } from 'react';
 import type { CardOptions } from './request.js';
 import { colors, textStyle, typography } from './typography.js';
 
-// Used for both intrinsic-width measurement and final rendering so templates
-// never need to duplicate the frame's padding, border or typography defaults.
+const outerPadding = 12;
+const innerPadding = 16;
+const borderWidth = 0.5;
+export const cardContentInset = 2 * (outerPadding + innerPadding + borderWidth);
+
+// The same frame participates in measurement and final rendering.
 export function CardFrame({
   children,
   fontFamily,
@@ -19,7 +23,7 @@ export function CardFrame({
         flexDirection: 'column',
         boxSizing: 'border-box',
         width,
-        padding: watermark ? '12px 12px 8px' : 12,
+        padding: watermark ? `${outerPadding}px ${outerPadding}px 8px` : outerPadding,
         backgroundColor: 'rgb(245, 245, 245)',
         fontFamily,
         color: colors.ink,
@@ -34,9 +38,9 @@ export function CardFrame({
           boxSizing: 'border-box',
           flexDirection: 'column',
           width,
-          padding: 16,
+          padding: innerPadding,
           backgroundColor: '#fff',
-          border: '1px solid ' + colors.border,
+          border: `${borderWidth}px solid ${colors.border}`,
           borderRadius: 12,
         }}
       >
@@ -45,8 +49,7 @@ export function CardFrame({
       {watermark && (
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'center',
+            display: 'block',
             width,
             marginTop: 8,
             color: '#b7bac0',

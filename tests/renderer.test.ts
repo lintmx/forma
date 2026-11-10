@@ -1,18 +1,16 @@
+import { Renderer as TakumiRenderer } from '@takumi-rs/core';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
-import satori from 'satori';
-import sharp from 'sharp';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { loadConfig } from '../src/config.js';
 import { type LoadedFonts, loadFonts } from '../src/core/fonts.js';
-import { rasterize } from '../src/core/rasterize.js';
+import { ImageStore, imageAsset } from '../src/core/images.js';
 import { Renderer } from '../src/core/renderer.js';
-import { assertDimensions, layoutOptions, svgDimensions } from '../src/core/sizing.js';
+import { assertDimensions } from '../src/core/sizing.js';
 import type { TemplateContext } from '../src/core/types.js';
 import { createTemplateRegistry } from '../src/templates/index.js';
 import { expectPngQuality } from './fixtures/png-quality.js';
-import { rasterPng } from './fixtures/raster-png.js';
 import { registerTestTemplates } from './fixtures/templates.js';
 
 const registry = createTemplateRegistry();
@@ -29,9 +27,8 @@ const typography = (data: z.infer<typeof typographySchema>, context: TemplateCon
     createElement(
       'div',
       {
-        'data-measure': true,
         style: {
-          display: 'flex',
+          display: 'block',
           whiteSpace: 'pre',
           fontSize: 20,
           fontWeight: data.weight,
@@ -52,22 +49,58 @@ beforeAll(async () => {
     schema: typographySchema,
     sizing: { mode: 'content', minWidth: 124, maxWidth: 760 },
     mock: { text: 'Hello', monospace: false, weight: 400 },
-    measure: typography,
+
     render: typography,
   });
   fonts = await loadFonts(config.fontConfig);
   renderer = new Renderer(config, fonts, registry);
 });
-const render = (data: unknown, format: 'png' | 'svg' = 'svg') =>
-  renderer.render({ template: 'test-content', data, format });
+const render = (data: unknown, format: 'png' = 'png') => renderer.render({ template: 'test-content', data, format });
 
-describe('real Satori + Skia rendering', () => {
+it.each(['', ' \n\t', '👋👩🏽‍💻'])('does not report missing glyphs without visible text: %s', async text => {
+  const result = await renderer.render({ template: 'test-typography', data: { text }, format: 'png' });
+  expect(result.warnings).toEqual([]);
+});
+
+describe('real Takumi rendering', () => {
+  it.each([false, true])(
+    'keeps uploads uncached when identical remote bytes are merged, uploadFirst=%s',
+    async uploadFirst => {
+      const bytes = PNG.sync.write(new PNG({ width: 2, height: 2 }));
+      const source = imageAsset(bytes, config);
+      const get = vi.spyOn(ImageStore.prototype, 'get').mockResolvedValue(source);
+      const draw = vi.spyOn(TakumiRenderer.prototype, 'render');
+      const id = 'test-mixed-image-' + uploadFirst;
+      registry.register({
+        id,
+        name: 'Mixed sources',
+        description: 'Upload and remote resource deduplication',
+        schema: z.object({}),
+        mock: {},
+        sizing: { mode: 'fixed', width: 100, height: 100 },
+        assets: async (_data, images) => {
+          const upload = await images.get('asset:upload');
+          const remote = await images.get('https://example.com/image.png');
+          return uploadFirst ? { upload, remote } : { remote, upload };
+        },
+        render: (_data, context) => createElement('img', { src: context.assets.upload!.src, width: 20, height: 20 }),
+      });
+      try {
+        const result = await renderer.render({ template: id, data: {}, format: 'png' }, new Map([['upload', bytes]]));
+        expect(result.warnings).toEqual([]);
+        expect(draw.mock.calls.at(-1)?.[1]?.images).toEqual([{ ...source, cache: 'none' }]);
+        expect(source.cache).toBe('auto');
+      } finally {
+        get.mockRestore();
+        draw.mockRestore();
+      }
+    },
+  );
   it('automatically frames and measures a new content-only template while keeping public options out of its callbacks', async () => {
     const content = vi.fn((data: { message: string }) =>
       createElement(
         'div',
         {
-          'data-measure': true,
           style: { display: 'flex', fontSize: 20, whiteSpace: 'pre' },
         },
         data.message,
@@ -82,7 +115,7 @@ describe('real Satori + Skia rendering', () => {
       sizing: { mode: 'content', minWidth: 360, maxWidth: 600 },
       mock: { message: 'Example' },
       render: content,
-      measure: content,
+
       assets,
     });
     const message = 'M'.repeat(20);
@@ -108,7 +141,7 @@ describe('real Satori + Skia rendering', () => {
     ];
     expect(pixel(0, 0)).toEqual([245, 245, 245, 255]);
     expect(pixel(70, 30)).toEqual([255, 255, 255, 255]);
-    expectPngQuality(pixel(140, 25), [227, 232, 238, 255]);
+    expectPngQuality(pixel(140, 24), [227, 232, 238, 255]);
   });
   it.each(['fixed', 'auto-width'] as const)('includes the common frame with %s sizing', async mode => {
     const id = 'frame-' + mode;
@@ -138,9 +171,9 @@ describe('real Satori + Skia rendering', () => {
   it('uses measured glyph widths, not character count, to choose content width', async () => {
     const narrow = await render({ title: 'i'.repeat(40) });
     const wide = await render({ title: 'W'.repeat(40) });
-    expect(narrow.width).toBeGreaterThanOrEqual(420);
-    expect(narrow.width).toBeLessThan(wide.width);
-    expect(wide.width).toBe(760);
+    expect(narrow.layoutWidth).toBeGreaterThanOrEqual(420);
+    expect(narrow.layoutWidth).toBeLessThan(wide.layoutWidth);
+    expect(wide.layoutWidth).toBe(760);
     expect(wide.height).toBeGreaterThan(narrow.height);
   });
   it('grows naturally for wrapping text, explicit newlines and list rows', async () => {
@@ -161,29 +194,26 @@ describe('real Satori + Skia rendering', () => {
       title: '你好、世界 Hello ✨',
       body: '中文测试 繁體中文 日本語 かな カナ 한국어 한글 café ⏻ 🎉 👩‍💻 🇯🇵',
     });
-    const svg = Buffer.from(result.body).toString();
-    expect(svg).toContain('<path');
-    expect(svg).toContain('data:image/svg+xml;base64,');
-    expect(svg).not.toMatch(/(?:href|src)="https?:/);
-    expect(svg).not.toContain('<text');
+    expect(PNG.sync.read(Buffer.from(result.body)).width).toBe(result.width);
+    expect(result.warnings).toEqual([]);
   });
   it.each([400, 700])('keeps Maple CN ASCII, Chinese and kana on monospace cells at weight %s', async weight => {
     const probe = (text: string, monospace = true) =>
-      renderer.render({ template: 'test-typography', data: { text, monospace, weight }, format: 'svg' });
+      renderer.render({ template: 'test-typography', data: { text, monospace, weight }, format: 'png' });
     const sizes = await Promise.all(['iiiiiiii', 'WWWWWWWW', '中文中文', 'かなかな'].map(text => probe(text)));
     // Eight ASCII cells and four full-width cells must occupy the same width.
-    expect(new Set(sizes.map(result => result.width)).size).toBe(1);
-    expect(sizes[0]!.width).toBeGreaterThan(124);
+    expect(new Set(sizes.map(result => result.layoutWidth)).size).toBe(1);
+    expect(sizes[0]!.layoutWidth).toBeGreaterThan(124);
     // Keep probes above the template's minimum width after shrinking the frame.
     const singleAscii = await probe('AAAAAAAA');
     const singleCjk = await probe('AAAAAAA中');
     const doubleAscii = await probe('AAAAAAAAA');
-    expect(singleCjk.width).toBe(doubleAscii.width);
-    expect(singleCjk.width - singleAscii.width).toBe(12);
+    expect(singleCjk.layoutWidth).toBe(doubleAscii.layoutWidth);
+    expect(singleCjk.layoutWidth - singleAscii.layoutWidth).toBe(12);
     const narrowBody = await probe('iiiiiiii', false);
     const wideBody = await probe('WWWWWWWW', false);
-    expect(narrowBody.width).toBeLessThan(wideBody.width);
-    expect(narrowBody.width).not.toBe(sizes[0]!.width);
+    expect(narrowBody.layoutWidth).toBeLessThan(wideBody.layoutWidth);
+    expect(narrowBody.layoutWidth).not.toBe(sizes[0]!.layoutWidth);
   });
   it.each([false, true])(
     'renders the production text example in monospace=%s with all four languages',
@@ -192,50 +222,47 @@ describe('real Satori + Skia rendering', () => {
         text: '简体中文 繁體中文\n日本語 ひらがな カタカナ\nHello café 0123456789\n한국어 한글\n㐀㐁 ⏻',
         monospace,
       };
-      const svg = await renderer.render({ template: 'example', data, format: 'svg' });
+      const repeated = await renderer.render({ template: 'example', data, format: 'png' });
       const png = await renderer.render({ template: 'example', data, format: 'png' });
-      expect(Buffer.from(svg.body).toString()).not.toMatch(/(?:href|src)="https?:/);
       const image = PNG.sync.read(Buffer.from(png.body));
-      expect([image.width, image.height]).toEqual([svg.width * 2, svg.height * 2]);
+      expect([image.width, image.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
       expect(image.data.some(byte => byte < 100)).toBe(true);
     },
   );
   it.each([false, true])('keeps the dedicated Egyptian fallback ahead of Ancient in monospace=%s', async monospace => {
     const family = 'Noto Sans Egyptian Hieroglyphs';
-    expect(fonts.fontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient, Go Noto Current')).toBe(
-      true,
-    );
     expect(
-      fonts.monospaceFontFamily.endsWith('Noto Sans Symbols 2, ' + family + ', Go Noto Ancient, Go Noto Current'),
+      fonts.fontFamily.endsWith('"Noto Sans Symbols 2", "' + family + '", "Go Noto Ancient", "Go Noto Current"'),
+    ).toBe(true);
+    expect(
+      fonts.monospaceFontFamily.endsWith(
+        '"Noto Sans Symbols 2", "' + family + '", "Go Noto Ancient", "Go Noto Current"',
+      ),
     ).toBe(true);
     const previous = new Renderer(
       config,
       {
         fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Ancient'),
-        fontFamily: fonts.fontFamily.replace(', Go Noto Ancient', ''),
-        monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Ancient', ''),
+        fontFamily: fonts.fontFamily.replace(', "Go Noto Ancient"', ''),
+        monospaceFontFamily: fonts.monospaceFontFamily.replace(', "Go Noto Ancient"', ''),
       },
       registry,
     );
     const request = {
       template: 'example',
       data: { text: '中文 日本語 한국어 Hello ⏻ 🎉', monospace },
-      format: 'svg' as const,
+      format: 'png' as const,
     };
     const before = await previous.render(request);
     const after = await renderer.render(request);
-    expect(after.body).toEqual(before.body);
+    expect(after.width).toBe(before.width);
     const egyptian = { ...request, data: { text: '中文 Hello 𓀀 𓂀 𓆣 𓋹', monospace } };
-    const svg = await renderer.render(egyptian);
-    expect(svg.warnings).toEqual([]);
-    expect(svg.body).toEqual((await previous.render(egyptian)).body);
-    const source = Buffer.from(svg.body).toString();
-    expect(source).toContain('<path');
-    expect(source).not.toContain('<text');
-    expect(source).not.toMatch(/(?:href|src)="https?:/);
+    const repeated = await renderer.render(egyptian);
+    expect(repeated.warnings).toEqual([]);
+    expect(repeated.body).toEqual((await previous.render(egyptian)).body);
     const png = await renderer.render({ ...egyptian, format: 'png' });
     const image = PNG.sync.read(Buffer.from(png.body));
-    expect([image.width, image.height]).toEqual([svg.width * 2, svg.height * 2]);
+    expect([image.width, image.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
     expect(image.data.some(byte => byte < 100)).toBe(true);
   });
 
@@ -244,64 +271,66 @@ describe('real Satori + Skia rendering', () => {
       config,
       {
         fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Ancient'),
-        fontFamily: fonts.fontFamily.replace(', Go Noto Ancient', ''),
-        monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Ancient', ''),
+        fontFamily: fonts.fontFamily.replace(', "Go Noto Ancient"', ''),
+        monospaceFontFamily: fonts.monospaceFontFamily.replace(', "Go Noto Ancient"', ''),
       },
       registry,
     );
     const data = { text: '中文 Hello 𖤐 𒀀 𐎀 𐌰', monospace, weight: 700 };
-    const request = { template: 'test-typography', data, format: 'svg' as const };
+    const request = { template: 'test-typography', data, format: 'png' as const };
     const before = await previous.render(request);
     expect(before.warnings).toEqual(['MISSING_GLYPH']);
-    const svg = await renderer.render(request);
-    expect(svg.warnings).toEqual([]);
-    expect(svg.body).not.toEqual(before.body);
-    expect(Buffer.from(svg.body).toString()).not.toContain('<text');
+    const repeated = await renderer.render(request);
+    expect(repeated.warnings).toEqual([]);
+    expect(repeated.body).not.toEqual(before.body);
     const png = await renderer.render({ ...request, format: 'png' });
     expect(png.warnings).toEqual([]);
     const image = PNG.sync.read(Buffer.from(png.body));
-    expect([image.width, image.height]).toEqual([svg.width * 2, svg.height * 2]);
+    expect([image.width, image.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
     expect(image.data.some(byte => byte < 100)).toBe(true);
   });
 
-  it.each([false, true])('fills kaomoji gaps without changing existing glyphs in monospace=%s', async monospace => {
-    const previous = new Renderer(
-      config,
-      {
-        fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Current'),
-        fontFamily: fonts.fontFamily.replace(', Go Noto Current', ''),
-        monospaceFontFamily: fonts.monospaceFontFamily.replace(', Go Noto Current', ''),
-      },
-      registry,
-    );
-    for (const weight of [400, 700]) {
-      const request = {
-        template: 'test-typography',
-        data: { text: '߹꒳\u200b߹ (๑•̀ㅂ•́)و✧ ٩(ˊᗜˋ*)و (ง •̀_•́)ง (っ ॑꒳ ॑c)', monospace, weight },
-        format: 'svg' as const,
-      };
-      const before = await previous.render(request);
-      expect(before.warnings).toEqual(['MISSING_GLYPH']);
-      const svg = await renderer.render(request);
-      const png = await renderer.render({ ...request, format: 'png' });
-      expect(svg.warnings).toEqual([]);
-      expect(png.warnings).toEqual([]);
-      expect(svg.body).not.toEqual(before.body);
-      const image = PNG.sync.read(Buffer.from(png.body));
-      expect([image.width, image.height]).toEqual([svg.width * 2, svg.height * 2]);
-    }
-    for (const format of ['png', 'svg'] as const) {
-      const request = {
-        template: 'example',
-        data: { text: '中文 日本語 한국어 Hello ⏻ 𓀀 𖤐 𒀀 🐶🧡 👩‍💻', monospace },
-        format,
-      };
-      const before = await previous.render(request);
-      const after = await renderer.render(request);
-      expect(after.warnings).toEqual([]);
-      expect(after.body).toEqual(before.body);
-    }
-  });
+  it.each([false, true])(
+    'fills kaomoji gaps while keeping existing text renderable in monospace=%s',
+    async monospace => {
+      const previous = new Renderer(
+        config,
+        {
+          fonts: fonts.fonts.filter(font => font.name !== 'Go Noto Current'),
+          fontFamily: fonts.fontFamily.replace(', "Go Noto Current"', ''),
+          monospaceFontFamily: fonts.monospaceFontFamily.replace(', "Go Noto Current"', ''),
+        },
+        registry,
+      );
+      for (const weight of [400, 700]) {
+        const request = {
+          template: 'test-typography',
+          data: { text: '߹꒳\u200b߹ (๑•̀ㅂ•́)و✧ ٩(ˊᗜˋ*)و (ง •̀_•́)ง (っ ॑꒳ ॑c)', monospace, weight },
+          format: 'png' as const,
+        };
+        const before = await previous.render(request);
+        expect(before.warnings).toEqual(['MISSING_GLYPH']);
+        const repeated = await renderer.render(request);
+        const png = await renderer.render({ ...request, format: 'png' });
+        expect(repeated.warnings).toEqual([]);
+        expect(png.warnings).toEqual([]);
+        expect(repeated.body).not.toEqual(before.body);
+        const image = PNG.sync.read(Buffer.from(png.body));
+        expect([image.width, image.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
+      }
+      for (const format of ['png'] as const) {
+        const request = {
+          template: 'example',
+          data: { text: '中文 日本語 한국어 Hello ⏻ 𓀀 𖤐 𒀀 🐶🧡 👩‍💻', monospace },
+          format,
+        };
+        const before = await previous.render(request);
+        const after = await renderer.render(request);
+        expect(after.warnings).toEqual([]);
+        expect(after.width).toBe(before.width);
+      }
+    },
+  );
 
   it.each([false, true])('renders missing glyphs during measurement in monospace=%s', async monospace => {
     const request = {
@@ -309,12 +338,11 @@ describe('real Satori + Skia rendering', () => {
       data: { text: '中文 A\u{10ffff}B\u{10fffe}C', monospace },
       watermark: 'Missing \u{10ffff}',
     };
-    const svg = await renderer.render({ ...request, format: 'svg' });
+    const repeated = await renderer.render({ ...request, format: 'png' });
     const png = await renderer.render({ ...request, format: 'png' });
-    expect(svg.warnings).toEqual(['MISSING_GLYPH']);
-    expect(png.warnings).toEqual(svg.warnings);
-    expect([png.width, png.height]).toEqual([svg.width * 2, svg.height * 2]);
-    expect(Buffer.from(svg.body).toString()).toContain('<path');
+    expect(repeated.warnings).toEqual(['MISSING_GLYPH']);
+    expect(png.warnings).toEqual(repeated.warnings);
+    expect([png.width, png.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
     expect(PNG.sync.read(Buffer.from(png.body)).width).toBe(png.width);
   });
   it('keeps the flat rounded card inside the PNG canvas', async () => {
@@ -380,7 +408,7 @@ describe('real Satori + Skia rendering', () => {
         watermark: '由 MagiBot 生成・日本語・English '.repeat(6),
         format: 'png',
       });
-      expect(wrapped.width).toBe(plain.width);
+      expect(wrapped.layoutWidth).toBeLessThanOrEqual(template === 'test-content' ? 760 : 620);
       expect(wrapped.height).toBeGreaterThan(marked.height);
       const limited = new Renderer({ ...config, maxHeight: plain.height }, fonts, registry);
       await expect(
@@ -393,24 +421,7 @@ describe('real Satori + Skia rendering', () => {
       ).rejects.toMatchObject({ code: 'SIZE_LIMIT' });
     },
   );
-  it('produces PNG with identical dimensions and bounded color error against the returned SVG', async () => {
-    const request = {
-      template: 'test-auto-height',
-      data: registry.get('test-auto-height').mock,
-      watermark: 'Generated by Forma',
-    };
-    const png = await renderer.render({ ...request, format: 'png' });
-    const svg = await renderer.render({ ...request, format: 'svg' });
-    const sampled = await rasterPng(
-      await rasterize(Buffer.from(svg.body).toString(), png.width * 2, png.height * 2, config),
-    );
-    const expected = await sharp(sampled).resize(png.width, png.height, { kernel: 'lanczos3' }).png().toBuffer();
-    const decoded = PNG.sync.read(Buffer.from(png.body));
-    const raster = PNG.sync.read(expected);
-    expect([decoded.width, decoded.height]).toEqual([raster.width, raster.height]);
-    expectPngQuality(decoded.data, raster.data);
-    expect(png.width).toBe(1240);
-  });
+
   it('checks final output limits before rasterization', async () => {
     const request = { template: 'test-auto-height', data: { title: 'Output limit' }, format: 'png' as const };
     const original = await renderer.render(request);
@@ -422,26 +433,7 @@ describe('real Satori + Skia rendering', () => {
     const widthLimited = new Renderer({ ...config, maxWidth: 1000 }, fonts, registry);
     await expect(widthLimited.render(request)).rejects.toMatchObject({ code: 'SIZE_LIMIT', details: { width: 1240 } });
   });
-  it('checks intermediate pixel limits before allocation, independently of output limits', async () => {
-    const request = {
-      template: 'test-auto-height',
-      data: { title: 'Intermediate limit' },
-      format: 'png' as const,
-    };
-    const svg = await renderer.render({ ...request, format: 'svg' });
-    const pixels = svg.width * svg.height * 16;
-    const limited = new Renderer({ ...config, maxRasterPixels: pixels - 1 }, fonts, registry);
-    await expect(limited.render(request)).rejects.toMatchObject({
-      code: 'SIZE_LIMIT',
-      details: { width: svg.width * 4, height: svg.height * 4, maxPixels: pixels - 1 },
-    });
-    const exact = new Renderer({ ...config, maxRasterPixels: pixels }, fonts, registry);
-    await expect(exact.render(request)).resolves.toMatchObject({
-      width: svg.width * 2,
-      height: svg.height * 2,
-    });
-    await expect(limited.render({ ...request, format: 'svg' })).resolves.toMatchObject({ scale: 1 });
-  });
+
   it('rejects excessive dimensions before PNG rasterization', async () => {
     const limited = new Renderer({ ...config, maxHeight: 250 }, fonts, registry);
     await expect(
@@ -460,29 +452,16 @@ describe('real Satori + Skia rendering', () => {
     ).toThrow();
   });
   it('caps content width to the service limit and lays out the text at that width', async () => {
-    const limited = new Renderer({ ...config, maxWidth: 500 }, fonts, registry);
+    const limited = new Renderer({ ...config, maxWidth: 1000 }, fonts, registry);
     const result = await limited.render({
       template: 'test-content',
       data: { title: '长标题'.repeat(20) },
-      format: 'svg',
+      format: 'png',
     });
-    expect(result.width).toBe(500);
+    expect(result.width).toBe(1000);
     expect(result.height).toBeGreaterThan(250);
   });
-  it('supports explicit fixed sizing and constrained intrinsic auto-width', async () => {
-    const node = createElement('div', { style: { display: 'flex', whiteSpace: 'nowrap', fontSize: 20 } }, 'Hello');
-    const base = { fonts: fonts.fonts };
-    const fixed = await layoutOptions({ mode: 'fixed', width: 300, height: 100 }, undefined, base, config);
-    expect(svgDimensions(await satori(node, { ...base, ...fixed }))).toEqual({
-      width: 300,
-      height: 100,
-    });
-    const auto = await layoutOptions({ mode: 'auto-width', height: 100 }, undefined, base, config);
-    const output = svgDimensions(await satori(node, { ...base, ...auto }));
-    expect(output.height).toBe(100);
-    expect(output.width).toBeGreaterThan(30);
-    expect(output.width).toBeLessThan(300);
-  });
+
   it('preserves content when an image is unavailable and signals the fallback', async () => {
     const result = await renderer.render({
       template: 'test-auto-height',

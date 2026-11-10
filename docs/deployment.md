@@ -12,12 +12,12 @@ pnpm build
 NODE_ENV=production pnpm start
 ```
 
-`pnpm build` 准备字体、Emoji 及带源码补丁的 Satori，运行静态检查，输出 `dist/server.js`、`dist/worker.js` 和 `dist/playground/`。
+`pnpm build` 准备字体和 Emoji，运行静态检查，输出 `dist/server.js`、`dist/worker.js` 和 `dist/playground/`。
 `pnpm dev` 和 `pnpm start` 自动读取根目录 `.env`，已设置的 shell 环境变量优先；修改后需重启。
 生产模式默认关闭 `/dev/`，需要时设置 `PLAYGROUND_ENABLED=true`。
 
-启动会等待 worker 字体加载和 Satori 预热完成。`pnpm start` 不下载字体或 Emoji；离线运行前应准备好
-`dist/`、生产依赖、字体配置及字体文件、`emoji/svg/`，或使用预先构建的镜像。
+启动会等待渲染子进程字体加载和 Takumi 预热完成。`pnpm start` 不下载字体或 Emoji；离线运行前应准备好
+`dist/`、生产依赖、字体配置及字体文件、`emoji/svg/`、`licenses/` 和根目录许可声明，或使用预先构建的镜像。
 可用 `pnpm fonts:verify` 和 `pnpm emoji:verify` 离线检查资源完整性。
 
 ## Docker Compose
@@ -66,8 +66,7 @@ docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/lintmx/forma:latest
 | `UPLOAD_MAX_FILES` | `16` | 单次上传文件数上限，最大 64 |
 | `MAX_WIDTH` / `MAX_HEIGHT` | `8192` / `32768` | 最终输出宽高上限 |
 | `MAX_PIXELS` | `32000000` | 最终输出像素数上限 |
-| `MAX_RASTER_PIXELS` | `128000000` | 中间栅格像素数上限，最大可设 `256000000` |
-| `MAX_OUTPUT_BYTES` | `67108864` | SVG / PNG 输出字节上限 |
+| `MAX_OUTPUT_BYTES` | `67108864` | PNG 输出字节上限 |
 | `IMAGE_TIMEOUT_MS` | `4000` | 单张图片下载总超时，毫秒 |
 | `IMAGE_MAX_BYTES` / `IMAGE_MAX_PIXELS` | `5242880` / `16000000` | 单张图片字节数 / 解码像素数上限，适用于下载与上传 |
 | `IMAGE_CACHE_BYTES` / `IMAGE_CACHE_TTL_MS` | `33554432` / `300000` | 每 worker 图片缓存字节预算 / 有效期，毫秒 |
@@ -75,12 +74,17 @@ docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/lintmx/forma:latest
 
 ## 并发与资源预算
 
-持久 worker 负责渲染，HTTP 主线程处理请求。请求截止时间覆盖读取、排队、资源下载和渲染；
-超时返回 504，必要时替换 worker。客户端断开或服务退出时回收对应任务。
+持久 Node.js 子进程负责渲染，HTTP 主进程处理请求。请求截止时间覆盖读取、排队、资源下载和渲染；
+超时返回 504；正在执行的取消、超时或关闭会终止对应子进程，等待实际退出后才恢复容量。
+排队任务取消只移出队列，服务关闭时等待所有执行单元退出。
 
 每个 worker 独立缓存字体和图片，提高并发会增加内存占用。
-PNG 的中间栅格内存高于最终输出，需同时限制输出尺寸、`MAX_RASTER_PIXELS` 和并发量。
+Takumi 直接编码 2× PNG；旧的 `MAX_RASTER_PIXELS` 已移除，部署时删除该配置。
+原始图片缓存默认每进程 32 MiB，Takumi 资源缓存另有 32 MiB，字形缓存为 8 MiB；字体、画布和进程开销另计。
+监控内存时累加主进程和所有渲染子进程 RSS，不能仅使用主进程内存。
 超限请求会被拒绝，不会自动降低采样倍率；按实际 CPU、内存和负载调整配置。
+本次 macOS 验收中，默认并发 2、980 次预设混合请求的进程树峰值 RSS 约 900 MiB；
+该值包含测试驱动，不是生产内存保证。部署前应使用实际图片和上传负载确认余量。
 
 上传附件驻留内存，并发上传、排队及渲染的 multipart 请求总数受 worker 数量加队列容量限制。
 容量规划需同时考虑 multipart 上限、队列容量和图片解码内存；代理的请求体大小和超时配置应与服务匹配。

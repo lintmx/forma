@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import type { Font } from 'satori';
+import type { FontDetails } from '@takumi-rs/core';
 import { z } from 'zod';
 
 export interface LoadedFonts {
-  fonts: Font[];
+  fonts: (FontDetails & { name: string; data: Buffer })[];
   fontFamily: string;
   monospaceFontFamily: string;
 }
@@ -46,6 +46,7 @@ export async function loadFonts(configPath: string): Promise<LoadedFonts> {
     [...config.filter(font => font.usage === usage), ...config.filter(font => font.usage === 'fallback')]
       .map(font => font.name)
       .filter((name, index, names) => names.indexOf(name) === index)
+      .map(name => JSON.stringify(name))
       .join(', ');
   const fonts = await Promise.all(
     config.map(async ({ path, usage: _usage, ...font }) => ({

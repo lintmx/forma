@@ -24,7 +24,7 @@ export const example: Template<z.infer<typeof schema>> = {
   render: (data, context) => (
     <div
       style={{
-        display: 'flex',
+        display: 'block',
         ...typography.body,
         fontFamily: data.monospace ? context.monospaceFontFamily : context.fontFamily,
         ...textStyle,

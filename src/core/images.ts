@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
@@ -8,7 +9,7 @@ import { resolveAssetUrl } from './asset-url.js';
 import { FormaError } from './errors.js';
 import type { Attachments } from './request.js';
 
-// HTTP(S) and local files share resource limits; Satori only receives embedded data.
+// HTTP(S) and local files share resource limits; the renderer only receives validated bytes.
 export async function downloadImage(input: string, config: Config): Promise<Buffer> {
   const signal = AbortSignal.timeout(config.imageTimeoutMs);
   const download = async (inputUrl: string, redirects: number): Promise<Buffer> => {
@@ -73,7 +74,7 @@ export async function downloadImage(input: string, config: Config): Promise<Buff
   return download(input, 0);
 }
 
-export function imageDataUri(buffer: Buffer, config: Config) {
+export function imageAsset(buffer: Buffer, config: Config): ImageAsset {
   if (buffer.length > config.imageMaxBytes) throw new Error('Image is too large');
   const size = imageSize(buffer);
   if (
@@ -86,26 +87,37 @@ export function imageDataUri(buffer: Buffer, config: Config) {
   ) {
     throw new Error('Unsupported image or excessive decoded dimensions');
   }
-  return 'data:image/' + (size.type === 'jpg' ? 'jpeg' : size.type) + ';base64,' + buffer.toString('base64');
+  return {
+    src: 'forma:image:' + createHash('sha256').update(buffer).digest('hex'),
+    data: buffer,
+    width: size.width,
+    height: size.height,
+    format: size.type as ImageAsset['format'],
+    cache: 'auto',
+  };
 }
 
-async function normalizeImage(buffer: Buffer, config: Config, validateContent = false): Promise<string> {
-  let data = imageDataUri(buffer, config);
-  // Decode uploads as well as inspecting their headers, rejecting corrupt payloads.
-  const image = sharp(buffer, { limitInputPixels: config.imageMaxPixels, pages: 1 });
-  if (data.startsWith('data:image/webp;')) {
-    data = imageDataUri(await image.png().toBuffer(), config);
-  } else if (validateContent) {
-    await image.stats();
-  }
-  return data;
+export interface ImageAsset {
+  src: string;
+  data: Buffer;
+  width: number;
+  height: number;
+  format: 'png' | 'jpg' | 'webp';
+  cache: 'auto' | 'none';
+}
+
+async function normalizeImage(buffer: Buffer, config: Config): Promise<ImageAsset> {
+  const asset = imageAsset(buffer, config);
+  // Validate remote files as well as uploads before templates choose their fallback.
+  await sharp(buffer, { limitInputPixels: config.imageMaxPixels, pages: 1 }).stats();
+  return asset;
 }
 
 export type ImageLoader = Pick<ImageStore, 'get'>;
 
 export class ImageStore {
-  private cache = new Map<string, { data: string; expires: number; bytes: number }>();
-  private inflight = new Map<string, Promise<string>>();
+  private cache = new Map<string, { data: ImageAsset; expires: number; bytes: number }>();
+  private inflight = new Map<string, Promise<ImageAsset>>();
   private bytes = 0;
   constructor(
     private config: Config,
@@ -117,10 +129,10 @@ export class ImageStore {
   }
 
   async withAttachments(attachments: Attachments, prefix?: string): Promise<ImageLoader> {
-    const local = new Map<string, string>();
+    const local = new Map<string, ImageAsset>();
     for (const [id, bytes] of attachments) {
       try {
-        local.set('asset:' + id, await normalizeImage(Buffer.from(bytes), this.config, true));
+        local.set('asset:' + id, { ...(await normalizeImage(Buffer.from(bytes), this.config)), cache: 'none' });
       } catch {
         throw new FormaError('INVALID_IMAGE', 'Invalid uploaded image', 422, { asset: id });
       }
@@ -135,7 +147,7 @@ export class ImageStore {
     };
   }
 
-  async get(url: string): Promise<string> {
+  async get(url: string): Promise<ImageAsset> {
     const entry = this.cache.get(url);
     if (entry && entry.expires > Date.now()) {
       this.cache.delete(url);
@@ -148,7 +160,7 @@ export class ImageStore {
     const promise = this.download(url, this.config)
       .then(async buffer => {
         const data = await normalizeImage(buffer, this.config);
-        const bytes = Buffer.byteLength(data);
+        const bytes = data.data.byteLength;
         if (bytes <= this.config.imageCacheBytes) {
           while (this.bytes + bytes > this.config.imageCacheBytes || this.cache.size >= 128)
             this.remove(this.cache.keys().next().value!);

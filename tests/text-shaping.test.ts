@@ -1,18 +1,18 @@
-import { createRequire } from 'node:module';
+import { type ImageSource, Renderer as TakumiRenderer } from '@takumi-rs/core';
+import { fromJsx } from '@takumi-rs/helpers/jsx';
 import { createElement } from 'react';
-import satori from 'satori';
 import sharp from 'sharp';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { prepareEmoji } from '../src/core/emoji.js';
 import { type LoadedFonts, loadFonts } from '../src/core/fonts.js';
-import { rasterize } from '../src/core/rasterize.js';
-import { rasterPng } from './fixtures/raster-png.js';
 
 const config = loadConfig({ LOG_LEVEL: 'silent' });
 let fonts: LoadedFonts;
+const renderer = new TakumiRenderer();
 beforeAll(async () => {
   fonts = await loadFonts(config.fontConfig);
+  for (const font of fonts.fonts) await renderer.registerFont(font);
 });
 
 async function renderText(
@@ -22,10 +22,9 @@ async function renderText(
     family = fonts.fontFamily,
     direction = 'ltr',
     width = 800,
-    engine = satori,
-  }: { inline?: boolean; family?: string; direction?: 'ltr' | 'rtl'; width?: number; engine?: typeof satori } = {},
+  }: { inline?: boolean; family?: string; direction?: 'ltr' | 'rtl'; width?: number } = {},
 ) {
-  const tree = await prepareEmoji(
+  const { node, css } = await fromJsx(
     createElement(
       'div',
       {
@@ -43,10 +42,17 @@ async function renderText(
       },
       inline ? createElement('span', null, text) : text,
     ),
-    () => {},
   );
-  const svg = await engine(tree, { width, height: 288, fonts: fonts.fonts });
-  return rasterPng(await rasterize(svg, width * 2, 576, config));
+  const images = new Map<string, ImageSource>();
+  const tree = await prepareEmoji(node, () => {}, images);
+  return renderer.render(tree, {
+    width: width * 2,
+    height: 576,
+    devicePixelRatio: 2,
+    css,
+    images: [...images.values()],
+    format: 'png',
+  });
 }
 
 async function ink(png: Buffer) {
@@ -136,7 +142,7 @@ async function inkBands(png: Buffer) {
   );
 }
 
-describe('Satori text shaping regressions', () => {
+describe('Takumi text shaping regressions', () => {
   it.each([false, true])('keeps neutral kaomoji in input order across inline and emoji paths (mono=%s)', async mono => {
     const family = mono ? fonts.monospaceFontFamily : fonts.fontFamily;
     const reference = await renderText('߹꒳\u200b߹', { family });
@@ -156,10 +162,10 @@ describe('Satori text shaping regressions', () => {
   it('selects one font covering the base and all combining marks, even after caching the base', async () => {
     await renderText('੭');
     const actual = await renderText('੭ु');
-    const reference = await renderText('੭ु', { family: 'Go Noto Current' });
+    const reference = await renderText('੭ु', { family: '"Go Noto Current"' });
     await expectSameInk(actual, reference);
     // Same base-only and marked cluster in a single engine also must not share a resolver entry.
-    await expectSameInk(await renderText('੭ ੁ'), await renderText('੭ ੁ', { family: 'Go Noto Current' }));
+    await expectSameInk(await renderText('੭ ੁ'), await renderText('੭ ੁ', { family: '"Go Noto Current"' }));
   });
 
   it('positions a stacked upper mark above the preceding upper mark', async () => {
@@ -189,11 +195,5 @@ describe('Satori text shaping regressions', () => {
       expect(actual.length).toBe(expected.length);
       for (const [index, band] of actual.entries()) await expectSameInk(band, expected[index]!);
     }
-  });
-
-  it('keeps shaping behavior identical through the CommonJS entry', async () => {
-    const cjs = createRequire(import.meta.url)('satori').default as typeof satori;
-    const text = '߹꒳\u200b߹\nx\u0301\u0302 ੁ\nשלום مرحبا 123 🧡';
-    expect(await renderText(text, { inline: true, engine: cjs })).toEqual(await renderText(text, { inline: true }));
   });
 });

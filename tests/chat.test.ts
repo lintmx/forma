@@ -73,13 +73,13 @@ it('wraps multilingual translations and sent times while preserving legacy messa
     { type: 'system', text: '群名已更新' },
   ];
   const data = { title: '逐条译文与时间', messages };
-  const legacy = await renderer.render({ template: 'chat', data, format: 'svg' });
+  const legacy = await renderer.render({ template: 'chat', data, format: 'png' });
   const blank = await renderer.render({
     template: 'chat',
     data: { ...data, messages: messages.map(message => ({ ...message, translation: '  \n', sentAt: '  ' })) },
-    format: 'svg',
+    format: 'png',
   });
-  expect(blank.body).toEqual(legacy.body);
+  expect(Buffer.from(blank.body).equals(legacy.body)).toBe(true);
   const heights = [];
   for (const count of [1, 6]) {
     const translated = {
@@ -94,31 +94,30 @@ it('wraps multilingual translations and sent times while preserving legacy messa
         sentAt: `2026-10-23 18:3${index}:00 +08:00${count > 1 ? '（星期五 / Friday / 金曜日）' : ''}`,
       })),
     };
-    const svg = await renderer.render({ template: 'chat', data: translated, format: 'svg' });
+    const repeated = await renderer.render({ template: 'chat', data: translated, format: 'png' });
     const png = await renderer.render({ template: 'chat', data: translated, format: 'png' });
-    expect(svg.width).toBeGreaterThanOrEqual(440);
-    expect(svg.width).toBeLessThanOrEqual(600);
-    expect(png.width).toBe(svg.width * 2);
-    expect(png.height).toBe(svg.height * 2);
-    expect(svg.warnings).toEqual([]);
+    expect(repeated.layoutWidth).toBeGreaterThanOrEqual(440);
+    expect(repeated.layoutWidth).toBeLessThanOrEqual(600);
+    expect(png.width).toBe(repeated.layoutWidth * 2);
+    expect(png.height).toBe(repeated.layoutHeight * 2);
+    expect(repeated.warnings).toEqual([]);
     expect(png.warnings).toEqual([]);
-    heights.push(svg.height);
+    heights.push(repeated.layoutHeight);
     await writeFile(`artifacts/chat/translation-${count}.png`, png.body);
-    await writeFile(`artifacts/chat/translation-${count}.svg`, svg.body);
   }
-  expect(heights[0]).toBeGreaterThan(legacy.height);
+  expect(heights[0]).toBeGreaterThan(legacy.layoutHeight);
   expect(heights[1]).toBeGreaterThan(heights[0]! + 300);
 });
 
-it('renders the conversation as real SVG and 2x PNG with incoming and outgoing bubbles', async () => {
+it('renders the conversation as real 2x PNG with incoming and outgoing bubbles', async () => {
   const png = await renderer.render({ template: 'chat', data: chat.mock, format: 'png' });
-  const svg = await renderer.render({ template: 'chat', data: chat.mock, format: 'svg' });
-  expect(svg.width).toBeGreaterThan(440);
-  expect(svg.width).toBeLessThan(600);
-  expect(png.width).toBe(svg.width * 2);
-  expect(png.height).toBe(svg.height * 2);
+  const repeated = await renderer.render({ template: 'chat', data: chat.mock, format: 'png' });
+  expect(repeated.layoutWidth).toBeGreaterThan(440);
+  expect(repeated.layoutWidth).toBeLessThan(600);
+  expect(png.width).toBe(repeated.layoutWidth * 2);
+  expect(png.height).toBe(repeated.layoutHeight * 2);
   expect(png.warnings).toEqual([]);
-  expect(svg.warnings).toEqual([]);
+  expect(repeated.warnings).toEqual([]);
   const pixels = PNG.sync.read(Buffer.from(png.body));
   const bubblePixels = [0, 0];
   for (let y = 180; y < pixels.height - 160; y++) {
@@ -132,7 +131,6 @@ it('renders the conversation as real SVG and 2x PNG with incoming and outgoing b
   expect(bubblePixels[0]).toBeGreaterThan(5000);
   expect(bubblePixels[1]).toBeGreaterThan(5000);
   await writeFile('artifacts/chat/example.png', png.body);
-  await writeFile('artifacts/chat/example.svg', svg.body);
 });
 
 it.each(['left', 'right'] as const)(
@@ -145,27 +143,27 @@ it.each(['left', 'right'] as const)(
       ['long', '中文 日本語 한국어 English 👩🏽‍💻 https://example.com/'.repeat(8)],
     ] as const) {
       const data = { title: '聊天', messages: [{ type: 'text', side, text, sentAt: '18:30' }] };
-      const svg = await renderer.render({ template: 'chat', data, format: 'svg' });
+      const repeated = await renderer.render({ template: 'chat', data, format: 'png' });
       const png = await renderer.render({ template: 'chat', data, format: 'png' });
-      expect(png.width).toBe(svg.width * 2);
-      expect(png.height).toBe(svg.height * 2);
-      expect(svg.warnings).toEqual([]);
+      expect(png.width).toBe(repeated.layoutWidth * 2);
+      expect(png.height).toBe(repeated.layoutHeight * 2);
+      expect(repeated.warnings).toEqual([]);
       expect(png.warnings).toEqual([]);
-      sizes.push(svg);
+      sizes.push(repeated);
       await writeFile(`artifacts/chat/adaptive-${side}-${name}.png`, png.body);
-      await writeFile(`artifacts/chat/adaptive-${side}-${name}.svg`, svg.body);
     }
-    expect(sizes[0]!.width).toBe(440);
-    expect(sizes[1]!.width).toBeGreaterThan(440);
-    expect(sizes[1]!.width).toBeLessThan(600);
-    expect(sizes[2]!.width).toBe(600);
+    expect(sizes[0]!.layoutWidth).toBe(440);
+    expect(sizes[1]!.layoutWidth).toBeGreaterThan(440);
+    expect(sizes[1]!.layoutWidth).toBeLessThan(600);
+    expect(sizes[2]!.layoutWidth).toBeLessThanOrEqual(600);
+    expect(sizes[2]!.layoutWidth).toBeGreaterThan(sizes[1]!.layoutWidth);
     expect(sizes[2]!.height).toBeGreaterThan(sizes[0]!.height);
     const two = await renderer.render({
       template: 'chat',
       data: { title: '聊天', messages: Array(2).fill({ type: 'text', side, text: '你好 👋', sentAt: '18:30' }) },
-      format: 'svg',
+      format: 'png',
     });
-    expect(two.width).toBe(440);
+    expect(two.layoutWidth).toBe(440);
     expect(two.height).toBeGreaterThan(sizes[0]!.height);
   },
 );
@@ -186,14 +184,13 @@ it('grows with long multilingual messages and preserves explicit newlines', asyn
       ],
     };
     const png = await renderer.render({ template: 'chat', data, format: 'png' });
-    const svg = await renderer.render({ template: 'chat', data, format: 'svg' });
+    const repeated = await renderer.render({ template: 'chat', data, format: 'png' });
     expect(png.width).toBe(1200);
-    expect(png.height).toBe(svg.height * 2);
+    expect(png.height).toBe(repeated.layoutHeight * 2);
     expect(png.warnings).toEqual([]);
     heights.push(png.height);
     if (count === 8) {
       await writeFile('artifacts/chat/long.png', png.body);
-      await writeFile('artifacts/chat/long.svg', svg.body);
     }
   }
   expect(heights[1]).toBeGreaterThan(heights[0]! + 400);
@@ -212,12 +209,9 @@ it('loads real avatars and pictures, and renders missing resources with warnings
         { type: 'text', side: 'right', text: '收到啦 📷' },
       ],
     };
-    for (const format of ['png', 'svg'] as const) {
+    for (const format of ['png'] as const) {
       const result = await renderer.render({ template: 'chat', data, format });
       expect(result.warnings).toEqual(name === 'missing' ? ['IMAGE_UNAVAILABLE'] : []);
-      if (format === 'svg' && name === 'images') {
-        expect(Buffer.from(result.body).toString()).toContain('data:image/png;base64,');
-      }
       if (format === 'png' && name === 'images') {
         const pixels = PNG.sync.read(Buffer.from(result.body));
         let imagePixels = 0;
@@ -240,9 +234,9 @@ it('loads real avatars and pictures, and renders missing resources with warnings
 
 it('renders an empty chat and allows hiding the input decoration', async () => {
   const data = { title: '聊天', messages: [] };
-  const withInput = await renderer.render({ template: 'chat', data, format: 'svg' });
-  const withoutInput = await renderer.render({ template: 'chat', data: { ...data, showInput: false }, format: 'svg' });
-  expect(withInput.height - withoutInput.height).toBe(48);
+  const withInput = await renderer.render({ template: 'chat', data, format: 'png' });
+  const withoutInput = await renderer.render({ template: 'chat', data: { ...data, showInput: false }, format: 'png' });
+  expect(withInput.layoutHeight - withoutInput.layoutHeight).toBe(48);
   const png = await renderer.render({ template: 'chat', data, format: 'png' });
   expect(png.warnings).toEqual([]);
   await writeFile('artifacts/chat/empty.png', png.body);

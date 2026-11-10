@@ -9,6 +9,7 @@ import { calculateMetricDelta, diffLines } from '../src/templates/comparison/com
 import { comparison } from '../src/templates/comparison/index.js';
 import { comparisonSchema } from '../src/templates/comparison/schema.js';
 import { createTemplateRegistry } from '../src/templates/index.js';
+import { testImage } from './fixtures/image.js';
 
 let renderer: Renderer;
 beforeAll(async () => {
@@ -41,10 +42,10 @@ it('validates each module and rejects mismatched content and legacy render optio
   }
   expect(comparisonSchema.safeParse({ ...comparison.mock, watermark: 'legacy' }).success).toBe(false);
 });
-it('renders every module to real PNG and SVG and keeps images in their panes', async () => {
+it('renders every module to real PNG and keeps images in their panes', async () => {
   const red = new PNG({ width: 60, height: 40 });
   for (let i = 0; i < red.data.length; i += 4) red.data.set([220, 30, 40, 255], i);
-  const uri = 'data:image/png;base64,' + PNG.sync.write(red).toString('base64');
+  const uri = testImage(PNG.sync.write(red));
   vi.spyOn(ImageStore.prototype, 'get').mockResolvedValue(uri);
   const data = structuredClone(comparison.mock);
   const module = data.modules.find(module => module.type === 'image')!;
@@ -65,8 +66,6 @@ it('renders every module to real PNG and SVG and keeps images in their panes', a
   expect(redPixels).toBeGreaterThan(20000);
   await mkdir('artifacts/comparison', { recursive: true });
   await writeFile('artifacts/comparison/preview.png', result.body);
-  const svg = await renderer.render({ template: 'comparison', data, format: 'svg' });
-  expect(Buffer.from(svg.body).toString()).toContain('<svg');
 });
 it('renders empty modules, long multilingual text and failed image fallback', async () => {
   vi.spyOn(ImageStore.prototype, 'get').mockRejectedValue(new Error('Image unavailable'));

@@ -4,12 +4,12 @@ import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { Renderer as TakumiRenderer } from '@takumi-rs/core';
 import { PNG } from 'pngjs';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
-import { downloadImage, ImageStore, imageDataUri } from '../src/core/images.js';
-import { rasterize } from '../src/core/rasterize.js';
+import { downloadImage, ImageStore, imageAsset } from '../src/core/images.js';
 
 const config = loadConfig({});
 const png = PNG.sync.write(new PNG({ width: 2, height: 2 }));
@@ -62,7 +62,7 @@ describe('bounded image resources', () => {
   });
   it('loads encoded local file URLs directly and via redirects', async () => {
     for (const url of [fileUrl, origin + '/file']) {
-      expect(await new ImageStore(config).get(url)).toBe(imageDataUri(png, config));
+      expect(await new ImageStore(config).get(url)).toEqual(imageAsset(png, config));
     }
   });
   it('keeps byte limits, timeouts, redirect limits and load errors', async () => {
@@ -79,12 +79,12 @@ describe('bounded image resources', () => {
     await expect(new ImageStore(config).get(invalid.href)).rejects.toThrow();
   });
   it('rejects SVG, excessive encoded bytes and decoded pixel counts', () => {
-    expect(() => imageDataUri(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'), config)).toThrow();
-    expect(() => imageDataUri(png, { ...config, imageMaxBytes: 1 })).toThrow();
-    expect(() => imageDataUri(png, { ...config, imageMaxPixels: 1 })).toThrow();
-    expect(imageDataUri(png, config)).toMatch(/^data:image\/png;base64,/);
+    expect(() => imageAsset(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'), config)).toThrow();
+    expect(() => imageAsset(png, { ...config, imageMaxBytes: 1 })).toThrow();
+    expect(() => imageAsset(png, { ...config, imageMaxPixels: 1 })).toThrow();
+    expect(imageAsset(png, config)).toMatchObject({ data: png, width: 2, height: 2, format: 'png' });
   });
-  it('normalizes WebP into renderable PNG, preserving pixels and enforcing input and output limits', async () => {
+  it('preserves validated WebP bytes and renders their pixels with Takumi', async () => {
     const webp = await sharp({
       create: { width: 4, height: 2, channels: 4, background: { r: 30, g: 100, b: 200, alpha: 1 } },
     })
@@ -93,15 +93,15 @@ describe('bounded image resources', () => {
     const download = vi.fn(async () => webp);
     const store = new ImageStore(config, download);
     const data = await store.get('webp');
-    expect(data).toMatch(/^data:image\/png;base64,/);
-    const decoded = PNG.sync.read(Buffer.from(data.slice(data.indexOf(',') + 1), 'base64'));
+    expect(data.format).toBe('webp');
+    expect(data.data).toEqual(webp);
+    const output = await new TakumiRenderer().render(
+      { type: 'image', src: data.src },
+      { width: 4, height: 2, images: [data], format: 'png' },
+    );
+    const decoded = PNG.sync.read(output);
     expect([decoded.width, decoded.height]).toEqual([4, 2]);
     expect([...decoded.data.subarray(0, 4)]).toEqual([30, 100, 200, 255]);
-    const svg =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="2"><image href="' +
-      data +
-      '" width="4" height="2" /></svg>';
-    expect((await rasterize(svg, 4, 2, config)).pixels).toEqual(decoded.data);
     expect(await store.get('webp')).toBe(data);
     expect(download).toHaveBeenCalledTimes(1);
     await expect(new ImageStore({ ...config, imageMaxPixels: 1 }, download).get('webp')).rejects.toThrow(
@@ -110,19 +110,15 @@ describe('bounded image resources', () => {
     await expect(new ImageStore({ ...config, imageMaxBytes: webp.length - 1 }, download).get('webp')).rejects.toThrow(
       'too large',
     );
-    expect(Buffer.byteLength(data)).toBeGreaterThan(webp.length);
-    await expect(new ImageStore({ ...config, imageMaxBytes: webp.length }, download).get('webp')).rejects.toThrow(
-      'too large',
-    );
   });
   it('mixes request attachments with URL resources and validates even unused uploads', async () => {
     const download = vi.fn(async () => png);
     const store = new ImageStore(config, download);
     const loader = await store.withAttachments(new Map([['cover', png]]), origin + '/');
-    expect(await loader.get('asset:cover')).toBe(imageDataUri(png, config));
-    expect(await loader.get('asset:cover')).toBe(imageDataUri(png, config));
+    expect(await loader.get('asset:cover')).toEqual({ ...imageAsset(png, config), cache: 'none' });
+    expect(await loader.get('asset:cover')).toEqual({ ...imageAsset(png, config), cache: 'none' });
     expect(download).not.toHaveBeenCalled();
-    expect(await loader.get('image')).toBe(imageDataUri(png, config));
+    expect(await loader.get('image')).toEqual(imageAsset(png, config));
     expect(download).toHaveBeenCalledWith(origin + '/image', config);
     const next = await store.withAttachments(new Map());
     await expect(next.get('asset:cover')).rejects.toMatchObject({ code: 'IMAGE_UNAVAILABLE' });
@@ -150,10 +146,7 @@ describe('bounded image resources', () => {
   });
   it('evicts least recently used entries within its byte budget', async () => {
     const download = vi.fn(async () => png);
-    const store = new ImageStore(
-      { ...config, imageCacheBytes: Buffer.byteLength(imageDataUri(png, config)) },
-      download,
-    );
+    const store = new ImageStore({ ...config, imageCacheBytes: png.byteLength }, download);
     await store.get('a');
     await store.get('b');
     await store.get('a');

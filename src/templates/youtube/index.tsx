@@ -14,7 +14,6 @@ const red = '#ff0000';
 const border = '0.5px solid #e4e4e7';
 const column: CSSProperties = { display: 'flex', flexDirection: 'column', minWidth: 0 };
 const descriptionLineHeight = Math.ceil(typography.compact.fontSize * 1.6);
-const descriptionMaxHeight = descriptionLineHeight * 10;
 const labels = {
   published: '已发布',
   scheduled: '定时发布',
@@ -150,7 +149,10 @@ export const youtube: Template<YoutubeData> = {
                   }}
                 >
                   {context.assets.avatar ? (
-                    <img src={context.assets.avatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img
+                      src={context.assets.avatar.src}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   ) : (
                     <span>{Array.from(snippet.channelTitle)[0]}</span>
                   )}
@@ -210,7 +212,7 @@ export const youtube: Template<YoutubeData> = {
         >
           {context.assets.cover ? (
             <img
-              src={context.assets.cover}
+              src={context.assets.cover.src}
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
@@ -237,7 +239,7 @@ export const youtube: Template<YoutubeData> = {
             </div>
           )}
         </div>
-        <Text style={{ ...typography.heading, fontSize: 22, lineClamp: 2, overflow: 'hidden' }}>{snippet.title}</Text>
+        <Text style={{ ...typography.heading, fontSize: 24, lineClamp: 2, overflow: 'hidden' }}>{snippet.title}</Text>
         {(timeline.length > 0 || state === 'upcoming') && (
           <div style={{ ...column, gap: 12, borderTop: border, paddingTop: 16 }}>
             {state === 'upcoming' && !live?.scheduledStartTime && <Text style={{ color: muted }}>开播时间待定</Text>}
@@ -259,7 +261,7 @@ export const youtube: Template<YoutubeData> = {
                     >
                       <div style={{ ...column, gap: 4 }}>
                         <Text style={{ ...typography.meta, color: muted }}>{label}</Text>
-                        <Text style={{ ...typography.heading, fontSize: 22, fontFamily: mono, lineHeight: 1.2 }}>
+                        <Text style={{ ...typography.heading, fontSize: 24, fontFamily: mono, lineHeight: 1.2 }}>
                           {time}
                         </Text>
                       </div>
@@ -302,25 +304,9 @@ export const youtube: Template<YoutubeData> = {
               lineHeight: descriptionLineHeight + 'px',
             }}
           >
-            <div style={{ ...column, position: 'relative', maxHeight: descriptionMaxHeight + 20, overflow: 'hidden' }}>
-              <Text style={{ flexShrink: 0 }}>
-                {highlightTextRuns([{ text: snippet.description.trim() }], { urls: true })}
-              </Text>
-              <div
-                style={{
-                  display: 'flex',
-                  position: 'absolute',
-                  top: descriptionMaxHeight,
-                  left: 0,
-                  width: '100%',
-                  height: 20,
-                  backgroundColor: '#fff',
-                  ...typography.compact,
-                }}
-              >
-                …
-              </div>
-            </div>
+            <Text style={{ lineClamp: 10, overflow: 'hidden' }}>
+              {highlightTextRuns([{ text: snippet.description.trim() }], { urls: true })}
+            </Text>
           </div>
         )}
         {stats.length > 0 && (

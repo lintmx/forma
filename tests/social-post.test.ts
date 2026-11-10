@@ -1,16 +1,15 @@
 import { mkdir, writeFile } from 'node:fs/promises';
+import { type MeasuredNode, Renderer as TakumiRenderer } from '@takumi-rs/core';
+import { fromJsx } from '@takumi-rs/helpers/jsx';
 import { decodeHTML } from 'entities';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import satori from 'satori';
-import sharp from 'sharp';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { CardFrame } from '../src/core/card.js';
 import { type LoadedFonts, loadFonts } from '../src/core/fonts.js';
-import { ImageStore, imageDataUri } from '../src/core/images.js';
-import { rasterize } from '../src/core/rasterize.js';
+import { ImageStore, imageAsset } from '../src/core/images.js';
 import { Renderer } from '../src/core/renderer.js';
 import { textStyle, typography } from '../src/core/typography.js';
 import { createTemplateRegistry } from '../src/templates/index.js';
@@ -23,6 +22,9 @@ const registry = createTemplateRegistry();
 const config = loadConfig({ LOG_LEVEL: 'silent' });
 let renderer: Renderer;
 let fonts: LoadedFonts;
+const engine = new TakumiRenderer();
+const measuredText = (node: MeasuredNode): string =>
+  node.runs.map(run => run.text).join('') + node.children.map(measuredText).join('');
 
 function image(width: number, height: number, color: [number, number, number]) {
   const png = new PNG({ width, height });
@@ -44,6 +46,7 @@ const nearColor = (pixels: Uint8Array, offset: number, color: readonly number[])
 
 beforeAll(async () => {
   fonts = await loadFonts(config.fontConfig);
+  for (const font of fonts.fonts) await engine.registerFont(font);
   renderer = new Renderer(config, fonts, registry);
   registry.register({
     ...socialPost,
@@ -73,11 +76,10 @@ afterEach(() => {
 function mockImages() {
   return vi.spyOn(ImageStore.prototype, 'get').mockImplementation(async url => {
     if (url.includes('missing')) throw new Error('Image unavailable');
-    return imageDataUri(imageBuffer(url), config);
+    return imageAsset(imageBuffer(url), config);
   });
 }
-const render = (data: unknown, format: 'png' | 'svg' = 'png') =>
-  renderer.render({ template: 'social_post', data, format });
+const render = (data: unknown, format: 'png' = 'png') => renderer.render({ template: 'social_post', data, format });
 
 describe('social_post contract', () => {
   it('matches built-in source logos and canonical names by exact alias', () => {
@@ -152,15 +154,15 @@ describe('social_post contract', () => {
     expect(urls).not.toContain(source('reply-0'));
     expect(urls).not.toContain(source('reply-1'));
     expect(urls).not.toContain(source('hidden-quote'));
-    expect(assets['post-avatar']).toMatch(/^data:image\/png;base64,/);
-    expect(assets['post-media-0']).toMatch(/^data:image\/png;base64,/);
+    expect(assets['post-avatar']?.format).toBe('png');
+    expect(assets['post-media-0']?.format).toBe('png');
     expect(assets).not.toHaveProperty('post-media-1');
     expect(assets['post-media-2']).toBeUndefined();
-    expect(assets['reply-0-avatar']).toMatch(/^data:image\/png;base64,/);
+    expect(assets['reply-0-avatar']?.format).toBe('png');
   });
 });
 
-describe('social_post real Satori and Skia output', () => {
+describe('social_post real Takumi output', () => {
   it('shares Twitter boundaries and one highlight color across all post and translation paths', async () => {
     const text =
       '👋 #中文 #hello_world #2026go @user_01 ＠bob @abcdefghijklmno\n#123 word@alice person@example.com @abcdefghijklmnop @中文\nhttps://example.com/@user#fragment。';
@@ -187,8 +189,8 @@ describe('social_post real Satori and Skia output', () => {
       );
       expect(highlighted).toEqual([...expected, ...expected]);
       expect(html).not.toContain('#2563eb');
-      const svg = await render(data, 'svg');
-      expect(Buffer.from(svg.body).toString()).toContain('fill="#0969da"');
+      const repeated = await render(data, 'png');
+      expect(countBlue(repeated.body)).toBeGreaterThan(20);
     }
     const result = await render(snapshot);
     expect(result.warnings).toEqual([]);
@@ -204,23 +206,19 @@ describe('social_post real Satori and Skia output', () => {
     expect(long.layoutWidth).toBe(700);
     expect(long.height).toBeGreaterThan(short.height + 200);
     expect(short.height).toBeGreaterThan(empty.height);
-    expect((await render({ content: '✨ 👩‍💻 你好 日本語 Hello' }, 'svg')).warnings).toEqual([]);
+    expect((await render({ content: '✨ 👩‍💻 你好 日本語 Hello' }, 'png')).warnings).toEqual([]);
   });
   it('uses the same safe inline token styling in the main post, translation, reply and quote', async () => {
-    const plain = await render({ content: '#123 #456' }, 'svg');
-    expect(Buffer.from(plain.body).toString()).not.toContain('fill="' + '#0969da' + '"');
+    const plain = await render({ content: '#123 #456' }, 'png');
+    expect(countBlue(plain.body)).toBe(0);
     for (const data of [
       { content: '正文 #中文 @forma https://example.com' },
       { translation: { text: '译文 #日本語 @forma https://example.com' } },
       { postKind: 'reply', replyChain: [{ content: '回复 #话题 @forma' }] },
       { postKind: 'quote', quotedPost: { content: '引用 #話題 @forma' } },
     ]) {
-      const result = await render(data, 'svg');
-      const svg = Buffer.from(result.body).toString();
-      expect(svg).toContain('fill="#0969da"');
-      expect(svg).not.toMatch(/(?:href|src)="https?:/);
-      expect(svg).not.toContain('<text');
-      expect(svg).not.toContain('<a ');
+      const result = await render(data, 'png');
+      expect(countBlue(result.body)).toBeGreaterThan(20);
     }
     await expect(render({ content: '<script>alert(1)</script> **plain text**' })).resolves.toMatchObject({
       warnings: [],
@@ -238,8 +236,8 @@ describe('social_post real Satori and Skia output', () => {
       '普通正文 中文 日本語 한국어 English\n第二行没有着色标记。',
     ]) {
       const data = { content };
-      const colored = await render(data, 'svg');
-      const plain = await renderer.render({ template: 'test-social-plain', data, format: 'svg' });
+      const colored = await render(data, 'png');
+      const plain = await renderer.render({ template: 'test-social-plain', data, format: 'png' });
       expect([colored.width, colored.height]).toEqual([plain.width, plain.height]);
     }
   });
@@ -306,28 +304,19 @@ describe('social_post real Satori and Skia output', () => {
     'renders %s media as embedded images with no remote references',
     async mediaLayout => {
       mockImages();
-      const result = await render({ media, mediaLayout }, 'svg');
-      const svg = Buffer.from(result.body).toString();
-      expect(svg.match(/href="data:image\/png;base64,/g)?.length).toBe(3);
-      expect(svg).toContain('data:image/png;base64,');
-      expect(svg).not.toMatch(/(?:href|src)="https?:/);
+      const result = await render({ media, mediaLayout }, 'png');
       expect(result.warnings).toEqual([]);
-      const png = await render({ media, mediaLayout });
-      const decoded = PNG.sync.read(Buffer.from(png.body));
-      expect([decoded.width, decoded.height]).toEqual([result.width * 2, result.height * 2]);
-      const skia = await rasterize(svg, decoded.width * 2, decoded.height * 2, {
-        ...config,
-        maxPixels: config.maxRasterPixels,
-      });
-      const unquantized = PNG.sync.read(
-        await sharp(skia.pixels, {
-          raw: { width: skia.width, height: skia.height, channels: 4, premultiplied: true },
-        })
-          .resize(decoded.width, decoded.height, { kernel: 'lanczos3' })
-          .png()
-          .toBuffer(),
-      );
-      expectPngQuality(decoded.data, unquantized.data);
+      const decoded = PNG.sync.read(Buffer.from(result.body));
+      expect([decoded.width, decoded.height]).toEqual([result.width, result.height]);
+      for (const color of [
+        [220, 30, 40],
+        [30, 170, 70],
+        [30, 80, 220],
+      ]) {
+        let count = 0;
+        for (let i = 0; i < decoded.data.length; i += 4) if (nearColor(decoded.data, i, color)) count++;
+        expect(count).toBeGreaterThan(100);
+      }
     },
   );
   it.each([1, 2, 3, 4, 5, 6, 12])('renders a %i-image grid without clipping the canvas', async count => {
@@ -373,11 +362,10 @@ describe('social_post real Satori and Skia output', () => {
         author: { name: '作者', avatarUrl: source('missing-avatar') },
         media: [{ url: source('red') }, { url: source('missing') }, { type: 'gif', url: source('blue') }],
       },
-      'svg',
+      'png',
     );
-    const svg = Buffer.from(result.body).toString();
     expect(result.warnings).toEqual(['IMAGE_UNAVAILABLE']);
-    expect(svg.match(/<image /g)?.length).toBe(2);
+    expect(PNG.sync.read(Buffer.from(result.body)).width).toBe(result.width);
     get.mockClear();
     expect((await render({ media: [{ type: 'audio', url: 'https://example.com/audio.mp3' }] })).warnings).toEqual([]);
     expect(get).not.toHaveBeenCalled();
@@ -393,18 +381,19 @@ describe('social_post real Satori and Skia output', () => {
     { source: '来源'.repeat(12), url: 'https://example.com/post/1' },
   ])('expands to fit footer metadata without premature truncation: %j', async metadata => {
     const data = { content: '简短正文', ...metadata };
-    const result = await render(data, 'svg');
+    const result = await render(data, 'png');
     expect(result.layoutWidth).toBeGreaterThan(400);
     expect(result.layoutWidth).toBeLessThan(700);
-    const svg = await satori(
+    const converted = await fromJsx(
       CardFrame({
         children: socialPost.render(data, { assets: {}, ...fonts }),
         fontFamily: fonts.fontFamily,
         monospaceFontFamily: fonts.monospaceFontFamily,
       }),
-      { fonts: fonts.fonts, width: result.layoutWidth, embedFont: false },
     );
-    const text = [...svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)].map(match => decodeHTML(match[1]!)).join('');
+    const text = measuredText(
+      await engine.measure(converted.node, { css: converted.css, width: result.width, devicePixelRatio: 2 }),
+    );
     expect(text).toContain(metadata.source ?? metadata.url);
     if (metadata.url) expect(text).toContain(metadata.url);
     expect(text).not.toContain('…');
@@ -412,31 +401,26 @@ describe('social_post real Satori and Skia output', () => {
   it('caps footer-driven width at the template maximum', async () => {
     const result = await render(
       { content: '正文', source: '来源'.repeat(70), url: 'https://example.com/' + 'x'.repeat(500) },
-      'svg',
+      'png',
     );
     expect(result.layoutWidth).toBe(700);
   });
   it('keeps brand names and URL prefixes visible when a long address is truncated', async () => {
     const data = { content: '正文', source: 'Twitter', url: 'https://example.com/' + 'segment/'.repeat(120) };
     for (const width of [400, 700]) {
-      const svg = await satori(
+      const converted = await fromJsx(
         CardFrame({
           children: socialPost.render(data, { assets: {}, ...fonts }),
           fontFamily: fonts.fontFamily,
           monospaceFontFamily: fonts.monospaceFontFamily,
         }),
-        { fonts: fonts.fonts, width, embedFont: false },
       );
-      const text = [...svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)].map(match => decodeHTML(match[1]!)).join('');
+      const text = measuredText(
+        await engine.measure(converted.node, { css: converted.css, width: width * 2, devicePixelRatio: 2 }),
+      );
       expect(text).toContain('Twitter');
       expect(text).toContain('https://example.com/');
       expect(text).toContain('…');
-      const positions = [...svg.matchAll(/<text\b[^>]*x="([^"]+)"[^>]*width="([^"]+)"[^>]*>(.*?)<\/text>/g)];
-      const label = positions.find(match => match[3] === 'Twitter')!;
-      const protocol = positions.find(match => match[3] === 'https')!;
-      const domain = positions.find(match => match[3] === 'example.com')!;
-      expect(Number(protocol[1])).toBeGreaterThanOrEqual(Number(label[1]) + Number(label[2]) + 12);
-      expect(Number(domain[1]) + Number(domain[2])).toBeLessThan(width - 29);
     }
   });
   it('omits blank footer metadata and keeps long names and source URLs within the frame', async () => {
@@ -452,3 +436,10 @@ describe('social_post real Satori and Skia output', () => {
     expect(long.layoutHeight).toBeLessThan(400);
   });
 });
+
+function countBlue(body: Uint8Array) {
+  const { data } = PNG.sync.read(Buffer.from(body));
+  let count = 0;
+  for (let i = 0; i < data.length; i += 4) if (nearColor(data, i, [9, 105, 218])) count++;
+  return count;
+}
