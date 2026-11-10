@@ -264,31 +264,27 @@ describe('HTTP end-to-end', () => {
           },
         ];
         for (const request of requests) {
-          for (const format of ['png']) {
-            const response = await post({ ...request, format });
-            expect(response.status).toBe(200);
-            expect(response.headers.get('X-Render-Warnings')).toBe('');
-            const body = Buffer.from(await response.arrayBuffer());
-            {
-              const decoded = PNG.sync.read(body);
-              expect(decoded.width).toBe(Number(response.headers.get('X-Image-Width')));
-              expect(decoded.height).toBe(Number(response.headers.get('X-Image-Height')));
-              let greenPixels = 0;
-              for (let i = 0; i < decoded.data.length; i += 4) {
-                if (
-                  Math.abs(decoded.data[i]! - 20) < 5 &&
-                  Math.abs(decoded.data[i + 1]! - 180) < 5 &&
-                  Math.abs(decoded.data[i + 2]! - 90) < 5
-                )
-                  greenPixels++;
-              }
-              expect(greenPixels).toBeGreaterThan(1000);
-            }
-            await writeFile(
-              'artifacts/media-sources/' + request.template + '-' + new URL(url).protocol.slice(0, -1) + '.' + format,
-              body,
-            );
+          const response = await post({ ...request, format: 'png' });
+          expect(response.status).toBe(200);
+          expect(response.headers.get('X-Render-Warnings')).toBe('');
+          const body = Buffer.from(await response.arrayBuffer());
+          const decoded = PNG.sync.read(body);
+          expect(decoded.width).toBe(Number(response.headers.get('X-Image-Width')));
+          expect(decoded.height).toBe(Number(response.headers.get('X-Image-Height')));
+          let greenPixels = 0;
+          for (let i = 0; i < decoded.data.length; i += 4) {
+            if (
+              Math.abs(decoded.data[i]! - 20) < 5 &&
+              Math.abs(decoded.data[i + 1]! - 180) < 5 &&
+              Math.abs(decoded.data[i + 2]! - 90) < 5
+            )
+              greenPixels++;
           }
+          expect(greenPixels).toBeGreaterThan(1000);
+          await writeFile(
+            'artifacts/media-sources/' + request.template + '-' + new URL(url).protocol.slice(0, -1) + '.png',
+            body,
+          );
         }
       }
       const missing = await post({
@@ -311,14 +307,14 @@ describe('HTTP end-to-end', () => {
       sharp({ create: { width: 80, height: 40, channels: 3, background: color } })
         .toFormat(format)
         .toBuffer();
-    const upload = (bytes: Uint8Array, format = 'png', template = 'article') => {
+    const upload = (bytes: Uint8Array, template = 'article') => {
       const body = new FormData();
       body.append('cover', new Blob([new Uint8Array(bytes)], { type: 'text/plain' }), 'untrusted.txt');
       body.append(
         'request',
         JSON.stringify({
           template,
-          format,
+          format: 'png',
           assetUrlPrefix: 'https://unused.invalid/',
           data:
             template === 'article'
@@ -333,21 +329,17 @@ describe('HTTP end-to-end', () => {
     };
     for (const type of ['png', 'jpeg', 'webp'] as const) {
       const bytes = await make('#14b45a', type);
-      for (const format of ['png']) {
-        const response = await upload(bytes, format, type === 'jpeg' ? 'comparison' : 'article');
-        expect(response.status).toBe(200);
-        expect(response.headers.get('X-Render-Warnings')).toBe('');
-        const output = Buffer.from(await response.arrayBuffer());
-        {
-          const decoded = PNG.sync.read(output);
-          expect(decoded.width).toBe(Number(response.headers.get('X-Layout-Width')) * 2);
-          let colored = 0;
-          for (let i = 0; i < decoded.data.length; i += 4)
-            if (Math.abs(decoded.data[i]! - 20) < 8 && Math.abs(decoded.data[i + 1]! - 180) < 8) colored++;
-          expect(colored).toBeGreaterThan(1000);
-        }
-        await writeFile('artifacts/uploads/' + type + '.' + format, output);
-      }
+      const response = await upload(bytes, type === 'jpeg' ? 'comparison' : 'article');
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Render-Warnings')).toBe('');
+      const output = Buffer.from(await response.arrayBuffer());
+      const decoded = PNG.sync.read(output);
+      expect(decoded.width).toBe(Number(response.headers.get('X-Layout-Width')) * 2);
+      let colored = 0;
+      for (let i = 0; i < decoded.data.length; i += 4)
+        if (Math.abs(decoded.data[i]! - 20) < 8 && Math.abs(decoded.data[i + 1]! - 180) < 8) colored++;
+      expect(colored).toBeGreaterThan(1000);
+      await writeFile('artifacts/uploads/' + type + '.png', output);
     }
     const colors = await Promise.all(['red', 'blue'].map(color => make(color, 'png')));
     const outputs = await Promise.all(
@@ -413,11 +405,11 @@ describe('HTTP end-to-end', () => {
       expect((await response.json()).error.code).toBe('VALIDATION_ERROR');
     }
   });
-  it.each(['png'])('uses top-level watermark for %s and hides omitted or blank values', async format => {
+  it('uses top-level watermark for PNG and hides omitted or blank values', async () => {
     const request = {
       template: 'test-content',
       data: { title: '水印测试' },
-      format,
+      format: 'png',
     };
     const plain = await post(request);
     const plainBody = Buffer.from(await plain.arrayBuffer());

@@ -102,38 +102,29 @@ const cases = [
 
 describe('asset prefix through HTTP and production worker', () => {
   it.each(cases)('renders $template paths identically to complete URLs in PNG', async ({ template, data }) => {
-    for (const format of ['png']) {
-      const relative = await post({
-        template,
-        data: data(path => path),
-        format,
-        assetUrlPrefix: assetOrigin + '/static',
-      });
-      expect(relative.status).toBe(200);
-      expect(relative.headers.get('X-Render-Warnings')).toBe('');
-      const body = Buffer.from(await relative.arrayBuffer());
-      const absolute = await post({
-        template,
-        data: data(path => assetOrigin + '/static/' + path.replace(/^\//, '')),
-        format,
-      });
-      expect(absolute.status).toBe(200);
-      expect(body.equals(Buffer.from(await absolute.arrayBuffer()))).toBe(true);
-      const scale = format === 'png' ? 2 : 1;
-      expect(Number(relative.headers.get('X-Image-Width'))).toBe(
-        Number(relative.headers.get('X-Layout-Width')) * scale,
-      );
-      expect(Number(relative.headers.get('X-Image-Height'))).toBe(
-        Number(relative.headers.get('X-Layout-Height')) * scale,
-      );
-      {
-        const image = PNG.sync.read(body);
-        expect([image.width, image.height]).toEqual([
-          Number(relative.headers.get('X-Image-Width')),
-          Number(relative.headers.get('X-Image-Height')),
-        ]);
-      }
-    }
+    const relative = await post({
+      template,
+      data: data(path => path),
+      format: 'png',
+      assetUrlPrefix: assetOrigin + '/static',
+    });
+    expect(relative.status).toBe(200);
+    expect(relative.headers.get('X-Render-Warnings')).toBe('');
+    const body = Buffer.from(await relative.arrayBuffer());
+    const absolute = await post({
+      template,
+      data: data(path => assetOrigin + '/static/' + path.replace(/^\//, '')),
+      format: 'png',
+    });
+    expect(absolute.status).toBe(200);
+    expect(body.equals(Buffer.from(await absolute.arrayBuffer()))).toBe(true);
+    expect(Number(relative.headers.get('X-Image-Width'))).toBe(Number(relative.headers.get('X-Layout-Width')) * 2);
+    expect(Number(relative.headers.get('X-Image-Height'))).toBe(Number(relative.headers.get('X-Layout-Height')) * 2);
+    const image = PNG.sync.read(body);
+    expect([image.width, image.height]).toEqual([
+      Number(relative.headers.get('X-Image-Width')),
+      Number(relative.headers.get('X-Image-Height')),
+    ]);
     expect(downloads.some(url => url.includes('video.mp4'))).toBe(false);
   });
 
@@ -156,19 +147,17 @@ describe('asset prefix through HTTP and production worker', () => {
   });
 
   it('keeps successful images when a path is missing and warns without a prefix', async () => {
-    for (const format of ['png']) {
-      for (const assetUrlPrefix of [assetOrigin + '/static/', '', undefined]) {
-        const response = await post({
-          template: 'article',
-          format,
-          assetUrlPrefix,
-          data: { content: '![missing](missing.png)', media: [{ url: assetOrigin + '/static/media.png' }] },
-        });
-        expect(response.status).toBe(200);
-        expect(response.headers.get('X-Render-Warnings')).toBe('IMAGE_UNAVAILABLE');
-        const body = Buffer.from(await response.arrayBuffer());
-        expect(PNG.sync.read(body).width).toBe(1400);
-      }
+    for (const assetUrlPrefix of [assetOrigin + '/static/', '', undefined]) {
+      const response = await post({
+        template: 'article',
+        format: 'png',
+        assetUrlPrefix,
+        data: { content: '![missing](missing.png)', media: [{ url: assetOrigin + '/static/media.png' }] },
+      });
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Render-Warnings')).toBe('IMAGE_UNAVAILABLE');
+      const body = Buffer.from(await response.arrayBuffer());
+      expect(PNG.sync.read(body).width).toBe(1400);
     }
   });
 

@@ -52,32 +52,28 @@ const samples: { name: string; request: RenderRequest }[] = [
 ];
 const records = [];
 for (const { name, request } of samples) {
-  const images: Partial<Record<'png', Buffer>> = {};
-  for (const format of ['png'] as const) {
-    let body: Buffer;
-    let warnings: string[];
-    if (baseUrl) {
-      const response = await fetch(new URL('/v1/render', baseUrl), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ...request, format }),
-      });
-      body = Buffer.from(await response.arrayBuffer());
-      assert.equal(response.status, 200, body.toString());
-      warnings = (response.headers.get('x-render-warnings') ?? '')
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
-    } else {
-      const result = await renderer!.render({ ...request, format });
-      body = Buffer.from(result.body);
-      warnings = result.warnings;
-    }
-    assert.deepEqual(warnings, []);
-    images[format] = body;
-    await writeFile(resolve(directory, `${name}.${format}`), body);
+  let body: Buffer;
+  let warnings: string[];
+  if (baseUrl) {
+    const response = await fetch(new URL('/v1/render', baseUrl), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    body = Buffer.from(await response.arrayBuffer());
+    assert.equal(response.status, 200, body.toString());
+    warnings = (response.headers.get('x-render-warnings') ?? '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+  } else {
+    const result = await renderer!.render(request);
+    body = Buffer.from(result.body);
+    warnings = result.warnings;
   }
-  const png = await sharp(images.png!).metadata();
+  assert.deepEqual(warnings, []);
+  await writeFile(resolve(directory, `${name}.png`), body);
+  const png = await sharp(body).metadata();
   records.push({ name, png: [png.width, png.height], warnings: [] });
 }
 await writeFile(

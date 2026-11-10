@@ -55,7 +55,7 @@ beforeAll(async () => {
   fonts = await loadFonts(config.fontConfig);
   renderer = new Renderer(config, fonts, registry);
 });
-const render = (data: unknown, format: 'png' = 'png') => renderer.render({ template: 'test-content', data, format });
+const render = (data: unknown) => renderer.render({ template: 'test-content', data, format: 'png' });
 
 it.each(['', ' \n\t', '👋👩🏽‍💻'])('does not report missing glyphs without visible text: %s', async text => {
   const result = await renderer.render({ template: 'test-typography', data: { text }, format: 'png' });
@@ -222,10 +222,9 @@ describe('real Takumi rendering', () => {
         text: '简体中文 繁體中文\n日本語 ひらがな カタカナ\nHello café 0123456789\n한국어 한글\n㐀㐁 ⏻',
         monospace,
       };
-      const repeated = await renderer.render({ template: 'example', data, format: 'png' });
       const png = await renderer.render({ template: 'example', data, format: 'png' });
       const image = PNG.sync.read(Buffer.from(png.body));
-      expect([image.width, image.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
+      expect([image.width, image.height]).toEqual([png.layoutWidth * 2, png.layoutHeight * 2]);
       expect(image.data.some(byte => byte < 100)).toBe(true);
     },
   );
@@ -257,12 +256,11 @@ describe('real Takumi rendering', () => {
     const after = await renderer.render(request);
     expect(after.width).toBe(before.width);
     const egyptian = { ...request, data: { text: '中文 Hello 𓀀 𓂀 𓆣 𓋹', monospace } };
-    const repeated = await renderer.render(egyptian);
-    expect(repeated.warnings).toEqual([]);
-    expect(repeated.body).toEqual((await previous.render(egyptian)).body);
-    const png = await renderer.render({ ...egyptian, format: 'png' });
+    const png = await renderer.render(egyptian);
+    expect(png.warnings).toEqual([]);
+    expect(png.body).toEqual((await previous.render(egyptian)).body);
     const image = PNG.sync.read(Buffer.from(png.body));
-    expect([image.width, image.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
+    expect([image.width, image.height]).toEqual([png.layoutWidth * 2, png.layoutHeight * 2]);
     expect(image.data.some(byte => byte < 100)).toBe(true);
   });
 
@@ -280,13 +278,11 @@ describe('real Takumi rendering', () => {
     const request = { template: 'test-typography', data, format: 'png' as const };
     const before = await previous.render(request);
     expect(before.warnings).toEqual(['MISSING_GLYPH']);
-    const repeated = await renderer.render(request);
-    expect(repeated.warnings).toEqual([]);
-    expect(repeated.body).not.toEqual(before.body);
-    const png = await renderer.render({ ...request, format: 'png' });
+    const png = await renderer.render(request);
     expect(png.warnings).toEqual([]);
+    expect(png.body).not.toEqual(before.body);
     const image = PNG.sync.read(Buffer.from(png.body));
-    expect([image.width, image.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
+    expect([image.width, image.height]).toEqual([png.layoutWidth * 2, png.layoutHeight * 2]);
     expect(image.data.some(byte => byte < 100)).toBe(true);
   });
 
@@ -310,25 +306,21 @@ describe('real Takumi rendering', () => {
         };
         const before = await previous.render(request);
         expect(before.warnings).toEqual(['MISSING_GLYPH']);
-        const repeated = await renderer.render(request);
-        const png = await renderer.render({ ...request, format: 'png' });
-        expect(repeated.warnings).toEqual([]);
+        const png = await renderer.render(request);
         expect(png.warnings).toEqual([]);
-        expect(repeated.body).not.toEqual(before.body);
+        expect(png.body).not.toEqual(before.body);
         const image = PNG.sync.read(Buffer.from(png.body));
-        expect([image.width, image.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
+        expect([image.width, image.height]).toEqual([png.layoutWidth * 2, png.layoutHeight * 2]);
       }
-      for (const format of ['png'] as const) {
-        const request = {
-          template: 'example',
-          data: { text: '中文 日本語 한국어 Hello ⏻ 𓀀 𖤐 𒀀 🐶🧡 👩‍💻', monospace },
-          format,
-        };
-        const before = await previous.render(request);
-        const after = await renderer.render(request);
-        expect(after.warnings).toEqual([]);
-        expect(after.width).toBe(before.width);
-      }
+      const request = {
+        template: 'example',
+        data: { text: '中文 日本語 한국어 Hello ⏻ 𓀀 𖤐 𒀀 🐶🧡 👩‍💻', monospace },
+        format: 'png' as const,
+      };
+      const before = await previous.render(request);
+      const after = await renderer.render(request);
+      expect(after.warnings).toEqual([]);
+      expect(after.width).toBe(before.width);
     },
   );
 
@@ -338,15 +330,13 @@ describe('real Takumi rendering', () => {
       data: { text: '中文 A\u{10ffff}B\u{10fffe}C', monospace },
       watermark: 'Missing \u{10ffff}',
     };
-    const repeated = await renderer.render({ ...request, format: 'png' });
     const png = await renderer.render({ ...request, format: 'png' });
-    expect(repeated.warnings).toEqual(['MISSING_GLYPH']);
-    expect(png.warnings).toEqual(repeated.warnings);
-    expect([png.width, png.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
-    expect(PNG.sync.read(Buffer.from(png.body)).width).toBe(png.width);
+    expect(png.warnings).toEqual(['MISSING_GLYPH']);
+    const image = PNG.sync.read(Buffer.from(png.body));
+    expect([image.width, image.height]).toEqual([png.layoutWidth * 2, png.layoutHeight * 2]);
   });
   it('keeps the flat rounded card inside the PNG canvas', async () => {
-    const result = await render({ title: '扁平卡片', body: '卡片外围保留紧凑留白。' }, 'png');
+    const result = await render({ title: '扁平卡片', body: '卡片外围保留紧凑留白。' });
     const png = PNG.sync.read(Buffer.from(result.body));
     const pixel = (x: number, y: number) => [
       ...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 4),

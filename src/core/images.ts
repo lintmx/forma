@@ -92,7 +92,6 @@ export function imageAsset(buffer: Buffer, config: Config): ImageAsset {
     data: buffer,
     width: size.width,
     height: size.height,
-    format: size.type as ImageAsset['format'],
     cache: 'auto',
   };
 }
@@ -102,7 +101,6 @@ export interface ImageAsset {
   data: Buffer;
   width: number;
   height: number;
-  format: 'png' | 'jpg' | 'webp';
   cache: 'auto' | 'none';
 }
 
@@ -123,10 +121,6 @@ export class ImageStore {
     private config: Config,
     private download = downloadImage,
   ) {}
-
-  withPrefix(prefix?: string): ImageLoader {
-    return { get: async input => this.get(resolveAssetUrl(input, prefix)) };
-  }
 
   async withAttachments(attachments: Attachments, prefix?: string): Promise<ImageLoader> {
     const local = new Map<string, ImageAsset>();

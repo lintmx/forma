@@ -29,13 +29,4 @@ export const colors = {
   surface: '#f6f8fa',
 };
 
-export const proseSpacing = { paragraph: 12, headingBefore: 24, headingAfter: 12, listItem: 8, indent: 24 };
-
-export function markdownHeading(depth: number): CSSProperties {
-  return {
-    fontSize: [28, 24, 20, 18, 16, 16][depth - 1] ?? 16,
-    fontWeight: 700,
-    lineHeight: 1.35,
-    ...(depth === 6 ? { color: colors.muted } : {}),
-  };
-}
+export const proseSpacing = { listItem: 8, indent: 24 };

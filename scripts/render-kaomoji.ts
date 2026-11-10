@@ -99,18 +99,16 @@ for (const [variant, renderer] of Object.entries(renderers)) {
 }
 // Existing multilingual text remains covered after adding the fallback family.
 for (const monospace of [false, true]) {
-  for (const format of ['png'] as const) {
-    const request = {
-      template: 'example',
-      data: { text: '中文 日本語 한국어 Hello ⏻ 𓀀 𖤐 𒀀 🐶🧡 👩‍💻', monospace },
-      format,
-    };
-    const before = await renderers.before.render(request);
-    const after = await renderers.after.render(request);
-    assert.deepEqual(after.warnings, []);
-    assert.deepEqual(before.warnings, []);
-    assert.equal(after.width, before.width);
-  }
+  const request = {
+    template: 'example',
+    data: { text: '中文 日本語 한국어 Hello ⏻ 𓀀 𖤐 𒀀 🐶🧡 👩‍💻', monospace },
+    format: 'png' as const,
+  };
+  const before = await renderers.before.render(request);
+  const after = await renderers.after.render(request);
+  assert.deepEqual(after.warnings, []);
+  assert.deepEqual(before.warnings, []);
+  assert.equal(after.width, before.width);
 }
 const before = await sharp(resolve(directory, 'before-body.png')).metadata();
 const after = await sharp(resolve(directory, 'after-body.png')).metadata();

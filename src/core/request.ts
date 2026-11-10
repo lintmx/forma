@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { assetUrlPrefixSchema } from './asset-url.js';
 
-export const cardOptionsSchema = z.object({
+const cardOptionsSchema = z.object({
   watermark: z.string().trim().max(160).optional().describe('卡片外底部水印，最多 160 字符；省略或留空时隐藏'),
 });
 export type CardOptions = z.infer<typeof cardOptionsSchema>;

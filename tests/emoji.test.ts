@@ -27,8 +27,7 @@ let renderer: Renderer;
 beforeAll(async () => {
   renderer = new Renderer(config, await loadFonts(config.fontConfig), registry);
 });
-const render = (text: string, format: 'png' = 'png') =>
-  renderer.render({ template: 'example', data: { text }, format });
+const render = (text: string) => renderer.render({ template: 'example', data: { text }, format: 'png' });
 
 describe('emoji sequences and missing glyph policy', () => {
   it.each([
@@ -102,20 +101,20 @@ describe('emoji sequences and missing glyph policy', () => {
     expect(images(await prepare(img, warn))).toEqual(['https://example.com/💕.png']);
   });
 
-  it.each(['png'] as const)('continues %s rendering with one warning and visible placeholders', async format => {
-    const result = await render('中文 A😀‍🚀B\n日本語 C\u{1FAFF}D\n正常 💕︎', format);
+  it('continues PNG rendering with one warning and visible placeholders', async () => {
+    const result = await render('中文 A😀‍🚀B\n日本語 C\u{1FAFF}D\n正常 💕︎');
     expect(result.warnings).toEqual(['EMOJI_UNAVAILABLE']);
     const png = await sharp(result.body).metadata();
     expect([png.width, png.height]).toEqual([result.width, result.height]);
-    const clean = await render('正常 💕︎', format);
+    const clean = await render('正常 💕︎');
     expect(clean.warnings).toEqual([]);
   });
 
-  it.each(['png'] as const)('renders missing text beside unsupported emoji in %s', async format => {
-    const result = await render('中文 A😀‍🚀B\u{10FFFF}C\u{10FFFE}D\u{10FFFF}', format);
+  it('renders missing text beside unsupported emoji in PNG', async () => {
+    const result = await render('中文 A😀‍🚀B\u{10FFFF}C\u{10FFFE}D\u{10FFFF}');
     expect(result.warnings).toEqual(['EMOJI_UNAVAILABLE', 'MISSING_GLYPH']);
     expect(result.body.byteLength).toBeGreaterThan(0);
-    expect((await render('中文 正常 💕︎', format)).warnings).toEqual([]);
+    expect((await render('中文 正常 💕︎')).warnings).toEqual([]);
   });
 
   it('shares sequence handling with intrinsic measurement, nested content and watermark', async () => {
@@ -124,12 +123,11 @@ describe('emoji sequences and missing glyph policy', () => {
       data: { author: { name: '作者 💕︎' }, content: '中文 \u{10FFFF} 🫸🏽 🏳️‍🌈 🧑🏽‍🩰\n' + '長い文章 💕︎ '.repeat(30) },
       watermark: 'Generated 🫪 😀‍🚀 \u{10FFFE}',
     };
-    const repeated = await renderer.render({ ...request, format: 'png' });
     const png = await renderer.render({ ...request, format: 'png' });
-    expect([png.width, png.height]).toEqual([repeated.layoutWidth * 2, repeated.layoutHeight * 2]);
-    expect(repeated.warnings.toSorted()).toEqual(['EMOJI_UNAVAILABLE', 'MISSING_GLYPH']);
-    expect(png.warnings).toEqual(repeated.warnings);
-    expect(repeated.layoutWidth).toBeLessThanOrEqual(700);
+    const decoded = await sharp(png.body).metadata();
+    expect([decoded.width, decoded.height]).toEqual([png.layoutWidth * 2, png.layoutHeight * 2]);
+    expect(png.warnings.toSorted()).toEqual(['EMOJI_UNAVAILABLE', 'MISSING_GLYPH']);
+    expect(png.layoutWidth).toBeLessThanOrEqual(700);
   });
 });
 

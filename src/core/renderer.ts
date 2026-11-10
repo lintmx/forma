@@ -29,7 +29,7 @@ function visibleCodepoints(node: Node, points = new Set<number>()) {
   } else if (node.type === 'container') {
     for (const child of node.children ?? []) visibleCodepoints(child, points);
   }
-  return [...points].sort((a, b) => a - b).map(point => [point, point] as [number, number]);
+  return points;
 }
 
 export class Renderer {
@@ -115,7 +115,9 @@ export class Renderer {
     const node = await prepareEmoji(converted.node, () => warnings.add('EMOJI_UNAVAILABLE'), sources);
     // A lazy, last-choice family is requested by Takumi only when its actual font
     // matcher exhausts the configured stack. No independent cmap guess is needed.
-    const unicodeRange = visibleCodepoints(node);
+    const unicodeRange = [...visibleCodepoints(node)]
+      .sort((a, b) => a - b)
+      .map(point => [point, point] as [number, number]);
     const diagnostic: FontLoader = {
       name: diagnosticFamily,
       unicodeRange,

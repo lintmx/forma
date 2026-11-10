@@ -79,7 +79,7 @@ function mockImages() {
     return imageAsset(imageBuffer(url), config);
   });
 }
-const render = (data: unknown, format: 'png' = 'png') => renderer.render({ template: 'social_post', data, format });
+const render = (data: unknown) => renderer.render({ template: 'social_post', data, format: 'png' });
 
 describe('social_post contract', () => {
   it('matches built-in source logos and canonical names by exact alias', () => {
@@ -154,11 +154,11 @@ describe('social_post contract', () => {
     expect(urls).not.toContain(source('reply-0'));
     expect(urls).not.toContain(source('reply-1'));
     expect(urls).not.toContain(source('hidden-quote'));
-    expect(assets['post-avatar']?.format).toBe('png');
-    expect(assets['post-media-0']?.format).toBe('png');
+    expect(assets['post-avatar']?.data).toEqual(imageBuffer(source('red')));
+    expect(assets['post-media-0']?.data).toEqual(imageBuffer(source('blue')));
     expect(assets).not.toHaveProperty('post-media-1');
     expect(assets['post-media-2']).toBeUndefined();
-    expect(assets['reply-0-avatar']?.format).toBe('png');
+    expect(assets['reply-0-avatar']?.data).toEqual(imageBuffer(source('reply-2')));
   });
 });
 
@@ -189,8 +189,8 @@ describe('social_post real Takumi output', () => {
       );
       expect(highlighted).toEqual([...expected, ...expected]);
       expect(html).not.toContain('#2563eb');
-      const repeated = await render(data, 'png');
-      expect(countBlue(repeated.body)).toBeGreaterThan(20);
+      const result = await render(data);
+      expect(countBlue(result.body)).toBeGreaterThan(20);
     }
     const result = await render(snapshot);
     expect(result.warnings).toEqual([]);
@@ -206,10 +206,10 @@ describe('social_post real Takumi output', () => {
     expect(long.layoutWidth).toBe(700);
     expect(long.height).toBeGreaterThan(short.height + 200);
     expect(short.height).toBeGreaterThan(empty.height);
-    expect((await render({ content: '✨ 👩‍💻 你好 日本語 Hello' }, 'png')).warnings).toEqual([]);
+    expect((await render({ content: '✨ 👩‍💻 你好 日本語 Hello' })).warnings).toEqual([]);
   });
   it('uses the same safe inline token styling in the main post, translation, reply and quote', async () => {
-    const plain = await render({ content: '#123 #456' }, 'png');
+    const plain = await render({ content: '#123 #456' });
     expect(countBlue(plain.body)).toBe(0);
     for (const data of [
       { content: '正文 #中文 @forma https://example.com' },
@@ -217,7 +217,7 @@ describe('social_post real Takumi output', () => {
       { postKind: 'reply', replyChain: [{ content: '回复 #话题 @forma' }] },
       { postKind: 'quote', quotedPost: { content: '引用 #話題 @forma' } },
     ]) {
-      const result = await render(data, 'png');
+      const result = await render(data);
       expect(countBlue(result.body)).toBeGreaterThan(20);
     }
     await expect(render({ content: '<script>alert(1)</script> **plain text**' })).resolves.toMatchObject({
@@ -236,7 +236,7 @@ describe('social_post real Takumi output', () => {
       '普通正文 中文 日本語 한국어 English\n第二行没有着色标记。',
     ]) {
       const data = { content };
-      const colored = await render(data, 'png');
+      const colored = await render(data);
       const plain = await renderer.render({ template: 'test-social-plain', data, format: 'png' });
       expect([colored.width, colored.height]).toEqual([plain.width, plain.height]);
     }
@@ -304,7 +304,7 @@ describe('social_post real Takumi output', () => {
     'renders %s media as embedded images with no remote references',
     async mediaLayout => {
       mockImages();
-      const result = await render({ media, mediaLayout }, 'png');
+      const result = await render({ media, mediaLayout });
       expect(result.warnings).toEqual([]);
       const decoded = PNG.sync.read(Buffer.from(result.body));
       expect([decoded.width, decoded.height]).toEqual([result.width, result.height]);
@@ -357,13 +357,10 @@ describe('social_post real Takumi output', () => {
   });
   it('preserves successful images, warns on failures and does not download an audio-only post', async () => {
     const get = mockImages();
-    const result = await render(
-      {
-        author: { name: '作者', avatarUrl: source('missing-avatar') },
-        media: [{ url: source('red') }, { url: source('missing') }, { type: 'gif', url: source('blue') }],
-      },
-      'png',
-    );
+    const result = await render({
+      author: { name: '作者', avatarUrl: source('missing-avatar') },
+      media: [{ url: source('red') }, { url: source('missing') }, { type: 'gif', url: source('blue') }],
+    });
     expect(result.warnings).toEqual(['IMAGE_UNAVAILABLE']);
     expect(PNG.sync.read(Buffer.from(result.body)).width).toBe(result.width);
     get.mockClear();
@@ -381,7 +378,7 @@ describe('social_post real Takumi output', () => {
     { source: '来源'.repeat(12), url: 'https://example.com/post/1' },
   ])('expands to fit footer metadata without premature truncation: %j', async metadata => {
     const data = { content: '简短正文', ...metadata };
-    const result = await render(data, 'png');
+    const result = await render(data);
     expect(result.layoutWidth).toBeGreaterThan(400);
     expect(result.layoutWidth).toBeLessThan(700);
     const converted = await fromJsx(
@@ -399,10 +396,11 @@ describe('social_post real Takumi output', () => {
     expect(text).not.toContain('…');
   });
   it('caps footer-driven width at the template maximum', async () => {
-    const result = await render(
-      { content: '正文', source: '来源'.repeat(70), url: 'https://example.com/' + 'x'.repeat(500) },
-      'png',
-    );
+    const result = await render({
+      content: '正文',
+      source: '来源'.repeat(70),
+      url: 'https://example.com/' + 'x'.repeat(500),
+    });
     expect(result.layoutWidth).toBe(700);
   });
   it('keeps brand names and URL prefixes visible when a long address is truncated', async () => {

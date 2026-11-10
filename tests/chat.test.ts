@@ -94,15 +94,13 @@ it('wraps multilingual translations and sent times while preserving legacy messa
         sentAt: `2026-10-23 18:3${index}:00 +08:00${count > 1 ? '（星期五 / Friday / 金曜日）' : ''}`,
       })),
     };
-    const repeated = await renderer.render({ template: 'chat', data: translated, format: 'png' });
     const png = await renderer.render({ template: 'chat', data: translated, format: 'png' });
-    expect(repeated.layoutWidth).toBeGreaterThanOrEqual(440);
-    expect(repeated.layoutWidth).toBeLessThanOrEqual(600);
-    expect(png.width).toBe(repeated.layoutWidth * 2);
-    expect(png.height).toBe(repeated.layoutHeight * 2);
-    expect(repeated.warnings).toEqual([]);
+    expect(png.layoutWidth).toBeGreaterThanOrEqual(440);
+    expect(png.layoutWidth).toBeLessThanOrEqual(600);
+    expect(png.width).toBe(png.layoutWidth * 2);
+    expect(png.height).toBe(png.layoutHeight * 2);
     expect(png.warnings).toEqual([]);
-    heights.push(repeated.layoutHeight);
+    heights.push(png.layoutHeight);
     await writeFile(`artifacts/chat/translation-${count}.png`, png.body);
   }
   expect(heights[0]).toBeGreaterThan(legacy.layoutHeight);
@@ -111,13 +109,11 @@ it('wraps multilingual translations and sent times while preserving legacy messa
 
 it('renders the conversation as real 2x PNG with incoming and outgoing bubbles', async () => {
   const png = await renderer.render({ template: 'chat', data: chat.mock, format: 'png' });
-  const repeated = await renderer.render({ template: 'chat', data: chat.mock, format: 'png' });
-  expect(repeated.layoutWidth).toBeGreaterThan(440);
-  expect(repeated.layoutWidth).toBeLessThan(600);
-  expect(png.width).toBe(repeated.layoutWidth * 2);
-  expect(png.height).toBe(repeated.layoutHeight * 2);
+  expect(png.layoutWidth).toBeGreaterThan(440);
+  expect(png.layoutWidth).toBeLessThan(600);
+  expect(png.width).toBe(png.layoutWidth * 2);
+  expect(png.height).toBe(png.layoutHeight * 2);
   expect(png.warnings).toEqual([]);
-  expect(repeated.warnings).toEqual([]);
   const pixels = PNG.sync.read(Buffer.from(png.body));
   const bubblePixels = [0, 0];
   for (let y = 180; y < pixels.height - 160; y++) {
@@ -143,13 +139,11 @@ it.each(['left', 'right'] as const)(
       ['long', '中文 日本語 한국어 English 👩🏽‍💻 https://example.com/'.repeat(8)],
     ] as const) {
       const data = { title: '聊天', messages: [{ type: 'text', side, text, sentAt: '18:30' }] };
-      const repeated = await renderer.render({ template: 'chat', data, format: 'png' });
       const png = await renderer.render({ template: 'chat', data, format: 'png' });
-      expect(png.width).toBe(repeated.layoutWidth * 2);
-      expect(png.height).toBe(repeated.layoutHeight * 2);
-      expect(repeated.warnings).toEqual([]);
+      expect(png.width).toBe(png.layoutWidth * 2);
+      expect(png.height).toBe(png.layoutHeight * 2);
       expect(png.warnings).toEqual([]);
-      sizes.push(repeated);
+      sizes.push(png);
       await writeFile(`artifacts/chat/adaptive-${side}-${name}.png`, png.body);
     }
     expect(sizes[0]!.layoutWidth).toBe(440);
@@ -184,9 +178,8 @@ it('grows with long multilingual messages and preserves explicit newlines', asyn
       ],
     };
     const png = await renderer.render({ template: 'chat', data, format: 'png' });
-    const repeated = await renderer.render({ template: 'chat', data, format: 'png' });
     expect(png.width).toBe(1200);
-    expect(png.height).toBe(repeated.layoutHeight * 2);
+    expect(png.height).toBe(png.layoutHeight * 2);
     expect(png.warnings).toEqual([]);
     heights.push(png.height);
     if (count === 8) {
@@ -209,26 +202,24 @@ it('loads real avatars and pictures, and renders missing resources with warnings
         { type: 'text', side: 'right', text: '收到啦 📷' },
       ],
     };
-    for (const format of ['png'] as const) {
-      const result = await renderer.render({ template: 'chat', data, format });
-      expect(result.warnings).toEqual(name === 'missing' ? ['IMAGE_UNAVAILABLE'] : []);
-      if (format === 'png' && name === 'images') {
-        const pixels = PNG.sync.read(Buffer.from(result.body));
-        let imagePixels = 0;
-        for (let i = 0; i < pixels.data.length; i += 4) {
-          if (
-            Math.abs(pixels.data[i + 2]! - 190) < 35 &&
-            pixels.data[i]! >= 50 &&
-            pixels.data[i]! < 200 &&
-            pixels.data[i + 1]! > 90 &&
-            pixels.data[i + 1]! < 230
-          )
-            imagePixels++;
-        }
-        expect(imagePixels).toBeGreaterThan(30000);
+    const result = await renderer.render({ template: 'chat', data, format: 'png' });
+    expect(result.warnings).toEqual(name === 'missing' ? ['IMAGE_UNAVAILABLE'] : []);
+    if (name === 'images') {
+      const pixels = PNG.sync.read(Buffer.from(result.body));
+      let imagePixels = 0;
+      for (let i = 0; i < pixels.data.length; i += 4) {
+        if (
+          Math.abs(pixels.data[i + 2]! - 190) < 35 &&
+          pixels.data[i]! >= 50 &&
+          pixels.data[i]! < 200 &&
+          pixels.data[i + 1]! > 90 &&
+          pixels.data[i + 1]! < 230
+        )
+          imagePixels++;
       }
-      await writeFile(`artifacts/chat/${name}.${format}`, result.body);
+      expect(imagePixels).toBeGreaterThan(30000);
     }
+    await writeFile(`artifacts/chat/${name}.png`, result.body);
   }
 });
 
@@ -237,7 +228,6 @@ it('renders an empty chat and allows hiding the input decoration', async () => {
   const withInput = await renderer.render({ template: 'chat', data, format: 'png' });
   const withoutInput = await renderer.render({ template: 'chat', data: { ...data, showInput: false }, format: 'png' });
   expect(withInput.layoutHeight - withoutInput.layoutHeight).toBe(48);
-  const png = await renderer.render({ template: 'chat', data, format: 'png' });
-  expect(png.warnings).toEqual([]);
-  await writeFile('artifacts/chat/empty.png', png.body);
+  expect(withInput.warnings).toEqual([]);
+  await writeFile('artifacts/chat/empty.png', withInput.body);
 });

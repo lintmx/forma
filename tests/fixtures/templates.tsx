@@ -14,7 +14,7 @@ const schema = z
   .strict();
 type Content = z.infer<typeof schema>;
 
-export const contentFixture: Template<Content> = {
+const contentFixture: Template<Content> = {
   id: 'test-content',
   name: 'Content fixture',
   description: 'Intrinsic width and natural height',
@@ -40,7 +40,7 @@ export const contentFixture: Template<Content> = {
   ),
 };
 
-export const autoHeightFixture: Template<Content> = {
+const autoHeightFixture: Template<Content> = {
   ...contentFixture,
   id: 'test-auto-height',
   name: 'Auto-height fixture',

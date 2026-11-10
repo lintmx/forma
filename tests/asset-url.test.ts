@@ -133,8 +133,8 @@ describe('asset URL prefix contract', () => {
     blue.data.set([0, 0, 255, 255]);
     const download = vi.fn(async (url: string) => PNG.sync.write(url.includes('/red/') ? red : blue));
     const store = new ImageStore(config, download);
-    const first = store.withPrefix('https://host/red/');
-    const second = store.withPrefix('https://host/blue/');
+    const first = await store.withAttachments(new Map(), 'https://host/red/');
+    const second = await store.withAttachments(new Map(), 'https://host/blue/');
     const [a, b, same, absolute] = await Promise.all([
       first.get('image.png'),
       second.get('image.png'),
@@ -149,6 +149,7 @@ describe('asset URL prefix contract', () => {
       'https://host/red/image.png',
       'https://host/blue/image.png',
     ]);
-    await expect(new ImageStore(config).withPrefix().get('image.png')).rejects.toThrow();
+    const withoutPrefix = await new ImageStore(config).withAttachments(new Map());
+    await expect(withoutPrefix.get('image.png')).rejects.toThrow();
   });
 });

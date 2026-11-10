@@ -472,9 +472,8 @@ it.each(['vertical', 'grid', 'collage'] as const)(
       }
     }
     expect(redPixels).toBeGreaterThan(10000);
-    const repeated = await renderer.render({ template: 'article', data, format: 'png' });
-    expect(repeated.layoutWidth).toBe(700);
-    expect(repeated.layoutHeight * 2).toBe(result.height);
+    expect(result.layoutWidth).toBe(700);
+    expect(result.layoutHeight * 2).toBe(png.height);
     await mkdir('artifacts/article', { recursive: true });
     await writeFile('artifacts/article/media-' + mediaLayout + '.png', result.body);
     const noTranslation = await renderer.render({

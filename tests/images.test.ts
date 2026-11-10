@@ -82,7 +82,7 @@ describe('bounded image resources', () => {
     expect(() => imageAsset(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'), config)).toThrow();
     expect(() => imageAsset(png, { ...config, imageMaxBytes: 1 })).toThrow();
     expect(() => imageAsset(png, { ...config, imageMaxPixels: 1 })).toThrow();
-    expect(imageAsset(png, config)).toMatchObject({ data: png, width: 2, height: 2, format: 'png' });
+    expect(imageAsset(png, config)).toMatchObject({ data: png, width: 2, height: 2 });
   });
   it('preserves validated WebP bytes and renders their pixels with Takumi', async () => {
     const webp = await sharp({
@@ -93,7 +93,6 @@ describe('bounded image resources', () => {
     const download = vi.fn(async () => webp);
     const store = new ImageStore(config, download);
     const data = await store.get('webp');
-    expect(data.format).toBe('webp');
     expect(data.data).toEqual(webp);
     const output = await new TakumiRenderer().render(
       { type: 'image', src: data.src },
