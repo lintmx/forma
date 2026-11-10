@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import sharp from 'sharp';
+import { imageSize } from 'image-size';
 import { loadConfig } from '../src/config.js';
 import { loadFonts } from '../src/core/fonts.js';
 import { Renderer } from '../src/core/renderer.js';
@@ -73,7 +73,7 @@ for (const { name, request } of samples) {
   }
   assert.deepEqual(warnings, []);
   await writeFile(resolve(directory, `${name}.png`), body);
-  const png = await sharp(body).metadata();
+  const png = imageSize(body);
   records.push({ name, png: [png.width, png.height], warnings: [] });
 }
 await writeFile(

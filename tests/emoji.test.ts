@@ -1,8 +1,8 @@
 import { readdir } from 'node:fs/promises';
 import type { ImageSource, Node } from '@takumi-rs/core';
 import { fromJsx } from '@takumi-rs/helpers/jsx';
+import { PNG } from 'pngjs';
 import { createElement, Fragment, type ReactNode } from 'react';
-import sharp from 'sharp';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { prepareEmoji } from '../src/core/emoji.js';
@@ -104,7 +104,7 @@ describe('emoji sequences and missing glyph policy', () => {
   it('continues PNG rendering with one warning and visible placeholders', async () => {
     const result = await render('中文 A😀‍🚀B\n日本語 C\u{1FAFF}D\n正常 💕︎');
     expect(result.warnings).toEqual(['EMOJI_UNAVAILABLE']);
-    const png = await sharp(result.body).metadata();
+    const png = PNG.sync.read(Buffer.from(result.body));
     expect([png.width, png.height]).toEqual([result.width, result.height]);
     const clean = await render('正常 💕︎');
     expect(clean.warnings).toEqual([]);
@@ -124,7 +124,7 @@ describe('emoji sequences and missing glyph policy', () => {
       watermark: 'Generated 🫪 😀‍🚀 \u{10FFFE}',
     };
     const png = await renderer.render({ ...request, format: 'png' });
-    const decoded = await sharp(png.body).metadata();
+    const decoded = PNG.sync.read(Buffer.from(png.body));
     expect([decoded.width, decoded.height]).toEqual([png.layoutWidth * 2, png.layoutHeight * 2]);
     expect(png.warnings.toSorted()).toEqual(['EMOJI_UNAVAILABLE', 'MISSING_GLYPH']);
     expect(png.layoutWidth).toBeLessThanOrEqual(700);
@@ -136,12 +136,12 @@ it('keeps multiline text aligned after inserting inline Emoji', async () => {
   const result = await render('Alpha 😀\nAlpha 🧡\nAlpha');
   expect(result.height).toBe(plain.height);
   expect(result.warnings).toEqual([]);
-  const { data, info } = await sharp(result.body).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { data, width } = PNG.sync.read(Buffer.from(result.body));
   const starts = [0, 1, 2].map(line => {
-    let left = info.width;
+    let left = width;
     for (let y = Math.ceil(57 + line * 51.2); y < Math.floor(57 + (line + 1) * 51.2); y++)
-      for (let x = 40; x < info.width - 40; x++) {
-        const offset = (y * info.width + x) * 3;
+      for (let x = 40; x < width - 40; x++) {
+        const offset = (y * width + x) * 4;
         if (data[offset]! < 100 && data[offset + 1]! < 110 && data[offset + 2]! < 120) left = Math.min(left, x);
       }
     return left;

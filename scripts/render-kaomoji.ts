@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import sharp from 'sharp';
+import { PNG } from 'pngjs';
 import { loadConfig } from '../src/config.js';
 import { loadFonts } from '../src/core/fonts.js';
 import { Renderer } from '../src/core/renderer.js';
@@ -110,21 +110,12 @@ for (const monospace of [false, true]) {
   assert.deepEqual(before.warnings, []);
   assert.equal(after.width, before.width);
 }
-const before = await sharp(resolve(directory, 'before-body.png')).metadata();
-const after = await sharp(resolve(directory, 'after-body.png')).metadata();
-await sharp({
-  create: {
-    width: before.width! + after.width!,
-    height: Math.max(before.height!, after.height!),
-    channels: 4,
-    background: '#f5f5f5',
-  },
-})
-  .composite([
-    { input: resolve(directory, 'before-body.png'), left: 0, top: 0 },
-    { input: resolve(directory, 'after-body.png'), left: before.width!, top: 0 },
-  ])
-  .png()
-  .toFile(resolve(directory, 'before-after.png'));
+const before = PNG.sync.read(await readFile(resolve(directory, 'before-body.png')));
+const after = PNG.sync.read(await readFile(resolve(directory, 'after-body.png')));
+const comparison = new PNG({ width: before.width + after.width, height: Math.max(before.height, after.height) });
+comparison.data.fill(Buffer.from([245, 245, 245, 255]));
+PNG.bitblt(before, comparison, 0, 0, before.width, before.height, 0, 0);
+PNG.bitblt(after, comparison, 0, 0, after.width, after.height, before.width, 0);
+await writeFile(resolve(directory, 'before-after.png'), PNG.sync.write(comparison));
 await writeFile(resolve(directory, 'results.json'), JSON.stringify(results, null, 2) + '\n');
 console.log(JSON.stringify({ directory, results, baselineCoverageVerified: true }, null, 2));

@@ -6,7 +6,6 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Renderer as TakumiRenderer } from '@takumi-rs/core';
 import { PNG } from 'pngjs';
-import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { downloadImage, ImageStore, imageAsset } from '../src/core/images.js';
@@ -85,11 +84,10 @@ describe('bounded image resources', () => {
     expect(imageAsset(png, config)).toMatchObject({ data: png, width: 2, height: 2 });
   });
   it('preserves validated WebP bytes and renders their pixels with Takumi', async () => {
-    const webp = await sharp({
-      create: { width: 4, height: 2, channels: 4, background: { r: 30, g: 100, b: 200, alpha: 1 } },
-    })
-      .webp({ lossless: true })
-      .toBuffer();
+    const webp = await new TakumiRenderer().render(
+      { type: 'container', style: { width: 4, height: 2, backgroundColor: 'rgb(30, 100, 200)' } },
+      { width: 4, height: 2, format: 'webp', lossless: true },
+    );
     const download = vi.fn(async () => webp);
     const store = new ImageStore(config, download);
     const data = await store.get('webp');

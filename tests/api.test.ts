@@ -4,11 +4,11 @@ import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { Renderer as TakumiRenderer } from '@takumi-rs/core';
 import { build } from 'esbuild';
 import { toNodeHandler } from 'h3/node';
 import { PNG } from 'pngjs';
 import { createElement } from 'react';
-import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { buildOptions } from '../scripts/build-options.js';
@@ -303,10 +303,12 @@ describe('HTTP end-to-end', () => {
   });
   it('renders uploaded images through real workers and isolates resource IDs', async () => {
     await mkdir('artifacts/uploads', { recursive: true });
-    const make = async (color: string, format: 'png' | 'jpeg' | 'webp') =>
-      sharp({ create: { width: 80, height: 40, channels: 3, background: color } })
-        .toFormat(format)
-        .toBuffer();
+    const encoder = new TakumiRenderer();
+    const make = (color: string, format: 'png' | 'jpeg' | 'webp') =>
+      encoder.render(
+        { type: 'container', style: { width: 80, height: 40, backgroundColor: color } },
+        { width: 80, height: 40, format },
+      );
     const upload = (bytes: Uint8Array, template = 'article') => {
       const body = new FormData();
       body.append('cover', new Blob([new Uint8Array(bytes)], { type: 'text/plain' }), 'untrusted.txt');

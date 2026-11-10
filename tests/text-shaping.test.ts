@@ -1,7 +1,7 @@
 import { type ImageSource, Renderer as TakumiRenderer } from '@takumi-rs/core';
 import { fromJsx } from '@takumi-rs/helpers/jsx';
+import { PNG } from 'pngjs';
 import { createElement } from 'react';
-import sharp from 'sharp';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { prepareEmoji } from '../src/core/emoji.js';
@@ -56,11 +56,24 @@ async function renderText(
 }
 
 async function ink(png: Buffer) {
-  return sharp(png)
-    .flatten({ background: 'white' })
-    .trim({ background: 'white', threshold: 8 })
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+  const image = PNG.sync.read(png);
+  let left = image.width;
+  let top = image.height;
+  let right = -1;
+  let bottom = -1;
+  for (let y = 0; y < image.height; y++)
+    for (let x = 0; x < image.width; x++) {
+      const offset = (y * image.width + x) * 4;
+      if (image.data[offset]! >= 247 && image.data[offset + 1]! >= 247 && image.data[offset + 2]! >= 247) continue;
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+  expect(right).toBeGreaterThanOrEqual(left);
+  const trimmed = new PNG({ width: right - left + 1, height: bottom - top + 1 });
+  PNG.bitblt(image, trimmed, left, top, trimmed.width, trimmed.height, 0, 0);
+  return { data: trimmed.data, info: { width: trimmed.width, height: trimmed.height } };
 }
 
 async function expectSameInk(actual: Buffer, reference: Buffer) {
@@ -77,7 +90,7 @@ async function expectSameInk(actual: Buffer, reference: Buffer) {
     let unmatched = 0;
     for (let y = 0; y < source!.info.height; y++)
       for (let x = 0; x < source!.info.width; x++) {
-        if (source!.data[(y * source!.info.width + x) * 3]! >= 128) continue;
+        if (source!.data[(y * source!.info.width + x) * 4]! >= 128) continue;
         pixels++;
         let match = false;
         for (let dy = -1; dy <= 1; dy++)
@@ -89,7 +102,7 @@ async function expectSameInk(actual: Buffer, reference: Buffer) {
               ty >= 0 &&
               tx < target!.info.width &&
               ty < target!.info.height &&
-              target!.data[(ty * target!.info.width + tx) * 3]! < 128
+              target!.data[(ty * target!.info.width + tx) * 4]! < 128
             )
               match = true;
           }
@@ -101,27 +114,23 @@ async function expectSameInk(actual: Buffer, reference: Buffer) {
 }
 
 async function row(png: Buffer, index: number) {
-  return sharp(png)
-    .extract({ left: 0, top: index * 144, width: 1600, height: 144 })
-    .png()
-    .toBuffer();
+  const cropped = new PNG({ width: 1600, height: 144 });
+  PNG.bitblt(PNG.sync.read(png), cropped, 0, index * 144, cropped.width, cropped.height, 0, 0);
+  return PNG.sync.write(cropped);
 }
 
 // Compare ordered ink bands so the two layout paths may use different space advances.
 // Bands are split only at entirely empty columns; joining and visual order remain observable.
 async function inkBands(png: Buffer) {
-  const { data, info } = await sharp(png)
-    .flatten({ background: 'white' })
-    .removeAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+  const image = PNG.sync.read(png);
+  const { data, width, height } = image;
   const ranges: { left: number; width: number }[] = [];
   let start = -1;
-  for (let x = 0; x <= info.width; x++) {
+  for (let x = 0; x <= width; x++) {
     let occupied = false;
-    if (x < info.width)
-      for (let y = 0; y < info.height; y++) {
-        if (data[(y * info.width + x) * 3]! < 128) {
+    if (x < width)
+      for (let y = 0; y < height; y++) {
+        if (data[(y * width + x) * 4]! < 128) {
           occupied = true;
           break;
         }
@@ -132,14 +141,11 @@ async function inkBands(png: Buffer) {
       start = -1;
     }
   }
-  return Promise.all(
-    ranges.map(range =>
-      sharp(png)
-        .extract({ ...range, top: 0, height: info.height })
-        .png()
-        .toBuffer(),
-    ),
-  );
+  return ranges.map(range => {
+    const cropped = new PNG({ width: range.width, height });
+    PNG.bitblt(image, cropped, range.left, 0, range.width, height, 0, 0);
+    return PNG.sync.write(cropped);
+  });
 }
 
 describe('Takumi text shaping regressions', () => {

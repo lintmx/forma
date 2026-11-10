@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import sharp from 'sharp';
+import { Renderer as TakumiRenderer } from '@takumi-rs/core';
 import { loadConfig } from '../src/config.js';
 import { loadFonts } from '../src/core/fonts.js';
 import { Renderer } from '../src/core/renderer.js';
@@ -155,19 +155,23 @@ await mkdir(directory, { recursive: true });
 const registry = createTemplateRegistry();
 const config = loadConfig({ LOG_LEVEL: 'silent' });
 const renderer = new Renderer(config, await loadFonts(config.fontConfig), registry);
+const resizer = new TakumiRenderer({ cacheMaxBytes: 0 });
 const results = [];
 for (const { name, request } of samples) {
   const result = await renderer.render(request);
   if (result.warnings.length) throw new Error(name + ': ' + result.warnings.join(', '));
   await writeFile(resolve(directory, name + '.png'), result.body);
-  await sharp(result.body)
-    .resize(result.layoutWidth)
-    .png()
-    .toFile(resolve(directory, name + '-logical.png'));
-  await sharp(result.body)
-    .resize(390)
-    .png()
-    .toFile(resolve(directory, name + '-390.png'));
+  for (const [suffix, width] of [
+    ['logical', result.layoutWidth],
+    ['390', 390],
+  ] as const) {
+    const height = Math.round((result.height * width) / result.width);
+    const preview = await resizer.render(
+      { type: 'image', src: name, style: { width, height } },
+      { width, height, images: [{ src: name, data: result.body, cache: 'none' }], format: 'png' },
+    );
+    await writeFile(resolve(directory, name + '-' + suffix + '.png'), preview);
+  }
   results.push({ name, width: result.width, height: result.height, warnings: result.warnings });
 }
 await writeFile(resolve(directory, 'results.json'), JSON.stringify(results, null, 2) + '\n');

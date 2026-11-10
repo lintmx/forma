@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
+import { Renderer as TakumiRenderer } from '@takumi-rs/core';
 import { imageSize } from 'image-size';
-import sharp from 'sharp';
 import type { Config } from '../config.js';
 import { resolveAssetUrl } from './asset-url.js';
 import { FormaError } from './errors.js';
@@ -104,16 +104,17 @@ export interface ImageAsset {
   cache: 'auto' | 'none';
 }
 
-async function normalizeImage(buffer: Buffer, config: Config): Promise<ImageAsset> {
+async function normalizeImage(buffer: Buffer, config: Config, decoder: TakumiRenderer): Promise<ImageAsset> {
   const asset = imageAsset(buffer, config);
   // Validate remote files as well as uploads before templates choose their fallback.
-  await sharp(buffer, { limitInputPixels: config.imageMaxPixels, pages: 1 }).stats();
+  await decoder.measure({ type: 'image', src: asset.src }, { images: [{ ...asset, cache: 'none' }] });
   return asset;
 }
 
 export type ImageLoader = Pick<ImageStore, 'get'>;
 
 export class ImageStore {
+  private decoder = new TakumiRenderer({ cacheMaxBytes: 0 });
   private cache = new Map<string, { data: ImageAsset; expires: number; bytes: number }>();
   private inflight = new Map<string, Promise<ImageAsset>>();
   private bytes = 0;
@@ -126,7 +127,10 @@ export class ImageStore {
     const local = new Map<string, ImageAsset>();
     for (const [id, bytes] of attachments) {
       try {
-        local.set('asset:' + id, { ...(await normalizeImage(Buffer.from(bytes), this.config)), cache: 'none' });
+        local.set('asset:' + id, {
+          ...(await normalizeImage(Buffer.from(bytes), this.config, this.decoder)),
+          cache: 'none',
+        });
       } catch {
         throw new FormaError('INVALID_IMAGE', 'Invalid uploaded image', 422, { asset: id });
       }
@@ -153,7 +157,7 @@ export class ImageStore {
     if (pending) return pending;
     const promise = this.download(url, this.config)
       .then(async buffer => {
-        const data = await normalizeImage(buffer, this.config);
+        const data = await normalizeImage(buffer, this.config, this.decoder);
         const bytes = data.data.byteLength;
         if (bytes <= this.config.imageCacheBytes) {
           while (this.bytes + bytes > this.config.imageCacheBytes || this.cache.size >= 128)
